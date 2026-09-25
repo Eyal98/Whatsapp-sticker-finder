@@ -1,0 +1,50 @@
+# TEMPORARY: prints the LiteRT-LM Android library's versions and public API, so .litertlm model
+# support can be written against the real signatures. Delete once that code builds.
+name: LiteRT-LM API probe
+
+on:
+  push:
+    paths:
+      - .github/workflows/litertlm-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Versions
+        run: |
+          for g in com/google/ai/edge/litertlm com/google/ai/edge/litert; do
+            echo "== Google Maven $g"; curl -fsS "https://dl.google.com/android/maven2/$g/group-index.xml" || true; echo
+          done
+          echo "== Maven Central"
+          curl -fsS "https://repo1.maven.org/maven2/com/google/ai/edge/litertlm/litertlm-android/maven-metadata.xml" || true
+
+      - name: API
+        run: |
+          set +e
+          google=https://dl.google.com/android/maven2/com/google/ai/edge/litertlm/litertlm-android
+          central=https://repo1.maven.org/maven2/com/google/ai/edge/litertlm/litertlm-android
+          v=$(curl -fsS https://dl.google.com/android/maven2/com/google/ai/edge/litertlm/group-index.xml \
+                | grep -o 'litertlm-android versions="[^"]*"' | sed 's/.*versions="//; s/"$//' | tr ',' '\n' | tail -n 1)
+          [ -z "$v" ] && v=$(curl -fsS "$central/maven-metadata.xml" | grep -o '<latest>[^<]*' | sed 's/<latest>//')
+          echo "VERSION=$v"
+          for base in "$google" "$central"; do
+            curl -fsSL -o lib.aar "$base/$v/litertlm-android-$v.aar" && { echo "AAR from $base"; curl -fsS "$base/$v/litertlm-android-$v.pom"; break; }
+          done
+          [ -f lib.aar ] || { echo "no AAR found"; exit 0; }
+          unzip -o -q lib.aar classes.jar AndroidManifest.xml
+          echo "== Manifest"; cat AndroidManifest.xml
+          echo "== Native libs"; unzip -l lib.aar | grep '\.so' | head -20
+          classes=$(unzip -Z1 classes.jar | grep '\.class$' | grep -v '\$[0-9]' | sed 's/\.class$//; s#/#.#g')
+          echo "== Classes"; echo "$classes"
+          echo "== API"
+          for c in $classes; do javap -cp classes.jar "$c" 2>/dev/null | grep -v '^Compiled from'; done | head -n 900
