@@ -19,7 +19,7 @@ abstract class StickerDao {
     /** Records a changed file and marks it for re-indexing and re-captioning. */
     @Query(
         "UPDATE stickers SET sizeBytes = :sizeBytes, lastModified = :lastModified, " +
-            "indexedAt = NULL, captionedAt = NULL WHERE id = :id",
+            "indexedAt = NULL, captionedAt = NULL, indexAttempts = 0, captionAttempts = 0 WHERE id = :id",
     )
     abstract suspend fun markChanged(id: Long, sizeBytes: Long, lastModified: Long)
 
@@ -66,7 +66,7 @@ abstract class StickerDao {
 
     @Query(
         "SELECT * FROM stickers WHERE indexedAt IS NULL OR indexVersion < :version " +
-            "ORDER BY lastModified DESC LIMIT :limit",
+            "ORDER BY indexAttempts ASC, lastModified DESC LIMIT :limit",
     )
     abstract suspend fun needingIndex(version: Int, limit: Int): List<StickerEntity>
 
@@ -89,7 +89,7 @@ abstract class StickerDao {
     /** Stickers the basic indexer is done with but the caption model hasn't seen; favorites first. */
     @Query(
         "SELECT * FROM stickers WHERE captionedAt IS NULL AND indexedAt IS NOT NULL " +
-            "ORDER BY starred DESC, useCount DESC, lastModified DESC LIMIT :limit",
+            "ORDER BY captionAttempts ASC, starred DESC, useCount DESC, lastModified DESC LIMIT :limit",
     )
     abstract suspend fun needingCaption(limit: Int): List<StickerEntity>
 
@@ -101,6 +101,12 @@ abstract class StickerDao {
 
     @Query("SELECT COUNT(*) FROM stickers WHERE captionedAt IS NULL")
     abstract fun observeCaptionPendingCount(): Flow<Int>
+
+    @Query("UPDATE stickers SET indexAttempts = indexAttempts + 1 WHERE id = :id")
+    abstract suspend fun markIndexAttempt(id: Long)
+
+    @Query("UPDATE stickers SET captionAttempts = captionAttempts + 1 WHERE id = :id")
+    abstract suspend fun markCaptionAttempt(id: Long)
 
     @Query("UPDATE stickers SET userTags = :tags WHERE id = :id")
     abstract suspend fun setTags(id: Long, tags: String)

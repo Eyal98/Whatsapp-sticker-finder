@@ -41,6 +41,14 @@ data class StickerEntity(
     val indexedAt: Long? = null,
     /** Which [IndexVersion] produced the indexed fields; older rows are processed again. */
     @ColumnInfo(defaultValue = "0") val indexVersion: Int = 0,
+    /**
+     * Times indexing started on this file without finishing. Counted before the work starts, so
+     * a file that crashes or hangs the native decoder/OCR goes to the back of the queue and is
+     * eventually indexed without the step that fails, instead of blocking everything after it.
+     */
+    @ColumnInfo(defaultValue = "0") val indexAttempts: Int = 0,
+    /** The same, for captioning. */
+    @ColumnInfo(defaultValue = "0") val captionAttempts: Int = 0,
 )
 
 /** What the indexer extracts. Bump [CURRENT] when it learns something new, to re-index old rows. */

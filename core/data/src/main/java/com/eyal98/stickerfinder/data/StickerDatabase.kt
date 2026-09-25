@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [StickerEntity::class, StickerFts::class, StickerVector::class],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class StickerDatabase : RoomDatabase() {
@@ -22,7 +22,7 @@ abstract class StickerDatabase : RoomDatabase() {
         // TODO(Phase 4): encrypt at rest with SQLCipher, key wrapped by Android Keystore.
         fun create(context: Context): StickerDatabase =
             Room.databaseBuilder(context.applicationContext, StickerDatabase::class.java, NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 .build()
 
         /** Adds [StickerEntity.indexVersion]; existing rows start at 0 so they get OCR'd. */
@@ -49,6 +49,14 @@ abstract class StickerDatabase : RoomDatabase() {
                         "`model` TEXT NOT NULL, `fingerprint` INTEGER NOT NULL, `vector` BLOB NOT NULL, " +
                         "PRIMARY KEY(`stickerId`))",
                 )
+            }
+        }
+
+        /** Adds per-sticker attempt counters so one bad file can't stall indexing. */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stickers ADD COLUMN indexAttempts INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE stickers ADD COLUMN captionAttempts INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

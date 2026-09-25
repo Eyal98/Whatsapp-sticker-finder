@@ -10,11 +10,13 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.eyal98.stickerfinder.index.WorkBudget.Companion.continueSoon
 import com.eyal98.stickerfinder.data.StickerDatabase
 import com.eyal98.stickerfinder.data.StickerRepository
 import com.eyal98.stickerfinder.embed.EmbedderHolder
 import com.eyal98.stickerfinder.ocr.TesseractTextReader
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.cancellation.CancellationException
 
 /** Implemented by the Application so the worker can reach the shared database. */
 interface StickerIndexHost {
@@ -37,13 +39,14 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         if (textReader == null) Log.w(TAG, "OCR unavailable")
         return try {
             StickerScanner(resolver, dao).scan(treeUri)
-            // OCR takes a fraction of a second per sticker, so a first run over a large folder
-            // may hit WorkManager's time limit; the work is then stopped and resumes later from
-            // where it left off, since each sticker is saved as soon as it's done.
-            val indexed = StickerIndexer(resolver, dao, host.repository, textReader).indexPending()
+            // OCR takes a fraction of a second per sticker, so a large folder takes several runs:
+            // each stops before Android's time limit and asks to continue shortly after.
+            val progress = StickerIndexer(resolver, dao, host.repository, textReader).indexPending()
             // New printed text changes what stickers mean for semantic search.
-            if (indexed > 0) EmbedWorker.runNow(applicationContext)
-            Result.success()
+            if (progress.processed > 0) EmbedWorker.runNow(applicationContext)
+            if (progress.finished) Result.success() else Result.retry()
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: SecurityException) {
             Log.w(TAG, "Folder access was revoked", e)
             Result.failure()
@@ -65,7 +68,7 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             WorkManager.getInstance(context).enqueueUniqueWork(
                 NOW,
                 ExistingWorkPolicy.KEEP,
-                OneTimeWorkRequestBuilder<IndexWorker>().build(),
+                OneTimeWorkRequestBuilder<IndexWorker>().continueSoon().build(),
             )
         }
 
@@ -77,6 +80,7 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
                 ExistingPeriodicWorkPolicy.KEEP,
                 PeriodicWorkRequestBuilder<IndexWorker>(6, TimeUnit.HOURS)
                     .setConstraints(constraints)
+                    .continueSoon()
                     .build(),
             )
         }

@@ -10,6 +10,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.eyal98.stickerfinder.index.WorkBudget.Companion.continueSoon
 import com.eyal98.stickerfinder.caption.MediaPipeCaptioner
 import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ml.ModelCatalog
@@ -38,15 +39,14 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             return Result.failure()
         }
         return try {
-            CaptionIndexer(
+            val progress = CaptionIndexer(
                 applicationContext.contentResolver,
                 host.database.stickerDao(),
                 host.repository,
                 captioner,
-            ).captionPending().also { captioned ->
-                if (captioned > 0) EmbedWorker.runNow(applicationContext)
-            }
-            Result.success()
+            ).captionPending()
+            if (progress.processed > 0) EmbedWorker.runNow(applicationContext)
+            if (progress.finished) Result.success() else Result.retry()
         } finally {
             captioner.close()
         }
@@ -66,7 +66,7 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             WorkManager.getInstance(context).enqueueUniqueWork(
                 NOW,
                 ExistingWorkPolicy.KEEP,
-                OneTimeWorkRequestBuilder<CaptionWorker>().setConstraints(constraints).build(),
+                OneTimeWorkRequestBuilder<CaptionWorker>().setConstraints(constraints).continueSoon().build(),
             )
         }
 
@@ -83,6 +83,7 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
                 ExistingPeriodicWorkPolicy.KEEP,
                 PeriodicWorkRequestBuilder<CaptionWorker>(1, TimeUnit.HOURS)
                     .setConstraints(constraints)
+                    .continueSoon()
                     .build(),
             )
         }

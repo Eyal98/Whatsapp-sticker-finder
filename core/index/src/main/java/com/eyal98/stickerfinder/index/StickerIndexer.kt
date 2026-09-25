@@ -32,34 +32,50 @@ class StickerIndexer(
      */
     private val version = if (textReader != null) IndexVersion.CURRENT else IndexVersion.BASIC
 
-    /** Indexes everything pending and returns how many stickers were processed. */
-    suspend fun indexPending(batchSize: Int = 20): Int = withContext(Dispatchers.IO) {
-        var processed = 0
-        while (true) {
-            val batch = dao.needingIndex(version, batchSize)
-            if (batch.isEmpty()) break
-            for (sticker in batch) {
-                ensureActive()
-                index(sticker)
-                processed++
+    /** How far a run got. */
+    data class Progress(val processed: Int, val finished: Boolean)
+
+    /** Indexes pending stickers until done or [budget] runs out. */
+    suspend fun indexPending(budget: WorkBudget = WorkBudget(), batchSize: Int = 20): Progress =
+        withContext(Dispatchers.IO) {
+            var processed = 0
+            var batch = dao.needingIndex(version, batchSize)
+            while (batch.isNotEmpty()) {
+                for (sticker in batch) {
+                    ensureActive()
+                    if (budget.exhausted) return@withContext Progress(processed, finished = false)
+                    index(sticker)
+                    processed++
+                }
+                batch = dao.needingIndex(version, batchSize)
             }
+            Progress(processed, finished = true)
         }
-        processed
-    }
 
     private suspend fun index(sticker: StickerEntity) {
         val uri = Uri.parse(sticker.documentUri)
+        // Recorded before the risky native work: if decoding or OCR crashes the process or hangs
+        // until the job is stopped, the next run sees the attempt, moves this sticker to the back
+        // of the queue, and after MAX_ATTEMPTS skips OCR (and then decoding) for it.
+        dao.markIndexAttempt(sticker.id)
+        val attempts = sticker.indexAttempts
+        val runOcr = attempts < WorkBudget.MAX_ATTEMPTS
+        val decode = attempts <= WorkBudget.MAX_ATTEMPTS
+        if (!runOcr) Log.w(TAG, "Sticker ${sticker.id} failed $attempts times; indexing it without OCR")
+
         // A file that can't be read is still marked as indexed so it isn't retried forever;
         // it gets another chance when its size or date changes.
         val isAnimated = runCatchingIo { readHeader(uri) }?.let(ImageFingerprint::isAnimatedWebp) ?: false
         var hash: Long? = null
         var text: String? = null
-        runCatchingIo { StickerBitmaps.decode(resolver, uri) }?.let { bitmap ->
-            try {
-                hash = perceptualHash(bitmap)
-                text = readText(bitmap)
-            } finally {
-                bitmap.recycle()
+        if (decode) {
+            runCatchingIo { StickerBitmaps.decode(resolver, uri) }?.let { bitmap ->
+                try {
+                    hash = perceptualHash(bitmap)
+                    if (runOcr) text = readText(bitmap)
+                } finally {
+                    bitmap.recycle()
+                }
             }
         }
         dao.saveIndexResult(

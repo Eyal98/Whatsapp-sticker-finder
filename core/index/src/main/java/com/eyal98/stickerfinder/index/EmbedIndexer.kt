@@ -25,13 +25,17 @@ class EmbedIndexer(
         class Embedded(val model: String, val vector: FloatArray) : Outcome
     }
 
-    /** Returns how many vectors were written, or null if no embedding model is available. */
-    suspend fun embedPending(): Int? {
+    /**
+     * Brings vectors up to date until done or [budget] runs out. Returns null if no embedding
+     * model is available.
+     */
+    suspend fun embedPending(budget: WorkBudget = WorkBudget()): StickerIndexer.Progress? {
         val states = dao.vectorStates().associateBy { it.stickerId }
         var written = 0
         val stale = mutableListOf<Long>()
         for (sticker in dao.allStickers()) {
             currentCoroutineContext().ensureActive()
+            if (budget.exhausted) return StickerIndexer.Progress(written, finished = false)
             val text = EmbeddingText.document(
                 sticker.captionEn, sticker.captionHe, sticker.captionTags, sticker.ocrText, sticker.userTags,
             )
@@ -60,7 +64,7 @@ class EmbedIndexer(
             }
         }
         if (stale.isNotEmpty()) dao.deleteVectors(stale)
-        return written
+        return StickerIndexer.Progress(written, finished = true)
     }
 
     private companion object {
