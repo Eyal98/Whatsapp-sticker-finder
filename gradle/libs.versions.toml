@@ -15,6 +15,8 @@ mediapipeGenai = "0.10.25"
 # tasks-genai needs MPImage from tasks-core but doesn't depend on it, and the two aren't released
 # in lockstep; 0.10.26 is the first tasks-core release after genai 0.10.25.
 mediapipeCore = "0.10.26"
+# 0.17+ is built with Kotlin 2.4; 0.16.1 needs 2.3-level metadata (see core/caption).
+litertlm = "0.16.1"
 localagentsRag = "0.3.0"
 
 [libraries]
@@ -36,6 +38,7 @@ junit = { module = "junit:junit", version.ref = "junit" }
 localagents-rag = { module = "com.google.ai.edge.localagents:localagents-rag", version.ref = "localagentsRag" }
 mediapipe-tasks-core = { module = "com.google.mediapipe:tasks-core", version.ref = "mediapipeCore" }
 mediapipe-tasks-genai = { module = "com.google.mediapipe:tasks-genai", version.ref = "mediapipeGenai" }
+litertlm-android = { module = "com.google.ai.edge.litertlm:litertlm-android", version.ref = "litertlm" }
 tesseract4android = { module = "cz.adaptech.tesseract4android:tesseract4android", version.ref = "tesseract4android" }
 
 [plugins]

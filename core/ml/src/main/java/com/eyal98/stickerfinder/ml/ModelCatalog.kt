@@ -22,13 +22,13 @@ data class ModelSpec(
 /** Gemma models are covered by the Gemma Terms of Use. */
 object ModelCatalog {
 
-    /** Smaller and faster caption model; the default. */
+    /** Smaller and faster caption model; the default. Runs on LiteRT-LM. */
     val GEMMA_3N_E2B = ModelSpec(
-        id = "gemma-3n-e2b-it-int4",
+        id = "gemma-3n-e2b-it-int4-litertlm",
         displayName = "Gemma 3n E2B",
-        fileName = "gemma-3n-E2B-it-int4.task",
-        approxSize = "3.1 GB",
-        downloadPage = "https://huggingface.co/google/gemma-3n-E2B-it-litert-preview",
+        fileName = "gemma-3n-E2B-it-int4.litertlm",
+        approxSize = "3.7 GB",
+        downloadPage = "https://huggingface.co/google/gemma-3n-E2B-it-litert-lm",
         // Phones sold as "6 GB" report a little less than that.
         minRamBytes = 5_500_000_000L,
         sha256 = null,
@@ -36,13 +36,27 @@ object ModelCatalog {
 
     /** Better descriptions, slower, and needs more memory. */
     val GEMMA_3N_E4B = ModelSpec(
-        id = "gemma-3n-e4b-it-int4",
+        id = "gemma-3n-e4b-it-int4-litertlm",
         displayName = "Gemma 3n E4B",
+        fileName = "gemma-3n-E4B-it-int4.litertlm",
+        approxSize = "4.9 GB",
+        downloadPage = "https://huggingface.co/google/gemma-3n-E4B-it-litert-lm",
+        minRamBytes = 7_500_000_000L,
+        sha256 = null,
+    )
+
+    /** The same models in MediaPipe's older .task format, which also still work. */
+    private val GEMMA_3N_E2B_TASK = GEMMA_3N_E2B.copy(
+        id = "gemma-3n-e2b-it-int4",
+        fileName = "gemma-3n-E2B-it-int4.task",
+        approxSize = "3.1 GB",
+        downloadPage = "https://huggingface.co/google/gemma-3n-E2B-it-litert-preview",
+    )
+    private val GEMMA_3N_E4B_TASK = GEMMA_3N_E4B.copy(
+        id = "gemma-3n-e4b-it-int4",
         fileName = "gemma-3n-E4B-it-int4.task",
         approxSize = "4.4 GB",
         downloadPage = "https://huggingface.co/google/gemma-3n-E4B-it-litert-preview",
-        minRamBytes = 7_500_000_000L,
-        sha256 = null,
     )
 
     /** Multilingual (100+ languages, including Hebrew) text embedding model. */
@@ -67,7 +81,7 @@ object ModelCatalog {
         sha256 = null,
     )
 
-    val CAPTION_MODELS = listOf(GEMMA_3N_E2B, GEMMA_3N_E4B)
+    val CAPTION_MODELS = listOf(GEMMA_3N_E2B, GEMMA_3N_E4B, GEMMA_3N_E2B_TASK, GEMMA_3N_E4B_TASK)
     val EMBEDDING_MODELS = listOf(EMBEDDING_GEMMA)
     val TOKENIZERS = listOf(EMBEDDING_GEMMA_TOKENIZER)
 }

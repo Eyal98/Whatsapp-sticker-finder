@@ -2,7 +2,6 @@ package com.eyal98.stickerfinder.caption
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Canvas
 import com.eyal98.stickerfinder.ml.InstalledModel
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.genai.llminference.GraphOptions
@@ -19,7 +18,7 @@ class MediaPipeCaptioner private constructor(
 ) : StickerCaptioner {
 
     override fun caption(sticker: Bitmap, printedText: String?): StickerCaption? {
-        val image = flatten(sticker)
+        val image = StickerImage.flatten(sticker)
         try {
             // A fresh session per sticker, so one sticker's description can't leak into the next.
             val session = LlmInferenceSession.createFromOptions(llm, sessionOptions)
@@ -42,12 +41,6 @@ class MediaPipeCaptioner private constructor(
     companion object {
         private const val MAX_TOKENS = 1024
 
-        /**
-         * Stickers are transparent. On white, white text disappears; on black, black text does.
-         * A mid-gray background keeps both readable for the model.
-         */
-        private const val BACKGROUND = 0xFF9E9E9E.toInt()
-
         private val sessionOptions: LlmInferenceSession.LlmInferenceSessionOptions =
             LlmInferenceSession.LlmInferenceSessionOptions.builder()
                 // Low temperature: we want a consistent description, not creativity.
@@ -64,15 +57,6 @@ class MediaPipeCaptioner private constructor(
                 .setMaxNumImages(1)
                 .build()
             return MediaPipeCaptioner(LlmInference.createFromOptions(context, options), model.id)
-        }
-
-        private fun flatten(sticker: Bitmap): Bitmap {
-            val flat = Bitmap.createBitmap(sticker.width, sticker.height, Bitmap.Config.ARGB_8888)
-            Canvas(flat).apply {
-                drawColor(BACKGROUND)
-                drawBitmap(sticker, 0f, 0f, null)
-            }
-            return flat
         }
     }
 }

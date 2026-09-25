@@ -11,7 +11,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.eyal98.stickerfinder.index.WorkBudget.Companion.continueSoon
-import com.eyal98.stickerfinder.caption.MediaPipeCaptioner
+import com.eyal98.stickerfinder.caption.StickerCaptioners
 import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ml.ModelCatalog
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
@@ -38,8 +38,8 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         // From here until the finally below, a crash in the model's native code turns it off.
         ModelCrashGuard.markBusy(applicationContext, ModelCrashGuard.CAPTION)
         val captioner = try {
-            MediaPipeCaptioner.create(applicationContext, model)
-        } catch (e: RuntimeException) {
+            StickerCaptioners.create(applicationContext, model)
+        } catch (e: Exception) {
             // Not a usable model for this runtime: turn it off rather than retry forever.
             Log.w(TAG, "Could not load ${model.displayName}", e)
             ModelCrashGuard.disable(applicationContext, ModelCrashGuard.CAPTION)

@@ -47,7 +47,8 @@ class ModelStore private constructor(
         private const val FREE_SPACE_MARGIN = 500_000_000L
 
         val CAPTION = ModelStore(
-            "caption", ModelCatalog.CAPTION_MODELS, "caption.task", setOf("task"), ModelCrashGuard.CAPTION,
+            // The file keeps this name whatever its format; the captioner tells them apart by content.
+            "caption", ModelCatalog.CAPTION_MODELS, "caption.task", setOf("litertlm", "task"), ModelCrashGuard.CAPTION,
         )
         val EMBEDDING = ModelStore(
             "embedding", ModelCatalog.EMBEDDING_MODELS, "embedding.tflite", setOf("tflite"), ModelCrashGuard.EMBEDDING,
