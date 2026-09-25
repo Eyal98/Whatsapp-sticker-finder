@@ -17,6 +17,7 @@ import com.eyal98.stickerfinder.keyboard.StickerKeyboardService
 import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ml.ModelStore
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
@@ -61,7 +62,7 @@ object Diagnostics {
             section("Background work") {
                 val workManager = WorkManager.getInstance(app)
                 for (name in IndexWorker.UNIQUE_NAMES + CaptionWorker.UNIQUE_NAMES + EmbedWorker.UNIQUE_NAMES) {
-                    val infos = workManager.getWorkInfosForUniqueWork(name).get()
+                    val infos = workManager.getWorkInfosForUniqueWorkFlow(name).first()
                     if (infos.isEmpty()) {
                         appendLine("$name: not scheduled")
                     } else {
