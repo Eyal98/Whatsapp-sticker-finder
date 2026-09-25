@@ -36,7 +36,23 @@ TEST_EMOJI = {
     "thumbs up": "1f44d", "red heart": "2764", "sleeping": "1f634", "party popper": "1f389",
     "facepalm": "1f926", "dog face": "1f436", "coffee": "2615", "pizza": "1f355",
 }
-EMOJI_URL = "https://raw.githubusercontent.com/googlefonts/noto-emoji/main/png/512/emoji_u{}.png"
+# Sticker-like test images; tried in order until one downloads.
+EMOJI_URLS = [
+    "https://raw.githubusercontent.com/hfg-gmuend/openmoji/master/color/618x618/{upper}.png",
+    "https://cdn.jsdelivr.net/gh/googlefonts/noto-emoji@main/png/512/emoji_u{lower}.png",
+    "https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/72x72/{lower}.png",
+]
+
+
+def fetch_emoji(code):
+    for template in EMOJI_URLS:
+        url = template.format(upper=code.upper(), lower=code.lower())
+        try:
+            with urllib.request.urlopen(url, timeout=30) as r:
+                return Image.open(io.BytesIO(r.read()))
+        except (urllib.error.URLError, OSError):
+            continue
+    return None
 
 
 def read_prompts(path):
@@ -122,12 +138,11 @@ def main():
     worst = 1.0
     checked = 0
     for name, code in TEST_EMOJI.items():
-        try:
-            with urllib.request.urlopen(EMOJI_URL.format(code)) as r:
-                image = flatten(Image.open(io.BytesIO(r.read())))
-        except urllib.error.HTTPError as e:
-            print(f"\n{name}: test image unavailable ({e.code}), skipped")
+        raw = fetch_emoji(code)
+        if raw is None:
+            print(f"\n{name}: test image unavailable, skipped")
             continue
+        image = flatten(raw)
         checked += 1
         a, b = encode_tflite(image), encode_torch(image)
         agreement = float(a @ b)
