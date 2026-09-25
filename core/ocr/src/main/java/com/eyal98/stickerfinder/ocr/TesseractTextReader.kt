@@ -12,13 +12,19 @@ import com.googlecode.tesseract.android.TessBaseAPI.PageIteratorLevel
  *
  * Stickers have transparent backgrounds, and their text is often white with a dark outline or
  * dark with a light outline. Flattening onto one background color would make one of those
- * invisible, so each sticker is read twice, on white and on black, and the more confident
- * reading wins.
+ * invisible, so a sticker is read on white and on black, and the more confident reading wins.
+ * Stickers that can't hide text on one of them are read once (see [OcrBackgrounds]).
  */
 class TesseractTextReader private constructor(private val tess: TessBaseAPI) : StickerTextReader {
 
-    override fun read(sticker: Bitmap): String? =
-        OcrTextCleaner.best(readOn(sticker, Color.WHITE), readOn(sticker, Color.BLACK))?.text
+    override fun read(sticker: Bitmap): String? {
+        val pixels = IntArray(sticker.width * sticker.height)
+        sticker.getPixels(pixels, 0, sticker.width, 0, 0, sticker.width, sticker.height)
+        val readings = OcrBackgrounds.choose(pixels).map { background ->
+            readOn(sticker, if (background == OcrBackgrounds.Background.WHITE) Color.WHITE else Color.BLACK)
+        }
+        return OcrTextCleaner.best(*readings.toTypedArray())?.text
+    }
 
     private fun readOn(sticker: Bitmap, background: Int): OcrTextCleaner.Reading? {
         val flat = Bitmap.createBitmap(sticker.width, sticker.height, Bitmap.Config.ARGB_8888)

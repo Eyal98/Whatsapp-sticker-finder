@@ -17,6 +17,7 @@ import com.eyal98.stickerfinder.data.StickerDao
 import com.eyal98.stickerfinder.data.StickerDatabase
 import com.eyal98.stickerfinder.data.StickerRepository
 import com.eyal98.stickerfinder.embed.EmbedderHolder
+import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ocr.TesseractTextReader
 import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
@@ -37,10 +38,10 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         val treeUri = StickerFolder.current(applicationContext) ?: return Result.failure()
         val dao = host.database.stickerDao()
         val resolver = applicationContext.contentResolver
-        // Null if the language files failed to load; stickers then get basic indexing and are
+        // Empty if the language files failed to load; stickers then get basic indexing and are
         // picked up for OCR on a later run.
-        val textReader = TesseractTextReader.create(applicationContext)
-        if (textReader == null) Log.w(TAG, "OCR unavailable")
+        val textReaders = createTextReaders()
+        if (textReaders.isEmpty()) Log.w(TAG, "OCR unavailable")
         return try {
             // Listing a folder of 10,000+ files through the storage provider is expensive, so
             // continuation runs (retries of the same request) skip it.
@@ -51,9 +52,11 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             // Started in the background, Android doesn't allow that, so it runs in short slices.
             val foreground = tryForeground(pendingCount(dao))
             val budget = WorkBudget(if (foreground) FOREGROUND_BUDGET_MILLIS else WorkBudget.DEFAULT_MILLIS)
-            val progress = StickerIndexer(resolver, dao, host.repository, textReader).indexPending(budget) {
+            val start = System.currentTimeMillis()
+            val progress = StickerIndexer(resolver, dao, textReaders).indexPending(budget) {
                 if (foreground) tryForeground(pendingCount(dao))
             }
+            IndexStats.record(applicationContext, progress.processed, System.currentTimeMillis() - start, textReaders.size, foreground)
             // New printed text changes what stickers mean for semantic search.
             if (progress.processed > 0) EmbedWorker.runNow(applicationContext)
             if (progress.finished) Result.success() else Result.retry()
@@ -66,8 +69,20 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             Log.w(TAG, "Folder could not be listed", e)
             Result.retry()
         } finally {
-            textReader?.close()
+            textReaders.forEach { it.close() }
         }
+    }
+
+    /**
+     * One OCR reader per parallel worker: half the CPU cores (leaving the rest for the phone),
+     * at most [MAX_READERS], and fewer on phones with little memory.
+     */
+    private fun createTextReaders(): List<TesseractTextReader> {
+        val byCores = (Runtime.getRuntime().availableProcessors() / 2).coerceIn(1, MAX_READERS)
+        val lowMemory = DeviceCapability.totalRamBytes(applicationContext) < LOW_MEMORY_BYTES
+        val count = if (lowMemory) byCores.coerceAtMost(2) else byCores
+        val first = TesseractTextReader.create(applicationContext) ?: return emptyList()
+        return listOf(first) + List(count - 1) { TesseractTextReader.create(applicationContext) }.filterNotNull()
     }
 
     private suspend fun pendingCount(dao: StickerDao): Int =
@@ -92,6 +107,9 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
 
         /** Unique work names, for diagnostics. */
         val UNIQUE_NAMES = listOf(NOW, PERIODIC)
+
+        private const val MAX_READERS = 4
+        private const val LOW_MEMORY_BYTES = 4_000_000_000L
 
         /** Well under Android's 6-hour daily limit for this kind of foreground job. */
         private const val FOREGROUND_BUDGET_MILLIS = 2 * 60 * 60 * 1000L

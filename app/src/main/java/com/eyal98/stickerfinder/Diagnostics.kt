@@ -11,6 +11,7 @@ import androidx.work.WorkManager
 import com.eyal98.stickerfinder.data.IndexVersion
 import com.eyal98.stickerfinder.index.CaptionWorker
 import com.eyal98.stickerfinder.index.EmbedWorker
+import com.eyal98.stickerfinder.index.IndexStats
 import com.eyal98.stickerfinder.index.IndexWorker
 import com.eyal98.stickerfinder.index.StickerFolder
 import com.eyal98.stickerfinder.keyboard.StickerKeyboardService
@@ -65,6 +66,7 @@ object Diagnostics {
                 appendLine("failing now ${c.failingNow}, needed retries ${c.retried}, most attempts ${c.maxAttempts}, undecodable ${c.undecodable}")
                 appendLine("with printed text ${c.withText}, animated ${c.animated}, starred ${c.starred}")
                 appendLine("captioned ${c.captioned} (with text ${c.withCaption}, retried ${c.captionRetried}), vectors ${c.vectors}")
+                IndexStats.describe(app)?.let(::appendLine)
             }
             section("Background work") {
                 val workManager = WorkManager.getInstance(app)

@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import com.eyal98.stickerfinder.search.IndexTerms
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -124,6 +125,21 @@ abstract class StickerDao {
     @Query("UPDATE stickers SET indexAttempts = indexAttempts + 1 WHERE id = :id")
     abstract suspend fun markIndexAttempt(id: Long)
 
+    /** Saves a batch of index results, with their search terms, in one transaction. */
+    @Transaction
+    open suspend fun saveIndexResults(results: List<IndexResult>) {
+        for (r in results) {
+            saveIndexResult(r.id, r.isAnimated, r.perceptualHash, r.ocrText, r.indexedAt, r.indexVersion)
+            refreshFts(r.id)
+        }
+    }
+
+    /** Rebuilds the full-text entry of one sticker from its current text fields. */
+    open suspend fun refreshFts(id: Long) {
+        val s = byId(id) ?: return
+        replaceFts(StickerFts(s.id, IndexTerms.build(s.ocrText, s.captionHe, s.captionEn, s.captionTags, s.userTags)))
+    }
+
     @Query("UPDATE stickers SET captionAttempts = captionAttempts + 1 WHERE id = :id")
     abstract suspend fun markCaptionAttempt(id: Long)
 
@@ -166,3 +182,13 @@ abstract class StickerDao {
     @Query("SELECT COUNT(*) FROM stickers WHERE indexedAt IS NULL OR indexVersion < :version")
     abstract fun observePendingCount(version: Int): Flow<Int>
 }
+
+/** What the indexer found for one sticker; see [StickerDao.saveIndexResult]. */
+data class IndexResult(
+    val id: Long,
+    val isAnimated: Boolean,
+    val perceptualHash: Long?,
+    val ocrText: String?,
+    val indexedAt: Long,
+    val indexVersion: Int,
+)

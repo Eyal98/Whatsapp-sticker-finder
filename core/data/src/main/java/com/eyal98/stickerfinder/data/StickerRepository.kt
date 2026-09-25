@@ -1,7 +1,6 @@
 package com.eyal98.stickerfinder.data
 
 import com.eyal98.stickerfinder.search.FtsQueryBuilder
-import com.eyal98.stickerfinder.search.IndexTerms
 import com.eyal98.stickerfinder.search.QueryParser
 import com.eyal98.stickerfinder.search.RankFusion
 import kotlinx.coroutines.flow.Flow
@@ -58,10 +57,7 @@ class StickerRepository(
     }
 
     /** Rebuilds the full-text entry of one sticker from its current text fields. */
-    suspend fun refreshSearchTerms(id: Long) {
-        val s = dao.byId(id) ?: return
-        dao.replaceFts(StickerFts(s.id, IndexTerms.build(s.ocrText, s.captionHe, s.captionEn, s.captionTags, s.userTags)))
-    }
+    suspend fun refreshSearchTerms(id: Long) = dao.refreshFts(id)
 
     companion object {
         const val BROWSE_LIMIT = 500
