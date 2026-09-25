@@ -127,9 +127,10 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 PERIODIC,
                 ExistingPeriodicWorkPolicy.KEEP,
+                // No continueSoon(): Android rejects a retry delay on jobs that wait for the phone
+                // to be idle (it crashed the app). A stopped run continues in the next idle window.
                 PeriodicWorkRequestBuilder<CaptionWorker>(1, TimeUnit.HOURS)
                     .setConstraints(constraints)
-                    .continueSoon()
                     .build(),
             )
         }
