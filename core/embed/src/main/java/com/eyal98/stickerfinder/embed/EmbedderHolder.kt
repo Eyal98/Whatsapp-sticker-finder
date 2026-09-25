@@ -58,7 +58,7 @@ class EmbedderHolder(context: Context) : EmbedderAccess {
             GemmaTextEmbedder.create(model, tokenizer).also { loaded = key to it }
         } catch (e: RuntimeException) {
             Log.w(TAG, "Could not load the embedding model", e)
-            ModelCrashGuard.disable(appContext, ModelCrashGuard.EMBEDDING)
+            ModelCrashGuard.disable(appContext, ModelCrashGuard.EMBEDDING, ModelCrashGuard.describe(e))
             null
         }
     }

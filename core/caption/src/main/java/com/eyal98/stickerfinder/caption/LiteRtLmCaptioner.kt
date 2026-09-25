@@ -58,28 +58,40 @@ class LiteRtLmCaptioner private constructor(
          * Tries the GPU for the image encoder first, as Google's samples do, then the CPU.
          */
         fun create(context: Context, model: InstalledModel): LiteRtLmCaptioner {
-            var failure: Exception? = null
+            var failure: Throwable? = null
             for (vision in listOf<() -> Backend>({ Backend.GPU() }, { Backend.CPU() })) {
-                val engine = Engine(
-                    EngineConfig(
-                        modelPath = model.file.absolutePath,
-                        backend = Backend.CPU(),
-                        visionBackend = vision(),
-                        maxNumTokens = MAX_TOKENS,
-                        maxNumImages = 1,
-                        cacheDir = context.cacheDir.absolutePath,
-                    ),
-                )
+                var engine: Engine? = null
                 try {
+                    engine = Engine(
+                        EngineConfig(
+                            modelPath = model.file.absolutePath,
+                            backend = Backend.CPU(),
+                            visionBackend = vision(),
+                            maxNumTokens = MAX_TOKENS,
+                            maxNumImages = 1,
+                            cacheDir = context.cacheDir.absolutePath,
+                        ),
+                    )
                     engine.initialize()
                     return LiteRtLmCaptioner(engine, model.id)
                 } catch (e: Exception) {
-                    engine.close()
-                    failure?.let(e::addSuppressed)
-                    failure = e
+                    failure = recordFailure(engine, e, failure)
+                } catch (e: LinkageError) {
+                    // The native library didn't load; the CPU attempt would fail the same way.
+                    throw IllegalStateException("LiteRT-LM native library unavailable", recordFailure(engine, e, failure))
                 }
             }
             throw IllegalStateException("Could not load ${model.displayName}", failure)
+        }
+
+        /**
+         * Closing an engine that didn't initialize can throw too; that mustn't skip the CPU
+         * attempt or hide the real error. Returns [error] with earlier failures attached.
+         */
+        private fun recordFailure(engine: Engine?, error: Throwable, earlier: Throwable?): Throwable {
+            runCatching { engine?.close() }
+            earlier?.let(error::addSuppressed)
+            return error
         }
     }
 }

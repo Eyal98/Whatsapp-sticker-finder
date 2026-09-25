@@ -25,6 +25,7 @@ object ModelCrashGuard {
     private const val TAG = "ModelCrashGuard"
     private const val PREFS = "model_crash_guard"
     private const val KEY_INITIALIZED = "initialized"
+    private const val MAX_REASON = 600
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -38,18 +39,41 @@ object ModelCrashGuard {
     fun isDisabled(context: Context, feature: String): Boolean =
         prefs(context).getBoolean("disabled_$feature", false)
 
-    /** Turns a feature off, e.g. because its model failed to load. */
-    fun disable(context: Context, feature: String) =
+    /**
+     * Turns a feature off, e.g. because its model failed to load. [reason] is kept for the
+     * diagnostics report.
+     */
+    fun disable(context: Context, feature: String, reason: String? = null) =
         prefs(context).edit(commit = true) {
             putBoolean("disabled_$feature", true)
             remove("busy_$feature")
+            if (reason != null) putString("reason_$feature", reason.take(MAX_REASON)) else remove("reason_$feature")
         }
+
+    /** Why [feature] was turned off, if known. */
+    fun reason(context: Context, feature: String): String? = prefs(context).getString("reason_$feature", null)
+
+    /** "IllegalStateException: message", with the causes and suppressed failures, for [disable]. */
+    fun describe(error: Throwable): String {
+        val seen = HashSet<Throwable>()
+        fun line(t: Throwable) = "${t.javaClass.simpleName}: ${t.message.orEmpty().lineSequence().firstOrNull().orEmpty()}"
+        val parts = mutableListOf<String>()
+        fun walk(t: Throwable?) {
+            if (t == null || !seen.add(t) || parts.size >= 6) return
+            parts += line(t)
+            t.suppressed.forEach(::walk)
+            walk(t.cause)
+        }
+        walk(error)
+        return parts.joinToString(" <- ")
+    }
 
     /** Turns a feature back on (user asked, or a new model file was installed). */
     fun enable(context: Context, feature: String) =
         prefs(context).edit(commit = true) {
             remove("disabled_$feature")
             remove("busy_$feature")
+            remove("reason_$feature")
         }
 
     fun crashCount(context: Context, feature: String): Int = prefs(context).getInt("crashes_$feature", 0)
@@ -82,6 +106,7 @@ object ModelCrashGuard {
                 if (crashed) {
                     Log.w(TAG, "The app crashed while the $feature model was in use; turning it off")
                     putBoolean("disabled_$feature", true)
+                    putString("reason_$feature", "the app crashed while it was in use")
                     putInt("crashes_$feature", prefs.getInt("crashes_$feature", 0) + 1)
                 }
             }

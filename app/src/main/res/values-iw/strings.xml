@@ -109,4 +109,5 @@
     <string name="image_tags_done">לכל המדבקות יש תגיות תמונה.</string>
     <string name="image_tags_running">פועל עכשיו. ממשיך גם אם יוצאים מהאפליקציה.</string>
     <string name="image_tags_start">התחלה עכשיו</string>
+    <string name="model_turned_off_reason">פרטים: %1$s</string>
 </resources>

@@ -60,7 +60,7 @@ class ImageTagWorker(context: Context, params: WorkerParameters) : CoroutineWork
             SiglipImageEncoder(model.file)
         } catch (e: Exception) {
             Log.w(TAG, "Could not load ${model.displayName}", e)
-            ModelCrashGuard.disable(applicationContext, ModelCrashGuard.IMAGE_TAGS)
+            ModelCrashGuard.disable(applicationContext, ModelCrashGuard.IMAGE_TAGS, ModelCrashGuard.describe(e))
             return Result.failure()
         }
         return try {

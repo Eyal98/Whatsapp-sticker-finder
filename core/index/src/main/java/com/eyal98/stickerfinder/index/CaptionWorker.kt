@@ -47,11 +47,10 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         val captioner = try {
             StickerCaptioners.create(applicationContext, model)
         } catch (e: Exception) {
-            // Not a usable model for this runtime: turn it off rather than retry forever.
-            Log.w(TAG, "Could not load ${model.displayName}", e)
-            ModelCrashGuard.disable(applicationContext, ModelCrashGuard.CAPTION)
-            CaptionNotification.cancel(applicationContext)
-            return Result.failure()
+            return loadFailed(model.displayName, e)
+        } catch (e: LinkageError) {
+            // A runtime's native library that doesn't load on this phone.
+            return loadFailed(model.displayName, e)
         }
         return try {
             report(done = 0, left = dao.observeCaptionPendingCount().first())
@@ -68,6 +67,14 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             ModelCrashGuard.clearBusy(applicationContext, ModelCrashGuard.CAPTION)
             CaptionNotification.cancel(applicationContext)
         }
+    }
+
+    /** Not a usable model for this runtime: turn it off rather than retry forever, and say why. */
+    private fun loadFailed(name: String, e: Throwable): Result {
+        Log.w(TAG, "Could not load $name", e)
+        ModelCrashGuard.disable(applicationContext, ModelCrashGuard.CAPTION, ModelCrashGuard.describe(e))
+        CaptionNotification.cancel(applicationContext)
+        return Result.failure()
     }
 
     /** Updates the notification and the progress the app shows; [done] is null while loading. */

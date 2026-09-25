@@ -60,6 +60,8 @@ object Diagnostics {
                         "$feature: turned off after crash ${ModelCrashGuard.isDisabled(app, feature)}, " +
                             "crashes ${ModelCrashGuard.crashCount(app, feature)}",
                     )
+                    ModelCrashGuard.reason(app, feature)?.takeIf { ModelCrashGuard.isDisabled(app, feature) }
+                        ?.let { appendLine("  why: ${redact(it)}") }
                 }
             }
             section("Index") {

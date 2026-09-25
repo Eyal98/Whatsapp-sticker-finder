@@ -252,6 +252,10 @@ private fun SlotSection(
 private fun TurnedOffNotice(feature: String, state: SmartSearchUiState, onTurnOn: (String) -> Unit) {
     if (feature !in state.turnedOff) return
     ErrorText(stringResource(R.string.model_turned_off))
+    val reason = ModelCrashGuard.reason(LocalContext.current, feature)
+    if (reason != null) {
+        Text(stringResource(R.string.model_turned_off_reason, reason), style = MaterialTheme.typography.bodySmall)
+    }
     OutlinedButton(onClick = { onTurnOn(feature) }) { Text(stringResource(R.string.model_turn_on)) }
 }
 

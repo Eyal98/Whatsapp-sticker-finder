@@ -109,4 +109,5 @@
     <string name="image_tags_done">All stickers have picture tags.</string>
     <string name="image_tags_running">Running now. Continues if you leave the app.</string>
     <string name="image_tags_start">Start now</string>
+    <string name="model_turned_off_reason">Details: %1$s</string>
 </resources>
