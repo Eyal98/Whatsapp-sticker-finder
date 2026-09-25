@@ -7,8 +7,9 @@ import com.google.ai.edge.localagents.rag.models.EmbeddingRequest
 import com.google.ai.edge.localagents.rag.models.GemmaEmbeddingModel
 
 /**
- * EmbeddingGemma on the phone's CPU through the AI Edge RAG SDK. The SDK applies EmbeddingGemma's
- * query/document prompts according to the task type.
+ * EmbeddingGemma on the phone's CPU through the AI Edge RAG SDK. EmbeddingGemma expects different
+ * prompts for search queries and for the documents being searched; the SDK picks them from the
+ * task type and the query flag, so both are always set.
  */
 class GemmaTextEmbedder private constructor(
     private val model: GemmaEmbeddingModel,
@@ -20,7 +21,8 @@ class GemmaTextEmbedder private constructor(
             TextEmbedder.Kind.QUERY -> EmbedData.TaskType.RETRIEVAL_QUERY
             TextEmbedder.Kind.DOCUMENT -> EmbedData.TaskType.RETRIEVAL_DOCUMENT
         }
-        val request = EmbeddingRequest.create(listOf(EmbedData.create(text, task)))
+        val isQuery = kind == TextEmbedder.Kind.QUERY
+        val request = EmbeddingRequest.create(listOf(EmbedData.create(text, task, isQuery)))
         return model.getEmbeddings(request).get().toFloatArray()
     }
 
