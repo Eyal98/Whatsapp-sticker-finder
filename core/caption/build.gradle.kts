@@ -22,9 +22,6 @@ android {
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
-        // LiteRT-LM is compiled with a newer Kotlin than this project; its API here is plain
-        // classes and constructors, which read fine. Limited to this module.
-        freeCompilerArgs.add("-Xskip-metadata-version-check")
     }
 }
 

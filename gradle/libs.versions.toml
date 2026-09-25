@@ -1,22 +1,23 @@
 [versions]
 agp = "8.7.3"
-kotlin = "2.1.0"
-ksp = "2.1.0-1.0.29"
+kotlin = "2.4.20"
+# KSP 2.3+ is versioned separately from Kotlin.
+ksp = "2.3.12"
 coreKtx = "1.15.0"
 activityCompose = "1.9.3"
 lifecycle = "2.8.7"
 composeBom = "2024.12.01"
-room = "2.6.1"
+room = "2.8.5"
 work = "2.10.0"
-coroutines = "1.9.0"
+coroutines = "1.11.0"
 junit = "4.13.2"
 tesseract4android = "4.7.0"
 mediapipeGenai = "0.10.25"
 # tasks-genai needs MPImage from tasks-core but doesn't depend on it, and the two aren't released
 # in lockstep; 0.10.26 is the first tasks-core release after genai 0.10.25.
 mediapipeCore = "0.10.26"
-# 0.17+ is built with Kotlin 2.4; 0.16.1 needs 2.3-level metadata (see core/caption).
-litertlm = "0.16.1"
+# Built with Kotlin 2.4, like this project. 0.17 adds EmbeddingEngine (single-file embedding models).
+litertlm = "0.17.1"
 # Classic LiteRT (TFLite) interpreter, for the SigLIP2 image model.
 litert = "1.4.2"
 localagentsRag = "0.3.0"
