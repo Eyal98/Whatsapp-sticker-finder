@@ -3,4 +3,8 @@
     <string name="index_channel">עיבוד מדבקות</string>
     <string name="index_notification_title">מעבד מדבקות</string>
     <string name="index_notification_text">נותרו %1$d. ממשיך גם אם יוצאים מהאפליקציה.</string>
+    <string name="caption_channel">תיאור מדבקות</string>
+    <string name="caption_notification_title">מתאר מדבקות</string>
+    <string name="caption_notification_loading">טוען את המודל…</string>
+    <string name="caption_notification_text">תוארו %1$d, נותרו %2$d. נעצר אם מנתקים מהמטען.</string>
 </resources>

@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.eyal98.stickerfinder.StickerFinderApp
+import com.eyal98.stickerfinder.index.CaptionStatus
 import com.eyal98.stickerfinder.index.CaptionWorker
 import com.eyal98.stickerfinder.index.EmbedWorker
 import com.eyal98.stickerfinder.ml.DeviceCapability
@@ -57,6 +58,7 @@ data class SmartSearchUiState(
     val embeddingMemoryOk: Boolean = true,
     /** Features turned off because their model crashed the app (see ModelCrashGuard). */
     val turnedOff: Set<String> = emptySet(),
+    val captionStatus: CaptionStatus = CaptionStatus.Idle,
 ) {
     fun slot(slot: ModelSlot) = slots[slot] ?: SlotUiState()
     val importing: Boolean get() = slots.values.any { it.importProgress != null }
@@ -80,10 +82,11 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
         app.repository.captionPendingCount,
         app.repository.vectorCount,
         app.repository.stickerCount,
-        turnedOff,
-    ) { slots, captionPending, vectors, total, off ->
+        combine(turnedOff, CaptionWorker.observeStatus(app), ::Pair),
+    ) { slots, captionPending, vectors, total, (off, captionStatus) ->
         SmartSearchUiState(
             turnedOff = off,
+            captionStatus = captionStatus,
             slots = slots,
             captionPending = captionPending,
             vectorCount = vectors,

@@ -99,4 +99,7 @@
     <string name="import_wrong_type">That isn\'t the right file for this. Choose the %1$s file from the download page.</string>
     <string name="model_turned_off">Turned off: the app crashed while this model was running, so it won\'t load again until you turn it on. If it crashes again, remove it and import the file again, checking it\'s the one named above.</string>
     <string name="model_turn_on">Turn on again</string>
+    <string name="caption_status_waiting">Waiting for the charger. Plug in the phone to start.</string>
+    <string name="caption_status_loading">Loading the model… This can take a minute.</string>
+    <string name="caption_status_running">Running now: %1$d described so far.</string>
 </resources>

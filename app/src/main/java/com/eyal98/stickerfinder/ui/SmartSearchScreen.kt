@@ -1,11 +1,14 @@
 package com.eyal98.stickerfinder.ui
 
+import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.text.format.Formatter
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -40,12 +43,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import com.eyal98.stickerfinder.Diagnostics
 import com.eyal98.stickerfinder.R
 import com.eyal98.stickerfinder.StickerFinderApp
+import com.eyal98.stickerfinder.index.CaptionStatus
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.ml.PendingModel
 
@@ -99,8 +104,23 @@ fun SmartSearchScreen(
                         stringResource(R.string.captions_done)
                     },
                 )
+                CaptionStatusText(state.captionStatus)
+                // Asks for notifications first (Android 13+), so a run on the charger shows its
+                // progress; captioning starts whatever the answer.
+                val askNotifications = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission(),
+                ) { viewModel.startCaptioning() }
                 Button(
-                    onClick = viewModel::startCaptioning,
+                    onClick = {
+                        if (Build.VERSION.SDK_INT >= 33 &&
+                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                            PackageManager.PERMISSION_GRANTED
+                        ) {
+                            askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        } else {
+                            viewModel.startCaptioning()
+                        }
+                    },
                     enabled = state.captionMemoryOk && state.captionPending > 0,
                 ) { Text(stringResource(R.string.start_now)) }
             }
@@ -263,4 +283,16 @@ private fun ConfirmModelDialog(pending: PendingModel, onConfirm: () -> Unit, onD
         confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.use_model)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
+}
+
+/** Whether the caption model is working right now, so the user can tell it's running. */
+@Composable
+private fun CaptionStatusText(status: CaptionStatus) {
+    val text = when (status) {
+        CaptionStatus.Idle -> return
+        CaptionStatus.Waiting -> stringResource(R.string.caption_status_waiting)
+        CaptionStatus.Loading -> stringResource(R.string.caption_status_loading)
+        is CaptionStatus.Describing -> stringResource(R.string.caption_status_running, status.done)
+    }
+    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
 }

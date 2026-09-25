@@ -21,7 +21,11 @@ class CaptionIndexer(
 ) {
 
     /** Captions pending stickers until done or [budget] runs out. */
-    suspend fun captionPending(budget: WorkBudget = WorkBudget(), batchSize: Int = 10): StickerIndexer.Progress =
+    suspend fun captionPending(
+        budget: WorkBudget = WorkBudget(),
+        batchSize: Int = 10,
+        onCaptioned: suspend (processed: Int) -> Unit = {},
+    ): StickerIndexer.Progress =
         withContext(Dispatchers.Default) {
             var processed = 0
             var batch = dao.needingCaption(batchSize)
@@ -31,6 +35,7 @@ class CaptionIndexer(
                     if (budget.exhausted) return@withContext StickerIndexer.Progress(processed, finished = false)
                     caption(sticker)
                     processed++
+                    onCaptioned(processed)
                 }
                 batch = dao.needingCaption(batchSize)
             }

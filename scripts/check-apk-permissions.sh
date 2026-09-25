@@ -17,6 +17,8 @@ allowed=(
   "android.permission.FOREGROUND_SERVICE"
   # Indexing started from the app runs as a foreground job, so Android doesn't throttle it.
   "android.permission.FOREGROUND_SERVICE_DATA_SYNC"
+  # Progress notifications for indexing and describing stickers.
+  "android.permission.POST_NOTIFICATIONS"
   # WorkManager declares this for network constraints. It only reads connectivity state; it can't
   # open sockets without INTERNET.
   "android.permission.ACCESS_NETWORK_STATE"

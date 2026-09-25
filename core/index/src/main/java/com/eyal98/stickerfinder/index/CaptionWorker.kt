@@ -8,14 +8,19 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import androidx.work.workDataOf
 import com.eyal98.stickerfinder.index.WorkBudget.Companion.continueSoon
 import com.eyal98.stickerfinder.caption.StickerCaptioners
 import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ml.ModelCatalog
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.ml.ModelStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
 
 /**
@@ -35,29 +40,40 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             Log.w(TAG, "Not enough memory for ${model.displayName}")
             return Result.failure()
         }
+        val dao = host.database.stickerDao()
         // From here until the finally below, a crash in the model's native code turns it off.
         ModelCrashGuard.markBusy(applicationContext, ModelCrashGuard.CAPTION)
+        report(done = null, left = dao.observeCaptionPendingCount().first())
         val captioner = try {
             StickerCaptioners.create(applicationContext, model)
         } catch (e: Exception) {
             // Not a usable model for this runtime: turn it off rather than retry forever.
             Log.w(TAG, "Could not load ${model.displayName}", e)
             ModelCrashGuard.disable(applicationContext, ModelCrashGuard.CAPTION)
+            CaptionNotification.cancel(applicationContext)
             return Result.failure()
         }
         return try {
+            report(done = 0, left = dao.observeCaptionPendingCount().first())
             val progress = CaptionIndexer(
                 applicationContext.contentResolver,
-                host.database.stickerDao(),
+                dao,
                 host.repository,
                 captioner,
-            ).captionPending()
+            ).captionPending { done -> report(done, dao.observeCaptionPendingCount().first()) }
             if (progress.processed > 0) EmbedWorker.runNow(applicationContext)
             if (progress.finished) Result.success() else Result.retry()
         } finally {
             captioner.close()
             ModelCrashGuard.clearBusy(applicationContext, ModelCrashGuard.CAPTION)
+            CaptionNotification.cancel(applicationContext)
         }
+    }
+
+    /** Updates the notification and the progress the app shows; [done] is null while loading. */
+    private suspend fun report(done: Int?, left: Int) {
+        setProgress(workDataOf(KEY_DONE to (done ?: -1)))
+        CaptionNotification.show(applicationContext, done, left)
     }
 
     companion object {
@@ -67,6 +83,25 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
 
         /** Unique work names, for diagnostics. */
         val UNIQUE_NAMES = listOf(NOW, PERIODIC)
+
+        private const val KEY_DONE = "done"
+
+        fun observeStatus(context: Context): Flow<CaptionStatus> {
+            val workManager = WorkManager.getInstance(context)
+            return combine(
+                workManager.getWorkInfosForUniqueWorkFlow(NOW),
+                workManager.getWorkInfosForUniqueWorkFlow(PERIODIC),
+            ) { now, periodic ->
+                val infos = now + periodic
+                val running = infos.firstOrNull { it.state == WorkInfo.State.RUNNING }
+                when {
+                    running != null -> running.progress.getInt(KEY_DONE, -1)
+                        .let { if (it < 0) CaptionStatus.Loading else CaptionStatus.Describing(it) }
+                    now.any { it.state == WorkInfo.State.ENQUEUED } -> CaptionStatus.Waiting
+                    else -> CaptionStatus.Idle
+                }
+            }
+        }
 
         /** "Start now" from the settings screen: still waits for the charger. */
         fun runNow(context: Context) {
@@ -106,4 +141,17 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             }
         }
     }
+}
+
+/** What captioning is doing right now, for the app's status line. */
+sealed interface CaptionStatus {
+    data object Idle : CaptionStatus
+
+    /** Queued: waiting for the charger (and, for automatic runs, for the phone to be idle). */
+    data object Waiting : CaptionStatus
+
+    data object Loading : CaptionStatus
+
+    /** [done] stickers described in the current run. */
+    data class Describing(val done: Int) : CaptionStatus
 }

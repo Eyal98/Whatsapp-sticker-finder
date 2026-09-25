@@ -4,6 +4,8 @@
 
     <!-- Lets indexing started from the app run as a foreground job (see IndexWorker). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- Progress notifications for indexing and describing stickers (asked for at runtime). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
         <service

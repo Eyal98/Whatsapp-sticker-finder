@@ -99,4 +99,7 @@
     <string name="import_wrong_type">זה לא הקובץ הנכון לכאן. בחרו את קובץ ה־%1$s מדף ההורדה.</string>
     <string name="model_turned_off">כבוי: האפליקציה קרסה בזמן שהמודל הזה רץ, ולכן הוא לא ייטען שוב עד שתפעילו אותו. אם היא קורסת שוב, הסירו אותו וייבאו את הקובץ מחדש, וודאו שזה הקובץ ששמו מופיע למעלה.</string>
     <string name="model_turn_on">הפעלה מחדש</string>
+    <string name="caption_status_waiting">ממתין למטען. חברו את הטלפון לטעינה כדי להתחיל.</string>
+    <string name="caption_status_loading">טוען את המודל… זה יכול לקחת דקה.</string>
+    <string name="caption_status_running">פועל עכשיו: תוארו %1$d עד כה.</string>
 </resources>

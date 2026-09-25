@@ -3,4 +3,8 @@
     <string name="index_channel">Indexing stickers</string>
     <string name="index_notification_title">Indexing stickers</string>
     <string name="index_notification_text">%1$d left. Continues if you leave the app.</string>
+    <string name="caption_channel">Describing stickers</string>
+    <string name="caption_notification_title">Describing stickers</string>
+    <string name="caption_notification_loading">Loading the model…</string>
+    <string name="caption_notification_text">%1$d described, %2$d left. Stops if you unplug the phone.</string>
 </resources>
