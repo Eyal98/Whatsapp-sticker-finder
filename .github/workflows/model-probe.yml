@@ -15,24 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Search
+      - name: Model cards
         run: |
           api=https://huggingface.co/api/models
-          q() { echo "== $1"; curl -fsS "$api?$1" | jq -r '.[] | "\(.id)  dl=\(.downloads // 0)  \(.pipeline_tag // "")"' || true; }
-          q "search=siglip&filter=tflite&limit=50&sort=downloads"
-          q "search=clip&filter=tflite&limit=50&sort=downloads"
-          q "search=siglip&filter=onnx&limit=30&sort=downloads"
-          q "search=multilingual-clip&limit=20&sort=downloads"
-          q "author=litert-community&limit=300&sort=downloads"
-          q "search=siglip2&author=google&limit=50"
-          q "search=siglip&author=google&limit=50"
-      - name: Files
-        run: |
-          api=https://huggingface.co/api/models
-          for m in anton96vice/mobileclip2_tflite google/siglip-base-patch16-256-multilingual \
-                   google/siglip2-base-patch16-256 litert-community/LLaVA-OneVision-0.5B litert-community/PaddleOCR-VL-1.6; do
-            echo "== $m"
-            curl -fsS "$api/$m?blobs=true" | jq -r '(.cardData.license // .tags[]? | select(startswith("license")) // "") as $l | "license: \($l)", (.siblings[] | "\(.rfilename)  \(.size // "")")' | head -60 || true
-            curl -fsSL "https://huggingface.co/$m/raw/main/README.md" | head -c 2500 || true
+          for m in litert-community/Laya-Multilingual-LiteRT litert-community/laya-LiteRT litert-community/Laya-English-LiteRT \
+                   litert-community/SigLIP2-base-patch16-224 litert-community/PE-Core-base-patch16-224; do
+            echo "=================== $m"
+            curl -fsS "$api/$m?blobs=true" | jq -r '(.siblings[] | "\(.rfilename)  \(.size // "")")' || true
+            curl -fsSL "https://huggingface.co/$m/raw/main/README.md" -o card.md && head -c 9000 card.md
             echo
           done
