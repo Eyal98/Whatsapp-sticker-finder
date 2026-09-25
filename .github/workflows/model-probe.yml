@@ -14,19 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Repos
+      - name: Gemma 4 cards
         run: |
           api=https://huggingface.co/api/models
-          for m in google/gemma-3n-E2B-it-litert-lm google/gemma-3n-E4B-it-litert-lm \
-                   google/gemma-3n-E2B-it-litert-preview google/gemma-3n-E4B-it-litert-preview \
-                   litert-community/SigLIP2-base-patch16-224 litert-community/embeddinggemma-300m; do
+          for m in litert-community/gemma-4-E2B-it-litert-lm litert-community/gemma-4-E4B-it-litert-lm; do
             echo "=================== $m"
-            curl -sS "$api/$m?blobs=true" | jq -r '"gated: \(.gated // "n/a")  private: \(.private // "n/a")  error: \(.error // "")", (.siblings[]? | "  \(.rfilename)  \(.size // "")")' | head -40
-          done
-      - name: Search
-        run: |
-          api=https://huggingface.co/api/models
-          for q in "search=gemma-3n&author=litert-community" "search=gemma-3n&author=google&limit=40" "search=gemma&author=litert-community&limit=60" "search=litertlm&limit=40&sort=downloads"; do
-            echo "== $q"
-            curl -sS "$api?$q" | jq -r '.[] | "\(.id)  gated=\(.gated // false)  dl=\(.downloads // 0)  \(.pipeline_tag // "")"'
+            curl -sS "$api/$m?blobs=true" | jq -r '"gated: \(.gated // "n/a")", (.siblings[]? | "  \(.rfilename)  \(.size // "") \(.lfs.sha256 // "")")'
+            curl -fsSL "https://huggingface.co/$m/raw/main/README.md" -o card.md && head -c 12000 card.md
+            echo
+            grep -niE "litert-lm|litertlm-android|version|vision|image|multimodal|hebrew|language" card.md | head -60
           done
