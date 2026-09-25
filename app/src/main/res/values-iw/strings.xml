@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">מוצא המדבקות</string>
+    <string name="onboarding_title">מצאו את המדבקות שלכם מוואטסאפ</string>
+    <string name="onboarding_body">בחרו את תיקיית המדבקות של וואטסאפ כדי שהאפליקציה תוכל לקרוא את המדבקות. הגישה היא לקריאה בלבד, ושום דבר לא יוצא מהטלפון: לאפליקציה אין הרשאת אינטרנט.\n\nהתיקייה נמצאת כאן:\nAndroid › media › com.whatsapp › WhatsApp › Media › WhatsApp Stickers</string>
+    <string name="onboarding_choose_folder">בחירת תיקייה</string>
+    <string name="search_hint">חיפוש מדבקות (עברית / English)</string>
+    <string name="status_count">מדבקות: %1$d</string>
+    <string name="status_indexing">בעיבוד: נותרו %1$d מתוך %2$d</string>
+    <string name="no_results">לא נמצאו מדבקות. נסו מילים אחרות, או לחיצה ארוכה על מדבקה כדי להוסיף תגיות.</string>
+    <string name="empty_folder">עדיין לא נמצאו מדבקות. ודאו שבחרתם את התיקייה WhatsApp Stickers.</string>
+    <string name="star_description">סימון כמועדפת</string>
+    <string name="tags_title">תגיות</string>
+    <string name="tags_hint">למשל: חתול עצוב cat sad</string>
+    <string name="save">שמירה</string>
+    <string name="cancel">ביטול</string>
+</resources>

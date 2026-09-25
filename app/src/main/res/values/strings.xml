@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sticker Finder</string>
+    <string name="onboarding_title">Find your WhatsApp stickers</string>
+    <string name="onboarding_body">Choose WhatsApp\'s sticker folder so the app can read your stickers. Access is read-only, and nothing leaves your phone: this app has no internet permission.\n\nThe folder is at:\nAndroid › media › com.whatsapp › WhatsApp › Media › WhatsApp Stickers</string>
+    <string name="onboarding_choose_folder">Choose folder</string>
+    <string name="search_hint">Search stickers (עברית / English)</string>
+    <string name="status_count">Stickers: %1$d</string>
+    <string name="status_indexing">Indexing: %1$d of %2$d left</string>
+    <string name="no_results">No stickers match. Try other words, or long-press a sticker to add tags.</string>
+    <string name="empty_folder">No stickers found yet. Check that you chose the WhatsApp Stickers folder.</string>
+    <string name="star_description">Mark as favorite</string>
+    <string name="tags_title">Tags</string>
+    <string name="tags_hint">e.g. cat sad חתול עצוב</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+</resources>

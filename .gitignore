@@ -1,0 +1,16 @@
+*.iml
+.gradle/
+/local.properties
+.idea/
+.DS_Store
+build/
+/captures
+.externalNativeBuild
+.cxx
+*.keystore
+*.jks
+# Sticker images and models never go into git
+eval/data/
+*.tflite
+*.task
+*.litertlm
