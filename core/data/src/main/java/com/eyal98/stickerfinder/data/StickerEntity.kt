@@ -25,6 +25,12 @@ data class StickerEntity(
     /** On-device model descriptions (Phase 2). */
     val captionHe: String? = null,
     val captionEn: String? = null,
+    /** Comma-separated search keywords from the model, in both languages. */
+    val captionTags: String? = null,
+    /** When the model last looked at this sticker, even if it produced nothing. Null = pending. */
+    val captionedAt: Long? = null,
+    /** Which model wrote the caption. */
+    val captionModel: String? = null,
     /** Space-separated tags the user typed. */
     val userTags: String = "",
     /** The user's own "favorite" mark, since WhatsApp's favorites list can't be read. */

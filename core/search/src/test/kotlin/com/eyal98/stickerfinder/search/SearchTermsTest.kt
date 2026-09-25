@@ -37,6 +37,18 @@ class SearchTermsTest {
     }
 
     @Test
+    fun `stop words are dropped in both languages`() {
+        assertEquals(listOf("cat", "sad"), QueryParser.parse("a cat that is sad").map { it.original })
+        assertEquals(listOf("חתול", "עצוב"), QueryParser.parse("חתול עצוב זה").map { it.original })
+        assertEquals(listOf("לא"), QueryParser.parse("לא").map { it.original })
+    }
+
+    @Test
+    fun `query made only of stop words is kept`() {
+        assertEquals(listOf("the"), QueryParser.parse("the").map { it.original })
+    }
+
+    @Test
     fun `empty query builds no expression`() {
         assertNull(FtsQueryBuilder.matchAll(QueryParser.parse("  !? ")))
     }

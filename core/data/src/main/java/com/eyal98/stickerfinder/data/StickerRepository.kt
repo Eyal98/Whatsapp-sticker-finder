@@ -9,6 +9,7 @@ class StickerRepository(private val dao: StickerDao) {
 
     val stickerCount: Flow<Int> = dao.observeCount()
     val pendingCount: Flow<Int> = dao.observePendingCount(IndexVersion.CURRENT)
+    val captionPendingCount: Flow<Int> = dao.observeCaptionPendingCount()
 
     fun browse(limit: Int = BROWSE_LIMIT): Flow<List<StickerEntity>> = dao.observeBrowse(limit)
 
@@ -37,7 +38,7 @@ class StickerRepository(private val dao: StickerDao) {
     /** Rebuilds the full-text entry of one sticker from its current text fields. */
     suspend fun refreshSearchTerms(id: Long) {
         val s = dao.byId(id) ?: return
-        dao.replaceFts(StickerFts(s.id, IndexTerms.build(s.ocrText, s.captionHe, s.captionEn, s.userTags)))
+        dao.replaceFts(StickerFts(s.id, IndexTerms.build(s.ocrText, s.captionHe, s.captionEn, s.captionTags, s.userTags)))
     }
 
     companion object {

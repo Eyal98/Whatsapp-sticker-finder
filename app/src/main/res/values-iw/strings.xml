@@ -14,4 +14,23 @@
     <string name="tags_hint">למשל: חתול עצוב cat sad</string>
     <string name="save">שמירה</string>
     <string name="cancel">ביטול</string>
+    <string name="smart_search">חיפוש חכם</string>
+    <string name="smart_search_body">חיפוש חכם משתמש במודל בינה מלאכותית שרץ על הטלפון כדי לתאר כל מדבקה בעברית ובאנגלית, כך שאפשר לחפש לפי מה שרואים בה, למשל \"כלב רוקד\" או \"sad cat\". הוא פועל רק כשהטלפון בטעינה ולא בשימוש, ושום דבר לא יוצא מהטלפון.\n\nהאפליקציה לא יכולה להוריד קבצים, לכן יש להוריד את המודל בעצמכם ולייבא אותו כאן. מודלי Gemma כפופים לתנאי השימוש של Google ל-Gemma.</string>
+    <string name="not_enough_memory">אין בטלפון הזה מספיק זיכרון כדי להריץ את המודל. חיפוש לפי טקסט מודפס ותגיות עדיין עובד.</string>
+    <string name="model_recommended">מומלץ: %1$s (בערך %2$s).</string>
+    <string name="open_download_page">פתיחת דף ההורדה</string>
+    <string name="import_model">ייבוא קובץ מודל</string>
+    <string name="importing">מייבא את המודל… %1$d%%</string>
+    <string name="import_no_space">אין מספיק מקום פנוי. הייבוא צריך בערך %1$s.</string>
+    <string name="import_failed">לא ניתן לייבא את הקובץ. נסו שוב.</string>
+    <string name="confirm_model_title">בדיקת קובץ המודל</string>
+    <string name="confirm_model_body">לפני השימוש ב-%1$s, השוו את ה-SHA-256 הזה לזה שמופיע לצד הקובץ בדף ההורדה. המשיכו רק אם הם זהים.</string>
+    <string name="use_model">הם זהים</string>
+    <string name="model_installed">מודל: %1$s</string>
+    <string name="captions_pending">מתאר מדבקות: נותרו %1$d מתוך %2$d. פועל בזמן טעינה כשהטלפון לא בשימוש.</string>
+    <string name="captions_done">לכל המדבקות יש תיאור.</string>
+    <string name="start_now">התחלה עכשיו (בזמן טעינה)</string>
+    <string name="remove_model">הסרת המודל</string>
+    <string name="back">חזרה</string>
+    <string name="description_label">תיאור</string>
 </resources>

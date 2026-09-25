@@ -50,6 +50,7 @@ kotlin {
 dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:index"))
+    implementation(project(":core:caption"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

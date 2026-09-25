@@ -20,8 +20,11 @@ data class QueryTerm(val original: String, val alternatives: Set<String>)
 
 object QueryParser {
 
-    fun parse(query: String): List<QueryTerm> =
-        TextNormalizer.tokenize(query).map { token ->
+    fun parse(query: String): List<QueryTerm> {
+        val tokens = TextNormalizer.tokenize(query)
+        // Drop filler words, unless that would leave nothing to search for.
+        val meaningful = tokens.filterNot(StopWords::isStopWord).ifEmpty { tokens }
+        return meaningful.map { token ->
             val alternatives = linkedSetOf<String>()
             HebrewPrefixes.variants(token).forEach { variant ->
                 alternatives += variant
@@ -29,6 +32,7 @@ object QueryParser {
             }
             QueryTerm(token, alternatives)
         }
+    }
 }
 
 /**

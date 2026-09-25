@@ -1,0 +1,73 @@
+package com.eyal98.stickerfinder.index
+
+import android.content.ContentResolver
+import android.net.Uri
+import android.util.Log
+import com.eyal98.stickerfinder.caption.StickerCaptioner
+import com.eyal98.stickerfinder.data.StickerDao
+import com.eyal98.stickerfinder.data.StickerEntity
+import com.eyal98.stickerfinder.data.StickerRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.withContext
+import java.io.IOException
+
+/** Asks the on-device model to describe stickers that don't have a caption yet. */
+class CaptionIndexer(
+    private val resolver: ContentResolver,
+    private val dao: StickerDao,
+    private val repository: StickerRepository,
+    private val captioner: StickerCaptioner,
+) {
+
+    /** Captions everything pending and returns how many stickers were processed. */
+    suspend fun captionPending(batchSize: Int = 10): Int = withContext(Dispatchers.Default) {
+        var processed = 0
+        while (true) {
+            val batch = dao.needingCaption(batchSize)
+            if (batch.isEmpty()) break
+            for (sticker in batch) {
+                ensureActive()
+                caption(sticker)
+                processed++
+            }
+        }
+        processed
+    }
+
+    private suspend fun caption(sticker: StickerEntity) {
+        // Every outcome is saved, even "nothing", so a sticker the model can't handle doesn't
+        // block the ones after it. It's tried again if the file changes.
+        val result = try {
+            val bitmap = StickerBitmaps.decode(resolver, Uri.parse(sticker.documentUri))
+            try {
+                captioner.caption(bitmap, sticker.ocrText)
+            } finally {
+                bitmap.recycle()
+            }
+        } catch (e: IOException) {
+            Log.w(TAG, "Could not read sticker", e)
+            null
+        } catch (e: SecurityException) {
+            Log.w(TAG, "Lost access to sticker", e)
+            null
+        } catch (e: RuntimeException) {
+            // MediaPipe reports inference errors as runtime exceptions.
+            Log.w(TAG, "Captioning failed", e)
+            null
+        }
+        dao.saveCaption(
+            id = sticker.id,
+            en = result?.english,
+            he = result?.hebrew,
+            tags = result?.tags?.takeIf { it.isNotEmpty() }?.joinToString(", "),
+            at = System.currentTimeMillis(),
+            model = captioner.modelId,
+        )
+        repository.refreshSearchTerms(sticker.id)
+    }
+
+    private companion object {
+        const val TAG = "CaptionIndexer"
+    }
+}

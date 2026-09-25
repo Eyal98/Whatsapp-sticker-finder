@@ -6,6 +6,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -38,7 +39,10 @@ import com.eyal98.stickerfinder.WhatsAppSender
 import com.eyal98.stickerfinder.data.StickerEntity
 
 @Composable
-fun SearchScreen(viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory)) {
+fun SearchScreen(
+    onOpenSmartSearch: () -> Unit,
+    viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory),
+) {
     val query by viewModel.query.collectAsStateWithLifecycle()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -59,15 +63,21 @@ fun SearchScreen(viewModel: SearchViewModel = viewModel(factory = SearchViewMode
                     .fillMaxWidth()
                     .padding(12.dp),
             )
-            Text(
-                text = if (state.pending > 0) {
-                    stringResource(R.string.status_indexing, state.pending, state.total)
-                } else {
-                    stringResource(R.string.status_count, state.total)
-                },
-                style = MaterialTheme.typography.labelMedium,
-                modifier = Modifier.padding(horizontal = 16.dp),
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(start = 16.dp, end = 8.dp),
+            ) {
+                Text(
+                    text = if (state.pending > 0) {
+                        stringResource(R.string.status_indexing, state.pending, state.total)
+                    } else {
+                        stringResource(R.string.status_count, state.total)
+                    },
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = onOpenSmartSearch) { Text(stringResource(R.string.smart_search)) }
+            }
             when {
                 state.total == 0 && state.pending == 0 -> Message(stringResource(R.string.empty_folder))
                 state.results.isEmpty() && !state.isQueryBlank -> Message(stringResource(R.string.no_results))
@@ -87,6 +97,7 @@ fun SearchScreen(viewModel: SearchViewModel = viewModel(factory = SearchViewMode
     editing?.let { sticker ->
         TagsDialog(
             initial = sticker.userTags,
+            description = listOfNotNull(sticker.captionHe, sticker.captionEn).joinToString("\n").ifBlank { null },
             onDismiss = { editing = null },
             onSave = {
                 viewModel.setTags(sticker, it)
@@ -127,7 +138,7 @@ private fun StickerGrid(
             ) {
                 StickerThumbnail(
                     documentUri = sticker.documentUri,
-                    contentDescription = sticker.userTags.ifBlank { sticker.ocrText },
+                    contentDescription = sticker.userTags.ifBlank { sticker.captionHe ?: sticker.captionEn ?: sticker.ocrText },
                     modifier = Modifier.fillMaxSize(),
                 )
                 TextButton(
@@ -144,17 +155,23 @@ private fun StickerGrid(
 }
 
 @Composable
-private fun TagsDialog(initial: String, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+private fun TagsDialog(initial: String, description: String?, onDismiss: () -> Unit, onSave: (String) -> Unit) {
     var text by remember { mutableStateOf(initial) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.tags_title)) },
         text = {
-            OutlinedTextField(
-                value = text,
-                onValueChange = { text = it },
-                placeholder = { Text(stringResource(R.string.tags_hint)) },
-            )
+            Column {
+                if (description != null) {
+                    Text(stringResource(R.string.description_label), style = MaterialTheme.typography.labelMedium)
+                    Text(description, modifier = Modifier.padding(bottom = 12.dp))
+                }
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    placeholder = { Text(stringResource(R.string.tags_hint)) },
+                )
+            }
         },
         confirmButton = { TextButton(onClick = { onSave(text) }) { Text(stringResource(R.string.save)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },

@@ -7,10 +7,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import com.eyal98.stickerfinder.caption.ModelStore
+import com.eyal98.stickerfinder.index.CaptionWorker
 import com.eyal98.stickerfinder.index.IndexWorker
 import com.eyal98.stickerfinder.index.StickerFolder
 import com.eyal98.stickerfinder.ui.OnboardingScreen
 import com.eyal98.stickerfinder.ui.SearchScreen
+import com.eyal98.stickerfinder.ui.SmartSearchScreen
 import com.eyal98.stickerfinder.ui.StickerFinderTheme
 
 class MainActivity : ComponentActivity() {
@@ -23,8 +26,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             StickerFinderTheme {
                 var hasFolder by rememberSaveable { mutableStateOf(hadFolder) }
-                if (hasFolder) {
-                    SearchScreen()
+                var showSmartSearch by rememberSaveable { mutableStateOf(false) }
+                if (hasFolder && showSmartSearch) {
+                    SmartSearchScreen(onBack = { showSmartSearch = false })
+                } else if (hasFolder) {
+                    SearchScreen(onOpenSmartSearch = { showSmartSearch = true })
                 } else {
                     OnboardingScreen(
                         onFolderChosen = { treeUri ->
@@ -41,5 +47,6 @@ class MainActivity : ComponentActivity() {
     private fun startIndexing() {
         IndexWorker.runNow(this)
         IndexWorker.schedulePeriodic(this)
+        if (ModelStore.installed(this) != null) CaptionWorker.schedulePeriodic(this)
     }
 }

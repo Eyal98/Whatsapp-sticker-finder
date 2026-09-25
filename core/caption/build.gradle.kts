@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.eyal98.stickerfinder.index"
+    namespace = "com.eyal98.stickerfinder.caption"
     compileSdk = 35
 
     defaultConfig {
@@ -26,12 +26,9 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":core:data"))
-    implementation(project(":core:ocr"))
-    implementation(project(":core:caption"))
     implementation(libs.androidx.core.ktx)
-    implementation(libs.work.runtime.ktx)
     implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.mediapipe.tasks.genai)
 
     testImplementation(libs.junit)
 }

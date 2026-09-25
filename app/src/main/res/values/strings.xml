@@ -14,4 +14,23 @@
     <string name="tags_hint">e.g. cat sad חתול עצוב</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
+    <string name="smart_search">Smart search</string>
+    <string name="smart_search_body">Smart search uses an AI model that runs on this phone to describe each sticker in Hebrew and English, so you can search by what it shows, like \"sad cat\" or \"כלב רוקד\". It runs only while the phone is charging and idle, and nothing leaves the phone.\n\nThis app can\'t download files, so download the model yourself and import it here. Gemma models are covered by Google\'s Gemma Terms of Use.</string>
+    <string name="not_enough_memory">This phone doesn\'t have enough memory to run the model. Search by printed text and tags still works.</string>
+    <string name="model_recommended">Recommended: %1$s (about %2$s).</string>
+    <string name="open_download_page">Open download page</string>
+    <string name="import_model">Import model file</string>
+    <string name="importing">Importing model… %1$d%%</string>
+    <string name="import_no_space">Not enough free space. Importing needs about %1$s.</string>
+    <string name="import_failed">Couldn\'t import the file. Try again.</string>
+    <string name="confirm_model_title">Check this model file</string>
+    <string name="confirm_model_body">Before using %1$s, compare this SHA-256 with the one shown for the file on its download page. Only continue if they match.</string>
+    <string name="use_model">They match</string>
+    <string name="model_installed">Model: %1$s</string>
+    <string name="captions_pending">Describing stickers: %1$d of %2$d left. Runs while charging and idle.</string>
+    <string name="captions_done">All stickers have descriptions.</string>
+    <string name="start_now">Start now (when charging)</string>
+    <string name="remove_model">Remove model</string>
+    <string name="back">Back</string>
+    <string name="description_label">Description</string>
 </resources>

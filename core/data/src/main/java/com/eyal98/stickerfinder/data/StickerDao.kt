@@ -16,10 +16,10 @@ abstract class StickerDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     abstract suspend fun insertAll(stickers: List<StickerEntity>)
 
-    /** Records a changed file and marks it for re-indexing. */
+    /** Records a changed file and marks it for re-indexing and re-captioning. */
     @Query(
         "UPDATE stickers SET sizeBytes = :sizeBytes, lastModified = :lastModified, " +
-            "indexedAt = NULL WHERE id = :id",
+            "indexedAt = NULL, captionedAt = NULL WHERE id = :id",
     )
     abstract suspend fun markChanged(id: Long, sizeBytes: Long, lastModified: Long)
 
@@ -59,6 +59,22 @@ abstract class StickerDao {
         indexedAt: Long,
         indexVersion: Int,
     )
+
+    /** Stickers the basic indexer is done with but the caption model hasn't seen; favorites first. */
+    @Query(
+        "SELECT * FROM stickers WHERE captionedAt IS NULL AND indexedAt IS NOT NULL " +
+            "ORDER BY starred DESC, useCount DESC, lastModified DESC LIMIT :limit",
+    )
+    abstract suspend fun needingCaption(limit: Int): List<StickerEntity>
+
+    @Query(
+        "UPDATE stickers SET captionEn = :en, captionHe = :he, captionTags = :tags, " +
+            "captionedAt = :at, captionModel = :model WHERE id = :id",
+    )
+    abstract suspend fun saveCaption(id: Long, en: String?, he: String?, tags: String?, at: Long, model: String)
+
+    @Query("SELECT COUNT(*) FROM stickers WHERE captionedAt IS NULL")
+    abstract fun observeCaptionPendingCount(): Flow<Int>
 
     @Query("UPDATE stickers SET userTags = :tags WHERE id = :id")
     abstract suspend fun setTags(id: Long, tags: String)

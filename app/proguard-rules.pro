@@ -4,3 +4,8 @@
     public static int d(...);
     public static int i(...);
 }
+
+# Native code in these libraries looks up Java classes, fields and methods by name.
+-keep class com.googlecode.tesseract.android.** { *; }
+-keep class com.google.mediapipe.** { *; }
+-dontwarn com.google.mediapipe.**

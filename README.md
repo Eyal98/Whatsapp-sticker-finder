@@ -12,7 +12,12 @@ design, and phased roadmap.
 Phase 1: pick the WhatsApp Stickers folder, index it in the background, search by the text
 printed on stickers (on-device Tesseract OCR, Hebrew + English) and by tags you add, star
 favorites, and share a sticker to WhatsApp. Search handles Hebrew prefixes, niqqud and common
-slang. Natural-language captions (Phase 2) plug into `StickerIndexer`.
+slang.
+
+Phase 2 (in progress): **Smart search**. An on-device Gemma 3n model (MediaPipe LLM Inference)
+describes each sticker in Hebrew and English with search keywords, while the phone is charging
+and idle. The app can't download, so you import the model file yourself; its SHA-256 is shown
+for you to compare with the download page before it's used. Semantic (embedding) ranking is next.
 
 ## Modules
 
@@ -23,6 +28,7 @@ slang. Natural-language captions (Phase 2) plug into `StickerIndexer`.
 | `core/data` | Room database: stickers table + FTS4 index, repository |
 | `core/index` | Folder access (SAF), scanner, indexer, WorkManager job |
 | `core/ocr` | Tesseract OCR (`heb+eng`), text cleanup, bundled language files |
+| `core/caption` | Caption prompt/parser, model import and verification, MediaPipe captioner |
 
 ## Build
 
@@ -46,5 +52,7 @@ CI runs all of these on every push.
 
 - [Tesseract](https://github.com/tesseract-ocr/tesseract) and its
   [`tessdata_fast`](https://github.com/tesseract-ocr/tessdata_fast) language models: Apache-2.0
+- [MediaPipe](https://github.com/google-ai-edge/mediapipe) LLM Inference: Apache-2.0
+- Gemma models (downloaded by the user, not bundled): [Gemma Terms of Use](https://ai.google.dev/gemma/terms)
 - [Tesseract4Android](https://github.com/adaptech-cz/Tesseract4Android): Apache-2.0. It is only
   published on JitPack, so the build allows JitPack for that one package group only.
