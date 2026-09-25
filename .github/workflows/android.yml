@@ -27,13 +27,6 @@ jobs:
       - name: Fetch OCR language files
         run: ./gradlew --no-daemon :core:ocr:fetchTessdata
 
-      # TEMPORARY: find which MediaPipe artifact/version provides MPImage for tasks-genai.
-      - name: MediaPipe dependency report
-        run: |
-          curl -fsS https://dl.google.com/android/maven2/com/google/mediapipe/group-index.xml || true
-          echo
-          curl -fsS https://dl.google.com/android/maven2/com/google/mediapipe/tasks-genai/0.10.25/tasks-genai-0.10.25.pom || true
-
       - name: Unit tests
         run: ./gradlew --no-daemon :core:search:test testDebugUnitTest
 

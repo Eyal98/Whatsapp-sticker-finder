@@ -12,6 +12,9 @@ coroutines = "1.9.0"
 junit = "4.13.2"
 tesseract4android = "4.7.0"
 mediapipeGenai = "0.10.25"
+# tasks-genai needs MPImage from tasks-core but doesn't depend on it, and the two aren't released
+# in lockstep; 0.10.26 is the first tasks-core release after genai 0.10.25.
+mediapipeCore = "0.10.26"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -29,6 +32,7 @@ room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 junit = { module = "junit:junit", version.ref = "junit" }
+mediapipe-tasks-core = { module = "com.google.mediapipe:tasks-core", version.ref = "mediapipeCore" }
 mediapipe-tasks-genai = { module = "com.google.mediapipe:tasks-genai", version.ref = "mediapipeGenai" }
 tesseract4android = { module = "cz.adaptech.tesseract4android:tesseract4android", version.ref = "tesseract4android" }
 
