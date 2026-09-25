@@ -35,6 +35,7 @@ dependencies {
     api(project(":core:search"))
     api(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation(libs.androidx.core.ktx)
     ksp(libs.room.compiler)
     implementation(libs.kotlinx.coroutines.core)
 
