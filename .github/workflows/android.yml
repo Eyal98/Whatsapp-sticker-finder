@@ -27,6 +27,10 @@ jobs:
       - name: Fetch OCR language files
         run: ./gradlew --no-daemon :core:ocr:fetchTessdata
 
+      # TEMPORARY: shows which MediaPipe artifacts tasks-genai depends on, to pin tasks-core.
+      - name: MediaPipe dependency report
+        run: ./gradlew --no-daemon -q :core:caption:dependencies --configuration debugRuntimeClasspath | grep -i -B2 -A2 mediapipe || true
+
       - name: Unit tests
         run: ./gradlew --no-daemon :core:search:test testDebugUnitTest
 
