@@ -7,7 +7,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import com.eyal98.stickerfinder.caption.ModelStore
+import com.eyal98.stickerfinder.ml.ModelStore
 import com.eyal98.stickerfinder.index.CaptionWorker
 import com.eyal98.stickerfinder.index.IndexWorker
 import com.eyal98.stickerfinder.index.StickerFolder
@@ -47,6 +47,6 @@ class MainActivity : ComponentActivity() {
     private fun startIndexing() {
         IndexWorker.runNow(this)
         IndexWorker.schedulePeriodic(this)
-        if (ModelStore.installed(this) != null) CaptionWorker.schedulePeriodic(this)
+        if (ModelStore.CAPTION.installed(this) != null) CaptionWorker.schedulePeriodic(this)
     }
 }

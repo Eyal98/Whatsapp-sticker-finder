@@ -7,11 +7,14 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.eyal98.stickerfinder.StickerFinderApp
-import com.eyal98.stickerfinder.caption.DeviceCapability
-import com.eyal98.stickerfinder.caption.InstalledModel
-import com.eyal98.stickerfinder.caption.ModelStore
-import com.eyal98.stickerfinder.caption.PendingModel
 import com.eyal98.stickerfinder.index.CaptionWorker
+import com.eyal98.stickerfinder.index.EmbedWorker
+import com.eyal98.stickerfinder.ml.DeviceCapability
+import com.eyal98.stickerfinder.ml.InstalledModel
+import com.eyal98.stickerfinder.ml.ModelCatalog
+import com.eyal98.stickerfinder.ml.ModelSpec
+import com.eyal98.stickerfinder.ml.ModelStore
+import com.eyal98.stickerfinder.ml.PendingModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,89 +26,127 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/** The model files the user can install, each with the catalog entry to recommend. */
+enum class ModelSlot(val store: ModelStore, val recommended: ModelSpec) {
+    CAPTION(ModelStore.CAPTION, ModelCatalog.GEMMA_3N_E2B),
+    EMBEDDING(ModelStore.EMBEDDING, ModelCatalog.EMBEDDING_GEMMA),
+    TOKENIZER(ModelStore.EMBEDDING_TOKENIZER, ModelCatalog.EMBEDDING_GEMMA_TOKENIZER),
+}
+
 sealed interface ImportProblem {
     data class NotEnoughSpace(val neededBytes: Long) : ImportProblem
     data object Failed : ImportProblem
 }
 
-data class ModelUiState(
+data class SlotUiState(
     val installed: InstalledModel? = null,
     val pending: PendingModel? = null,
-    /** 0..1 while copying a model file, null otherwise. */
+    /** 0..1 while copying a file into this slot, null otherwise. */
     val importProgress: Float? = null,
     val problem: ImportProblem? = null,
 )
 
 data class SmartSearchUiState(
-    val model: ModelUiState = ModelUiState(),
+    val slots: Map<ModelSlot, SlotUiState> = emptyMap(),
     val captionPending: Int = 0,
+    val vectorCount: Int = 0,
     val total: Int = 0,
-    val enoughMemory: Boolean = true,
-)
+    val captionMemoryOk: Boolean = true,
+    val embeddingMemoryOk: Boolean = true,
+) {
+    fun slot(slot: ModelSlot) = slots[slot] ?: SlotUiState()
+    val importing: Boolean get() = slots.values.any { it.importProgress != null }
+    val firstPending: Pair<ModelSlot, PendingModel>? get() =
+        ModelSlot.entries.firstNotNullOfOrNull { s -> slots[s]?.pending?.let { s to it } }
+}
 
 class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
 
-    private val modelState = MutableStateFlow(
-        ModelUiState(installed = ModelStore.installed(app), pending = ModelStore.pending(app)),
+    private val slotState = MutableStateFlow(
+        ModelSlot.entries.associateWith { SlotUiState(it.store.installed(app), it.store.pending(app)) },
     )
     private var importJob: Job? = null
 
-    val uiState: StateFlow<SmartSearchUiState> =
-        combine(modelState, app.repository.captionPendingCount, app.repository.stickerCount) { model, pending, total ->
-            SmartSearchUiState(
-                model = model,
-                captionPending = pending,
-                total = total,
-                enoughMemory = DeviceCapability.canRun(app, model.installed?.model ?: model.pending?.guessedModel),
-            )
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SmartSearchUiState())
+    val uiState: StateFlow<SmartSearchUiState> = combine(
+        slotState,
+        app.repository.captionPendingCount,
+        app.repository.vectorCount,
+        app.repository.stickerCount,
+    ) { slots, captionPending, vectors, total ->
+        SmartSearchUiState(
+            slots = slots,
+            captionPending = captionPending,
+            vectorCount = vectors,
+            total = total,
+            captionMemoryOk = memoryOk(slots, ModelSlot.CAPTION),
+            embeddingMemoryOk = memoryOk(slots, ModelSlot.EMBEDDING),
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SmartSearchUiState())
 
-    fun import(uri: Uri) {
+    private fun memoryOk(slots: Map<ModelSlot, SlotUiState>, slot: ModelSlot): Boolean {
+        val s = slots[slot]
+        return DeviceCapability.canRun(app, s?.installed?.model ?: s?.pending?.guessedModel, slot.recommended)
+    }
+
+    private fun update(slot: ModelSlot, change: (SlotUiState) -> SlotUiState) =
+        slotState.update { it + (slot to change(it[slot] ?: SlotUiState())) }
+
+    fun import(slot: ModelSlot, uri: Uri) {
         if (importJob?.isActive == true) return
         importJob = viewModelScope.launch {
-            modelState.update { it.copy(importProgress = 0f, problem = null, pending = null) }
-            val result = ModelStore.import(app, uri) { progress ->
-                modelState.update { it.copy(importProgress = progress) }
-            }
-            modelState.update { it.copy(importProgress = null) }
+            update(slot) { it.copy(importProgress = 0f, problem = null, pending = null) }
+            val result = slot.store.import(app, uri) { progress -> update(slot) { it.copy(importProgress = progress) } }
+            update(slot) { it.copy(importProgress = null) }
             when (result) {
-                is ModelStore.ImportResult.Installed -> onInstalled(result.model)
-                is ModelStore.ImportResult.NeedsConfirmation -> modelState.update { it.copy(pending = result.pending) }
+                is ModelStore.ImportResult.Installed -> onInstalled(slot, result.model)
+                is ModelStore.ImportResult.NeedsConfirmation -> update(slot) { it.copy(pending = result.pending) }
                 is ModelStore.ImportResult.NotEnoughSpace ->
-                    modelState.update { it.copy(problem = ImportProblem.NotEnoughSpace(result.neededBytes)) }
-                ModelStore.ImportResult.Failed -> modelState.update { it.copy(problem = ImportProblem.Failed) }
+                    update(slot) { it.copy(problem = ImportProblem.NotEnoughSpace(result.neededBytes)) }
+                ModelStore.ImportResult.Failed -> update(slot) { it.copy(problem = ImportProblem.Failed) }
             }
         }
     }
 
-    fun confirmPending() {
+    fun confirmPending(slot: ModelSlot) {
         viewModelScope.launch {
-            val installed = withContext(Dispatchers.IO) { ModelStore.confirmPending(app) }
-            if (installed != null) onInstalled(installed) else modelState.update { it.copy(problem = ImportProblem.Failed) }
+            val installed = withContext(Dispatchers.IO) { slot.store.confirmPending(app) }
+            if (installed != null) onInstalled(slot, installed) else update(slot) { it.copy(problem = ImportProblem.Failed) }
         }
     }
 
-    fun discardPending() {
+    fun discardPending(slot: ModelSlot) {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) { ModelStore.discardPending(app) }
-            modelState.update { it.copy(pending = null) }
+            withContext(Dispatchers.IO) { slot.store.discardPending(app) }
+            update(slot) { it.copy(pending = null) }
         }
     }
 
-    fun removeModel() {
-        CaptionWorker.cancel(app)
+    fun remove(slot: ModelSlot) {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) { ModelStore.remove(app) }
-            modelState.update { it.copy(installed = null) }
+            when (slot) {
+                ModelSlot.CAPTION -> CaptionWorker.cancel(app)
+                ModelSlot.EMBEDDING, ModelSlot.TOKENIZER -> app.embedders.release()
+            }
+            withContext(Dispatchers.IO) { slot.store.remove(app) }
+            update(slot) { it.copy(installed = null) }
         }
     }
 
-    fun startNow() = CaptionWorker.runNow(app)
+    fun startCaptioning() = CaptionWorker.runNow(app)
 
-    private fun onInstalled(model: InstalledModel) {
-        modelState.update { it.copy(installed = model, pending = null, problem = null) }
-        CaptionWorker.schedulePeriodic(app)
-        CaptionWorker.runNow(app)
+    private fun onInstalled(slot: ModelSlot, model: InstalledModel) {
+        update(slot) { it.copy(installed = model, pending = null, problem = null) }
+        when (slot) {
+            ModelSlot.CAPTION -> {
+                CaptionWorker.schedulePeriodic(app)
+                CaptionWorker.runNow(app)
+            }
+            ModelSlot.EMBEDDING, ModelSlot.TOKENIZER -> viewModelScope.launch {
+                // Drop any model loaded from the previous files, then embed with the new ones.
+                app.embedders.release()
+                EmbedWorker.runNow(app)
+            }
+        }
     }
 
     companion object {

@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.eyal98.stickerfinder.caption"
+    namespace = "com.eyal98.stickerfinder.ml"
     compileSdk = 35
 
     defaultConfig {
@@ -26,12 +26,6 @@ kotlin {
 }
 
 dependencies {
-    api(project(":core:ml"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.mediapipe.tasks.genai)
-    // MPImage/BitmapImageBuilder: used by the genai API, but genai doesn't declare the dependency.
-    implementation(libs.mediapipe.tasks.core)
-
-    testImplementation(libs.junit)
 }

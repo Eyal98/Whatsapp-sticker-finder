@@ -29,14 +29,40 @@ abstract class StickerDao {
     @Query("DELETE FROM sticker_fts WHERE rowid IN (:ids)")
     abstract suspend fun deleteFts(ids: List<Long>)
 
+    @Query("DELETE FROM sticker_vectors WHERE stickerId IN (:ids)")
+    abstract suspend fun deleteVectors(ids: List<Long>)
+
+    /** Deletes stickers together with their search index rows and vectors. */
     @Transaction
     open suspend fun deleteWithFts(ids: List<Long>) {
         // SQLite limits bound parameters per statement, so delete in chunks.
         ids.chunked(500).forEach {
             deleteFts(it)
+            deleteVectors(it)
             deleteStickers(it)
         }
     }
+
+    @Query("SELECT * FROM stickers")
+    abstract suspend fun allStickers(): List<StickerEntity>
+
+    @Query("SELECT * FROM stickers WHERE id IN (:ids)")
+    abstract suspend fun byIds(ids: List<Long>): List<StickerEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun upsertVector(vector: StickerVector)
+
+    @Query("SELECT stickerId, model, fingerprint FROM sticker_vectors")
+    abstract suspend fun vectorStates(): List<StickerVectorState>
+
+    @Query("SELECT stickerId, vector FROM sticker_vectors WHERE model = :model")
+    abstract suspend fun vectors(model: String): List<StickerVectorRow>
+
+    @Query("SELECT COUNT(*) AS count, TOTAL(fingerprint) + TOTAL(stickerId) AS total FROM sticker_vectors")
+    abstract suspend fun vectorSignature(): VectorSignature
+
+    @Query("SELECT COUNT(*) FROM sticker_vectors")
+    abstract fun observeVectorCount(): Flow<Int>
 
     @Query(
         "SELECT * FROM stickers WHERE indexedAt IS NULL OR indexVersion < :version " +

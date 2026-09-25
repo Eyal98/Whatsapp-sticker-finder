@@ -17,7 +17,6 @@
     <string name="smart_search">Smart search</string>
     <string name="smart_search_body">Smart search uses an AI model that runs on this phone to describe each sticker in Hebrew and English, so you can search by what it shows, like \"sad cat\" or \"כלב רוקד\". It runs only while the phone is charging and idle, and nothing leaves the phone.\n\nThis app can\'t download files, so download the model yourself and import it here. Gemma models are covered by Google\'s Gemma Terms of Use.</string>
     <string name="not_enough_memory">This phone doesn\'t have enough memory to run the model. Search by printed text and tags still works.</string>
-    <string name="model_recommended">Recommended: %1$s (about %2$s).</string>
     <string name="open_download_page">Open download page</string>
     <string name="import_model">Import model file</string>
     <string name="importing">Importing model… %1$d%%</string>
@@ -33,4 +32,10 @@
     <string name="remove_model">Remove model</string>
     <string name="back">Back</string>
     <string name="description_label">Description</string>
+    <string name="smart_search_intro">Two optional on-device models make search smarter. Each runs only on this phone.</string>
+    <string name="captions_title">Descriptions</string>
+    <string name="meaning_title">Search by meaning</string>
+    <string name="meaning_body">A small multilingual model finds stickers that mean what you typed, even with different words or in the other language: \"running late\" finds a sticker tagged \"מאחר\". It needs two files from the same download page, and works best once stickers have descriptions.</string>
+    <string name="meaning_status">Ready for %1$d of %2$d stickers.</string>
+    <string name="model_file_needed">Needed: %1$s (about %2$s).</string>
 </resources>

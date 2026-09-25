@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.eyal98.stickerfinder.caption"
+    namespace = "com.eyal98.stickerfinder.embed"
     compileSdk = 35
 
     defaultConfig {
@@ -26,12 +26,11 @@ kotlin {
 }
 
 dependencies {
-    api(project(":core:ml"))
-    implementation(libs.androidx.core.ktx)
+    api(project(":core:data"))
+    implementation(project(":core:ml"))
     implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.mediapipe.tasks.genai)
-    // MPImage/BitmapImageBuilder: used by the genai API, but genai doesn't declare the dependency.
-    implementation(libs.mediapipe.tasks.core)
-
-    testImplementation(libs.junit)
+    // Google AI Edge on-device RAG SDK: runs EmbeddingGemma with its SentencePiece tokenizer.
+    // Only its local embedding model is used; its cloud (Gemini) embedder is never constructed,
+    // and the app has no INTERNET permission in any case.
+    implementation(libs.localagents.rag)
 }

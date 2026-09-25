@@ -3,6 +3,7 @@ package com.eyal98.stickerfinder.caption
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import com.eyal98.stickerfinder.ml.InstalledModel
 import com.google.mediapipe.framework.image.BitmapImageBuilder
 import com.google.mediapipe.tasks.genai.llminference.GraphOptions
 import com.google.mediapipe.tasks.genai.llminference.LlmInference

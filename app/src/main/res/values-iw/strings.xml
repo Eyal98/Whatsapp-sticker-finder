@@ -17,7 +17,6 @@
     <string name="smart_search">חיפוש חכם</string>
     <string name="smart_search_body">חיפוש חכם משתמש במודל בינה מלאכותית שרץ על הטלפון כדי לתאר כל מדבקה בעברית ובאנגלית, כך שאפשר לחפש לפי מה שרואים בה, למשל \"כלב רוקד\" או \"sad cat\". הוא פועל רק כשהטלפון בטעינה ולא בשימוש, ושום דבר לא יוצא מהטלפון.\n\nהאפליקציה לא יכולה להוריד קבצים, לכן יש להוריד את המודל בעצמכם ולייבא אותו כאן. מודלי Gemma כפופים לתנאי השימוש של Google ל-Gemma.</string>
     <string name="not_enough_memory">אין בטלפון הזה מספיק זיכרון כדי להריץ את המודל. חיפוש לפי טקסט מודפס ותגיות עדיין עובד.</string>
-    <string name="model_recommended">מומלץ: %1$s (בערך %2$s).</string>
     <string name="open_download_page">פתיחת דף ההורדה</string>
     <string name="import_model">ייבוא קובץ מודל</string>
     <string name="importing">מייבא את המודל… %1$d%%</string>
@@ -33,4 +32,10 @@
     <string name="remove_model">הסרת המודל</string>
     <string name="back">חזרה</string>
     <string name="description_label">תיאור</string>
+    <string name="smart_search_intro">שני מודלים אופציונליים שרצים על הטלפון הופכים את החיפוש לחכם יותר. כל אחד מהם פועל רק על הטלפון הזה.</string>
+    <string name="captions_title">תיאורים</string>
+    <string name="meaning_title">חיפוש לפי משמעות</string>
+    <string name="meaning_body">מודל רב־לשוני קטן מוצא מדבקות שמשמעותן תואמת את מה שהקלדתם, גם במילים אחרות או בשפה השנייה: \"מאחר\" מוצא מדבקה עם התגית \"running late\". צריך שני קבצים מאותו דף הורדה, והוא עובד הכי טוב אחרי שלמדבקות יש תיאורים.</string>
+    <string name="meaning_status">מוכן עבור %1$d מתוך %2$d מדבקות.</string>
+    <string name="model_file_needed">נדרש: %1$s (בערך %2$s).</string>
 </resources>

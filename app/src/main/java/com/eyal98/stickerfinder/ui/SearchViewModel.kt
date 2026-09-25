@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.data.StickerEntity
 import com.eyal98.stickerfinder.data.StickerRepository
+import com.eyal98.stickerfinder.index.EmbedWorker
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +30,9 @@ data class SearchUiState(
 )
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
-class SearchViewModel(private val repository: StickerRepository) : ViewModel() {
+class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
+
+    private val repository: StickerRepository = app.repository
 
     private val _query = MutableStateFlow("")
     val query: StateFlow<String> = _query.asStateFlow()
@@ -39,7 +42,18 @@ class SearchViewModel(private val repository: StickerRepository) : ViewModel() {
 
     private val results = combine(_query.debounce(DEBOUNCE_MS), refresh) { q, _ -> q }
         .flatMapLatest { q ->
-            if (q.isBlank()) repository.browse() else flow { emit(repository.search(q)) }
+            if (q.isBlank()) {
+                repository.browse()
+            } else {
+                flow {
+                    // Keyword results are instant; the merged ranking follows once the query
+                    // has been embedded (the first query also loads the model).
+                    val keyword = repository.searchKeywords(q)
+                    emit(keyword)
+                    val hybrid = repository.search(q)
+                    if (hybrid != keyword) emit(hybrid)
+                }
+            }
         }
 
     val uiState: StateFlow<SearchUiState> =
@@ -53,7 +67,10 @@ class SearchViewModel(private val repository: StickerRepository) : ViewModel() {
 
     fun toggleStar(sticker: StickerEntity) = edit { repository.setStarred(sticker.id, !sticker.starred) }
 
-    fun setTags(sticker: StickerEntity, tags: String) = edit { repository.setTags(sticker.id, tags) }
+    fun setTags(sticker: StickerEntity, tags: String) = edit {
+        repository.setTags(sticker.id, tags)
+        EmbedWorker.runNow(app)
+    }
 
     fun onSent(sticker: StickerEntity) = edit { repository.recordUse(sticker.id) }
 
@@ -68,7 +85,7 @@ class SearchViewModel(private val repository: StickerRepository) : ViewModel() {
         private const val DEBOUNCE_MS = 150L
 
         val Factory = viewModelFactory {
-            initializer { SearchViewModel((this[APPLICATION_KEY] as StickerFinderApp).repository) }
+            initializer { SearchViewModel(this[APPLICATION_KEY] as StickerFinderApp) }
         }
     }
 }

@@ -12,6 +12,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.eyal98.stickerfinder.data.StickerDatabase
 import com.eyal98.stickerfinder.data.StickerRepository
+import com.eyal98.stickerfinder.embed.EmbedderHolder
 import com.eyal98.stickerfinder.ocr.TesseractTextReader
 import java.util.concurrent.TimeUnit
 
@@ -19,6 +20,7 @@ import java.util.concurrent.TimeUnit
 interface StickerIndexHost {
     val database: StickerDatabase
     val repository: StickerRepository
+    val embedders: EmbedderHolder
 }
 
 /** Scans the sticker folder and indexes new or changed stickers. */
@@ -38,7 +40,9 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             // OCR takes a fraction of a second per sticker, so a first run over a large folder
             // may hit WorkManager's time limit; the work is then stopped and resumes later from
             // where it left off, since each sticker is saved as soon as it's done.
-            StickerIndexer(resolver, dao, host.repository, textReader).indexPending()
+            val indexed = StickerIndexer(resolver, dao, host.repository, textReader).indexPending()
+            // New printed text changes what stickers mean for semantic search.
+            if (indexed > 0) EmbedWorker.runNow(applicationContext)
             Result.success()
         } catch (e: SecurityException) {
             Log.w(TAG, "Folder access was revoked", e)

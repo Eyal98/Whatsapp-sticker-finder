@@ -1,4 +1,4 @@
-package com.eyal98.stickerfinder.caption
+package com.eyal98.stickerfinder.ml
 
 import android.app.ActivityManager
 import android.content.Context
@@ -11,7 +11,7 @@ object DeviceCapability {
         return info.totalMem
     }
 
-    /** Unknown models are held to the recommended model's requirement. */
-    fun canRun(context: Context, model: CaptionModel?): Boolean =
-        totalRamBytes(context) >= (model ?: ModelCatalog.RECOMMENDED).minRamBytes
+    /** An unknown model is held to [fallback]'s requirement. */
+    fun canRun(context: Context, model: ModelSpec?, fallback: ModelSpec): Boolean =
+        totalRamBytes(context) >= (model ?: fallback).minRamBytes
 }

@@ -10,9 +10,10 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.eyal98.stickerfinder.caption.DeviceCapability
 import com.eyal98.stickerfinder.caption.MediaPipeCaptioner
-import com.eyal98.stickerfinder.caption.ModelStore
+import com.eyal98.stickerfinder.ml.DeviceCapability
+import com.eyal98.stickerfinder.ml.ModelCatalog
+import com.eyal98.stickerfinder.ml.ModelStore
 import java.util.concurrent.TimeUnit
 
 /**
@@ -25,8 +26,8 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
 
     override suspend fun doWork(): Result {
         val host = applicationContext as StickerIndexHost
-        val model = ModelStore.installed(applicationContext) ?: return Result.success()
-        if (!DeviceCapability.canRun(applicationContext, model.model)) {
+        val model = ModelStore.CAPTION.installed(applicationContext) ?: return Result.success()
+        if (!DeviceCapability.canRun(applicationContext, model.model, ModelCatalog.GEMMA_3N_E2B)) {
             Log.w(TAG, "Not enough memory for ${model.displayName}")
             return Result.failure()
         }
@@ -42,7 +43,9 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
                 host.database.stickerDao(),
                 host.repository,
                 captioner,
-            ).captionPending()
+            ).captionPending().also { captioned ->
+                if (captioned > 0) EmbedWorker.runNow(applicationContext)
+            }
             Result.success()
         } finally {
             captioner.close()

@@ -51,6 +51,8 @@ dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:index"))
     implementation(project(":core:caption"))
+    implementation(project(":core:ml"))
+    implementation(project(":core:embed"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

@@ -1,4 +1,4 @@
-package com.eyal98.stickerfinder.caption
+package com.eyal98.stickerfinder.ml
 
 import android.content.Context
 import android.net.Uri
@@ -12,31 +12,40 @@ import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
 
-/** The installed caption model. */
-data class InstalledModel(val file: File, val model: CaptionModel?, val sha256: String) {
+/** An installed model file. */
+data class InstalledModel(val file: File, val model: ModelSpec?, val sha256: String) {
     /** Catalog id, or a hash-based id for a model the catalog doesn't know by name. */
     val id: String get() = model?.id ?: "custom-${sha256.take(12)}"
     val displayName: String get() = model?.displayName ?: file.name
 }
 
 /** A copied file waiting for the user to confirm its hash. */
-data class PendingModel(val sha256: String, val originalName: String, val guessedModel: CaptionModel?)
+data class PendingModel(val sha256: String, val originalName: String, val guessedModel: ModelSpec?)
 
 /**
- * Imports a model file the user picked into app-private storage (excluded from backups), hashing
- * it on the way. A file whose hash is pinned in [ModelCatalog] is installed straight away; any
- * other file waits in [pending] until the user confirms its hash.
+ * One installable model file ("slot"). Imports a file the user picked into app-private storage
+ * (excluded from backups), hashing it on the way. A file whose hash is pinned in [catalog] is
+ * installed straight away; any other file waits in [pending] until the user confirms its hash.
  */
-object ModelStore {
+class ModelStore private constructor(
+    private val slot: String,
+    val catalog: List<ModelSpec>,
+    private val fileName: String,
+) {
 
-    private const val PREFS = "caption_model"
-    private const val KEY_SHA = "sha256"
-    private const val KEY_MODEL_ID = "model_id"
-    private const val KEY_PENDING_SHA = "pending_sha256"
-    private const val KEY_PENDING_NAME = "pending_name"
+    companion object {
+        private const val KEY_SHA = "sha256"
+        private const val KEY_MODEL_ID = "model_id"
+        private const val KEY_PENDING_SHA = "pending_sha256"
+        private const val KEY_PENDING_NAME = "pending_name"
 
-    /** Space to leave free on top of the model itself. */
-    private const val FREE_SPACE_MARGIN = 500_000_000L
+        /** Space to leave free on top of the model itself. */
+        private const val FREE_SPACE_MARGIN = 500_000_000L
+
+        val CAPTION = ModelStore("caption", ModelCatalog.CAPTION_MODELS, "caption.task")
+        val EMBEDDING = ModelStore("embedding", ModelCatalog.EMBEDDING_MODELS, "embedding.tflite")
+        val EMBEDDING_TOKENIZER = ModelStore("embedding_tokenizer", ModelCatalog.TOKENIZERS, "embedding.spm")
+    }
 
     sealed interface ImportResult {
         data class Installed(val model: InstalledModel) : ImportResult
@@ -46,15 +55,19 @@ object ModelStore {
     }
 
     private fun dir(context: Context) = File(context.noBackupFilesDir, "models").apply { mkdirs() }
-    private fun modelFile(context: Context) = File(dir(context), "caption.task")
-    private fun pendingFile(context: Context) = File(dir(context), "pending.task")
-    private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private fun modelFile(context: Context) = File(dir(context), fileName)
+    private fun pendingFile(context: Context) = File(dir(context), "$slot.pending")
+    private fun prefs(context: Context) = context.getSharedPreferences("${slot}_model", Context.MODE_PRIVATE)
+
+    private fun byId(id: String) = catalog.firstOrNull { it.id == id }
+    private fun byHash(sha256: String) = catalog.firstOrNull { it.sha256 == sha256 }
+    private fun byFileName(name: String) = catalog.firstOrNull { it.fileName.equals(name, ignoreCase = true) }
 
     fun installed(context: Context): InstalledModel? {
         val file = modelFile(context)
         val sha = prefs(context).getString(KEY_SHA, null) ?: return null
         if (!file.isFile) return null
-        val model = prefs(context).getString(KEY_MODEL_ID, null)?.let(ModelCatalog::byId)
+        val model = prefs(context).getString(KEY_MODEL_ID, null)?.let(::byId)
         return InstalledModel(file, model, sha)
     }
 
@@ -62,7 +75,7 @@ object ModelStore {
         val sha = prefs(context).getString(KEY_PENDING_SHA, null) ?: return null
         if (!pendingFile(context).isFile) return null
         val name = prefs(context).getString(KEY_PENDING_NAME, null).orEmpty()
-        return PendingModel(sha, name, ModelCatalog.byFileName(name))
+        return PendingModel(sha, name, byFileName(name))
     }
 
     /**
@@ -115,16 +128,16 @@ object ModelStore {
                 putString(KEY_PENDING_SHA, sha)
                 putString(KEY_PENDING_NAME, name)
             }
-            val pinned = ModelCatalog.byHash(sha)
+            val pinned = byHash(sha)
             if (pinned != null) {
                 ImportResult.Installed(confirmPending(context, pinned) ?: return@withContext ImportResult.Failed)
             } else {
-                ImportResult.NeedsConfirmation(PendingModel(sha, name, ModelCatalog.byFileName(name)))
+                ImportResult.NeedsConfirmation(PendingModel(sha, name, byFileName(name)))
             }
         }
 
     /** Installs the pending file, replacing any current model. */
-    fun confirmPending(context: Context, model: CaptionModel? = pending(context)?.guessedModel): InstalledModel? {
+    fun confirmPending(context: Context, model: ModelSpec? = pending(context)?.guessedModel): InstalledModel? {
         val sha = prefs(context).getString(KEY_PENDING_SHA, null) ?: return null
         val target = modelFile(context)
         target.delete()

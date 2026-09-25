@@ -39,6 +39,21 @@ jobs:
       - name: Check APK has no network access
         run: scripts/check-apk-permissions.sh app/build/outputs/apk/debug/app-debug.apk
 
+      # TEMPORARY: verifies the AI Edge RAG SDK version and API used by core/embed.
+      - name: RAG SDK report
+        if: always()
+        run: |
+          curl -fsS https://dl.google.com/android/maven2/com/google/ai/edge/localagents/group-index.xml || true
+          aar=$(find ~/.gradle/caches -name 'localagents-rag-*.aar' | head -n 1)
+          echo "AAR: $aar"
+          if [ -n "$aar" ]; then
+            mkdir -p /tmp/rag && unzip -o -q "$aar" classes.jar -d /tmp/rag
+            unzip -l /tmp/rag/classes.jar | grep -i 'rag/models/' || true
+            for c in GemmaEmbeddingModel EmbedData 'EmbedData$TaskType' EmbeddingRequest Embedder; do
+              javap -cp /tmp/rag/classes.jar "com.google.ai.edge.localagents.rag.models.$c" || true
+            done
+          fi
+
       - name: Upload lint and test reports
         if: failure()
         uses: actions/upload-artifact@v4
