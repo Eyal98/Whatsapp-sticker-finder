@@ -49,6 +49,14 @@ data class StickerEntity(
     @ColumnInfo(defaultValue = "0") val indexAttempts: Int = 0,
     /** The same, for captioning. */
     @ColumnInfo(defaultValue = "0") val captionAttempts: Int = 0,
+    /** Comma-separated picture tags (SigLIP2 image model + fixed label list), both languages. */
+    val imageTags: String? = null,
+    /** When the image model last looked at this sticker, even if no tag fit. Null = pending. */
+    val imageTaggedAt: Long? = null,
+    /** Which label list chose [imageTags]; a different one re-derives them from the stored vector. */
+    val imageTagsVersion: String? = null,
+    /** The same as [indexAttempts], for the image model. */
+    @ColumnInfo(defaultValue = "0") val imageTagAttempts: Int = 0,
 )
 
 /** What the indexer extracts. Bump [CURRENT] when it learns something new, to re-index old rows. */

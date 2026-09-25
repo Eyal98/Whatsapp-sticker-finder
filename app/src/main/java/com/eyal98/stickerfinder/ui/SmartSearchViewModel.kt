@@ -10,6 +10,7 @@ import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.index.CaptionStatus
 import com.eyal98.stickerfinder.index.CaptionWorker
 import com.eyal98.stickerfinder.index.EmbedWorker
+import com.eyal98.stickerfinder.index.ImageTagWorker
 import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ml.InstalledModel
 import com.eyal98.stickerfinder.ml.ModelCatalog
@@ -30,6 +31,7 @@ import kotlinx.coroutines.withContext
 
 /** The model files the user can install, each with the catalog entry to recommend. */
 enum class ModelSlot(val store: ModelStore, val recommended: ModelSpec) {
+    IMAGE(ModelStore.IMAGE, ModelCatalog.SIGLIP2_B16),
     CAPTION(ModelStore.CAPTION, ModelCatalog.GEMMA_3N_E2B),
     EMBEDDING(ModelStore.EMBEDDING, ModelCatalog.EMBEDDING_GEMMA),
     TOKENIZER(ModelStore.EMBEDDING_TOKENIZER, ModelCatalog.EMBEDDING_GEMMA_TOKENIZER),
@@ -59,6 +61,10 @@ data class SmartSearchUiState(
     /** Features turned off because their model crashed the app (see ModelCrashGuard). */
     val turnedOff: Set<String> = emptySet(),
     val captionStatus: CaptionStatus = CaptionStatus.Idle,
+    val imageTagPending: Int = 0,
+    val imageTagRunning: Boolean = false,
+    /** False in builds made before the picture-tag labels existed; the section is hidden then. */
+    val pictureTagsAvailable: Boolean = false,
 ) {
     fun slot(slot: ModelSlot) = slots[slot] ?: SlotUiState()
     val importing: Boolean get() = slots.values.any { it.importProgress != null }
@@ -66,27 +72,42 @@ data class SmartSearchUiState(
         ModelSlot.entries.firstNotNullOfOrNull { s -> slots[s]?.pending?.let { s to it } }
 }
 
+private data class Background(
+    val turnedOff: Set<String>,
+    val captionStatus: CaptionStatus,
+    val imageTagPending: Int,
+    val imageTagRunning: Boolean,
+)
+
 class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
 
     private val slotState = MutableStateFlow(
         ModelSlot.entries.associateWith { SlotUiState(it.store.installed(app), it.store.pending(app)) },
     )
     private var importJob: Job? = null
+    private val pictureTagsAvailable = app.assets.list("siglip")?.contains("labels.bin") == true
     private val turnedOff = MutableStateFlow(currentTurnedOff())
 
-    private fun currentTurnedOff() = setOf(ModelCrashGuard.CAPTION, ModelCrashGuard.EMBEDDING)
-        .filterTo(HashSet()) { ModelCrashGuard.isDisabled(app, it) }
+    private fun currentTurnedOff() = ModelCrashGuard.FEATURES.filterTo(HashSet()) { ModelCrashGuard.isDisabled(app, it) }
 
     val uiState: StateFlow<SmartSearchUiState> = combine(
         slotState,
         app.repository.captionPendingCount,
         app.repository.vectorCount,
         app.repository.stickerCount,
-        combine(turnedOff, CaptionWorker.observeStatus(app), ::Pair),
-    ) { slots, captionPending, vectors, total, (off, captionStatus) ->
+        combine(
+            turnedOff,
+            CaptionWorker.observeStatus(app),
+            app.database.stickerDao().observeImageTagPendingCount(),
+            ImageTagWorker.observeRunning(app),
+        ) { off, captionStatus, imagePending, imageRunning -> Background(off, captionStatus, imagePending, imageRunning) },
+    ) { slots, captionPending, vectors, total, background ->
         SmartSearchUiState(
-            turnedOff = off,
-            captionStatus = captionStatus,
+            turnedOff = background.turnedOff,
+            captionStatus = background.captionStatus,
+            imageTagPending = background.imageTagPending,
+            imageTagRunning = background.imageTagRunning,
+            pictureTagsAvailable = pictureTagsAvailable,
             slots = slots,
             captionPending = captionPending,
             vectorCount = vectors,
@@ -139,6 +160,7 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
     fun remove(slot: ModelSlot) {
         viewModelScope.launch {
             when (slot) {
+                ModelSlot.IMAGE -> ImageTagWorker.cancel(app)
                 ModelSlot.CAPTION -> CaptionWorker.cancel(app)
                 ModelSlot.EMBEDDING, ModelSlot.TOKENIZER -> app.embedders.release()
             }
@@ -150,6 +172,10 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
 
     fun startCaptioning() = CaptionWorker.runNow(app)
 
+    fun startImageTags() {
+        viewModelScope.launch { ImageTagWorker.startNow(app) }
+    }
+
     /** Turns a feature back on after it was turned off for crashing the app. */
     fun turnOn(feature: String) {
         ModelCrashGuard.enable(app, feature)
@@ -157,6 +183,7 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
         when (feature) {
             ModelCrashGuard.CAPTION -> CaptionWorker.runNow(app)
             ModelCrashGuard.EMBEDDING -> EmbedWorker.runNow(app)
+            ModelCrashGuard.IMAGE_TAGS -> startImageTags()
         }
     }
 
@@ -164,6 +191,7 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
         update(slot) { it.copy(installed = model, pending = null, problem = null) }
         turnedOff.value = currentTurnedOff()
         when (slot) {
+            ModelSlot.IMAGE -> startImageTags()
             ModelSlot.CAPTION -> {
                 CaptionWorker.schedulePeriodic(app)
                 CaptionWorker.runNow(app)

@@ -17,5 +17,8 @@ data class DiagnosticCounts(
     val captionRetried: Int,
     val animated: Int,
     val starred: Int,
+    val imageTagged: Int,
+    val withImageTags: Int,
+    val imageTagRetried: Int,
     val vectors: Int,
 )

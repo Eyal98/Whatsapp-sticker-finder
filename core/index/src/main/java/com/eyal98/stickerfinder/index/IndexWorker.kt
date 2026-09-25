@@ -58,7 +58,10 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             }
             IndexStats.record(applicationContext, progress.processed, System.currentTimeMillis() - start, textReaders.size, foreground)
             // New printed text changes what stickers mean for semantic search.
-            if (progress.processed > 0) EmbedWorker.runNow(applicationContext)
+            if (progress.processed > 0) {
+                EmbedWorker.runNow(applicationContext)
+                ImageTagWorker.runNow(applicationContext)
+            }
             if (progress.finished) Result.success() else Result.retry()
         } catch (e: CancellationException) {
             throw e

@@ -17,6 +17,8 @@ mediapipeGenai = "0.10.25"
 mediapipeCore = "0.10.26"
 # 0.17+ is built with Kotlin 2.4; 0.16.1 needs 2.3-level metadata (see core/caption).
 litertlm = "0.16.1"
+# Classic LiteRT (TFLite) interpreter, for the SigLIP2 image model.
+litert = "1.4.2"
 localagentsRag = "0.3.0"
 
 [libraries]
@@ -38,6 +40,7 @@ junit = { module = "junit:junit", version.ref = "junit" }
 localagents-rag = { module = "com.google.ai.edge.localagents:localagents-rag", version.ref = "localagentsRag" }
 mediapipe-tasks-core = { module = "com.google.mediapipe:tasks-core", version.ref = "mediapipeCore" }
 mediapipe-tasks-genai = { module = "com.google.mediapipe:tasks-genai", version.ref = "mediapipeGenai" }
+litert = { module = "com.google.ai.edge.litert:litert", version.ref = "litert" }
 litertlm-android = { module = "com.google.ai.edge.litertlm:litertlm-android", version.ref = "litertlm" }
 tesseract4android = { module = "cz.adaptech.tesseract4android:tesseract4android", version.ref = "tesseract4android" }
 

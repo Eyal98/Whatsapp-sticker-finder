@@ -11,6 +11,7 @@ import androidx.work.WorkManager
 import com.eyal98.stickerfinder.data.IndexVersion
 import com.eyal98.stickerfinder.index.CaptionWorker
 import com.eyal98.stickerfinder.index.EmbedWorker
+import com.eyal98.stickerfinder.index.ImageTagWorker
 import com.eyal98.stickerfinder.index.IndexStats
 import com.eyal98.stickerfinder.index.IndexWorker
 import com.eyal98.stickerfinder.index.StickerFolder
@@ -53,7 +54,8 @@ object Diagnostics {
                 appendLine("captions: ${ModelStore.CAPTION.installed(app)?.displayName ?: "none"}")
                 appendLine("embedding: ${ModelStore.EMBEDDING.installed(app)?.displayName ?: "none"}")
                 appendLine("tokenizer: ${ModelStore.EMBEDDING_TOKENIZER.installed(app)?.displayName ?: "none"}")
-                for (feature in listOf(ModelCrashGuard.CAPTION, ModelCrashGuard.EMBEDDING)) {
+                appendLine("picture tags: ${ModelStore.IMAGE.installed(app)?.displayName ?: "none"}")
+                for (feature in ModelCrashGuard.FEATURES) {
                     appendLine(
                         "$feature: turned off after crash ${ModelCrashGuard.isDisabled(app, feature)}, " +
                             "crashes ${ModelCrashGuard.crashCount(app, feature)}",
@@ -66,11 +68,12 @@ object Diagnostics {
                 appendLine("failing now ${c.failingNow}, needed retries ${c.retried}, most attempts ${c.maxAttempts}, undecodable ${c.undecodable}")
                 appendLine("with printed text ${c.withText}, animated ${c.animated}, starred ${c.starred}")
                 appendLine("captioned ${c.captioned} (with text ${c.withCaption}, retried ${c.captionRetried}), vectors ${c.vectors}")
+                appendLine("picture-tagged ${c.imageTagged} (with tags ${c.withImageTags}, retried ${c.imageTagRetried})")
                 IndexStats.describe(app)?.let(::appendLine)
             }
             section("Background work") {
                 val workManager = WorkManager.getInstance(app)
-                for (name in IndexWorker.UNIQUE_NAMES + CaptionWorker.UNIQUE_NAMES + EmbedWorker.UNIQUE_NAMES) {
+                for (name in IndexWorker.UNIQUE_NAMES + ImageTagWorker.UNIQUE_NAMES + CaptionWorker.UNIQUE_NAMES + EmbedWorker.UNIQUE_NAMES) {
                     val infos = workManager.getWorkInfosForUniqueWorkFlow(name).first()
                     if (infos.isEmpty()) {
                         appendLine("$name: not scheduled")

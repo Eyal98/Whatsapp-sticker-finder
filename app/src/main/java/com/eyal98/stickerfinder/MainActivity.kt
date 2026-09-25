@@ -10,6 +10,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import com.eyal98.stickerfinder.ml.ModelStore
 import com.eyal98.stickerfinder.index.CaptionWorker
+import com.eyal98.stickerfinder.index.ImageTagWorker
 import com.eyal98.stickerfinder.index.IndexWorker
 import com.eyal98.stickerfinder.index.StickerFolder
 import com.eyal98.stickerfinder.ui.EvaluationScreen
@@ -62,7 +63,10 @@ class MainActivity : ComponentActivity() {
     private fun startIndexing() {
         // Opening the app starts (or restarts) indexing in the foreground, where Android lets it
         // run to the end instead of in throttled background slices.
-        lifecycleScope.launch { IndexWorker.startNow(this@MainActivity) }
+        lifecycleScope.launch {
+            IndexWorker.startNow(this@MainActivity)
+            ImageTagWorker.startNow(this@MainActivity)
+        }
         IndexWorker.schedulePeriodic(this)
         if (ModelStore.CAPTION.installed(this) != null) CaptionWorker.schedulePeriodic(this)
     }

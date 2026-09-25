@@ -16,12 +16,15 @@ object EmbeddingText {
         captionTags: String?,
         ocrText: String?,
         userTags: String?,
+        /** Picture tags from the image model; added last so older fingerprints stay valid without them. */
+        imageTags: String? = null,
     ): String? {
         val parts = buildList {
             captionEn?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
             captionHe?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
             ocrText?.takeIf { it.isNotBlank() }?.let { add("Text: ${it.trim()}") }
-            val tags = listOfNotNull(captionTags, userTags).joinToString(", ") { it.trim() }.trim(',', ' ')
+            val tags = listOfNotNull(captionTags, userTags, imageTags).filter { it.isNotBlank() }
+                .joinToString(", ") { it.trim() }.trim(',', ' ')
             if (tags.isNotEmpty()) add("Tags: $tags")
         }
         return parts.takeIf { it.isNotEmpty() }?.joinToString("\n")?.take(MAX_LENGTH)

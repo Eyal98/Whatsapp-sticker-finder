@@ -7,4 +7,5 @@
     <string name="caption_notification_title">Describing stickers</string>
     <string name="caption_notification_loading">Loading the model…</string>
     <string name="caption_notification_text">%1$d described, %2$d left. Stops if you unplug the phone.</string>
+    <string name="image_tag_notification_title">Tagging pictures</string>
 </resources>

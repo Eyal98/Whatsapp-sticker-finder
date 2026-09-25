@@ -53,6 +53,9 @@ class ModelStore private constructor(
         val EMBEDDING = ModelStore(
             "embedding", ModelCatalog.EMBEDDING_MODELS, "embedding.tflite", setOf("tflite"), ModelCrashGuard.EMBEDDING,
         )
+        val IMAGE = ModelStore(
+            "image", ModelCatalog.IMAGE_MODELS, "image.tflite", setOf("tflite"), ModelCrashGuard.IMAGE_TAGS,
+        )
         val EMBEDDING_TOKENIZER = ModelStore(
             "embedding_tokenizer", ModelCatalog.TOKENIZERS, "embedding.spm", setOf("model", "spm"), ModelCrashGuard.EMBEDDING,
         )

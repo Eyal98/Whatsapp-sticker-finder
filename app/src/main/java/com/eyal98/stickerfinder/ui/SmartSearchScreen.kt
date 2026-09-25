@@ -51,6 +51,7 @@ import com.eyal98.stickerfinder.Diagnostics
 import com.eyal98.stickerfinder.R
 import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.index.CaptionStatus
+import com.eyal98.stickerfinder.ml.ModelCatalog
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.ml.PendingModel
 
@@ -89,6 +90,38 @@ fun SmartSearchScreen(
             TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
             Text(stringResource(R.string.smart_search), style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(R.string.smart_search_intro), style = MaterialTheme.typography.bodyLarge)
+
+            // Picture tags
+            if (state.pictureTagsAvailable) {
+                Text(stringResource(R.string.image_tags_title), style = MaterialTheme.typography.titleLarge)
+                Text(stringResource(R.string.image_tags_body), style = MaterialTheme.typography.bodyMedium)
+                TurnedOffNotice(ModelCrashGuard.IMAGE_TAGS, state, viewModel::turnOn)
+                SlotSection(ModelSlot.IMAGE, state, onImport, viewModel::remove)
+                state.slot(ModelSlot.IMAGE).installed?.let { installed ->
+                    if (installed.sha256 != ModelCatalog.SIGLIP2_B16.sha256) {
+                        ErrorText(stringResource(R.string.image_tags_wrong_file))
+                    } else {
+                        Text(
+                            if (state.imageTagPending > 0) {
+                                stringResource(R.string.image_tags_pending, state.imageTagPending, state.total)
+                            } else {
+                                stringResource(R.string.image_tags_done)
+                            },
+                        )
+                        if (state.imageTagRunning) {
+                            Text(
+                                stringResource(R.string.image_tags_running),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        } else if (state.imageTagPending > 0) {
+                            Button(onClick = viewModel::startImageTags) { Text(stringResource(R.string.image_tags_start)) }
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+            }
 
             // Descriptions
             Text(stringResource(R.string.captions_title), style = MaterialTheme.typography.titleLarge)

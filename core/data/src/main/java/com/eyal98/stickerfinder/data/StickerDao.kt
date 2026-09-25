@@ -20,7 +20,8 @@ abstract class StickerDao {
     /** Records a changed file and marks it for re-indexing and re-captioning. */
     @Query(
         "UPDATE stickers SET sizeBytes = :sizeBytes, lastModified = :lastModified, " +
-            "indexedAt = NULL, captionedAt = NULL, indexAttempts = 0, captionAttempts = 0 WHERE id = :id",
+            "indexedAt = NULL, captionedAt = NULL, imageTaggedAt = NULL, " +
+            "indexAttempts = 0, captionAttempts = 0, imageTagAttempts = 0 WHERE id = :id",
     )
     abstract suspend fun markChanged(id: Long, sizeBytes: Long, lastModified: Long)
 
@@ -33,6 +34,9 @@ abstract class StickerDao {
     @Query("DELETE FROM sticker_vectors WHERE stickerId IN (:ids)")
     abstract suspend fun deleteVectors(ids: List<Long>)
 
+    @Query("DELETE FROM sticker_image_vectors WHERE stickerId IN (:ids)")
+    abstract suspend fun deleteImageVectors(ids: List<Long>)
+
     /** Deletes stickers together with their search index rows and vectors. */
     @Transaction
     open suspend fun deleteWithFts(ids: List<Long>) {
@@ -40,6 +44,7 @@ abstract class StickerDao {
         ids.chunked(500).forEach {
             deleteFts(it)
             deleteVectors(it)
+            deleteImageVectors(it)
             deleteStickers(it)
         }
     }
@@ -79,6 +84,9 @@ abstract class StickerDao {
             "COALESCE(SUM(CASE WHEN captionAttempts > 1 THEN 1 ELSE 0 END), 0) AS captionRetried, " +
             "COALESCE(SUM(CASE WHEN isAnimated THEN 1 ELSE 0 END), 0) AS animated, " +
             "COALESCE(SUM(CASE WHEN starred THEN 1 ELSE 0 END), 0) AS starred, " +
+            "COALESCE(SUM(CASE WHEN imageTaggedAt IS NOT NULL THEN 1 ELSE 0 END), 0) AS imageTagged, " +
+            "COALESCE(SUM(CASE WHEN imageTags IS NOT NULL AND imageTags != '' THEN 1 ELSE 0 END), 0) AS withImageTags, " +
+            "COALESCE(SUM(CASE WHEN imageTagAttempts > 1 THEN 1 ELSE 0 END), 0) AS imageTagRetried, " +
             "(SELECT COUNT(*) FROM sticker_vectors) AS vectors " +
             "FROM stickers",
     )
@@ -137,8 +145,45 @@ abstract class StickerDao {
     /** Rebuilds the full-text entry of one sticker from its current text fields. */
     open suspend fun refreshFts(id: Long) {
         val s = byId(id) ?: return
-        replaceFts(StickerFts(s.id, IndexTerms.build(s.ocrText, s.captionHe, s.captionEn, s.captionTags, s.userTags)))
+        replaceFts(StickerFts(s.id, IndexTerms.build(s.ocrText, s.captionHe, s.captionEn, s.captionTags, s.imageTags, s.userTags)))
     }
+
+    /** Indexed stickers the image model hasn't seen yet; favorites first. */
+    @Query(
+        "SELECT * FROM stickers WHERE imageTaggedAt IS NULL AND indexedAt IS NOT NULL " +
+            "ORDER BY imageTagAttempts ASC, starred DESC, useCount DESC, lastModified DESC LIMIT :limit",
+    )
+    abstract suspend fun needingImageTags(limit: Int): List<StickerEntity>
+
+    @Query("SELECT COUNT(*) FROM stickers WHERE imageTaggedAt IS NULL AND indexedAt IS NOT NULL")
+    abstract fun observeImageTagPendingCount(): Flow<Int>
+
+    @Query("UPDATE stickers SET imageTagAttempts = imageTagAttempts + 1 WHERE id = :id")
+    abstract suspend fun markImageTagAttempt(id: Long)
+
+    @Query(
+        "UPDATE stickers SET imageTags = :tags, imageTaggedAt = :at, imageTagsVersion = :version, " +
+            "imageTagAttempts = 0 WHERE id = :id",
+    )
+    abstract suspend fun saveImageTagsOnly(id: Long, tags: String?, at: Long, version: String)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun upsertImageVector(vector: StickerImageVector)
+
+    /** Saves a sticker's picture tags, with its vector (null if it couldn't be read), and search terms. */
+    @Transaction
+    open suspend fun saveImageTags(id: Long, tags: String?, version: String, vector: StickerImageVector?) {
+        saveImageTagsOnly(id, tags, System.currentTimeMillis(), version)
+        if (vector != null) upsertImageVector(vector)
+        refreshFts(id)
+    }
+
+    /** Tagged with an older label list; their tags are re-derived from the stored vectors. */
+    @Query(
+        "SELECT v.stickerId, v.vector FROM sticker_image_vectors v JOIN stickers s ON s.id = v.stickerId " +
+            "WHERE v.model = :model AND s.imageTaggedAt IS NOT NULL AND s.imageTagsVersion != :version LIMIT :limit",
+    )
+    abstract suspend fun imageVectorsWithOldTags(model: String, version: String, limit: Int): List<StickerVectorRow>
 
     @Query("UPDATE stickers SET captionAttempts = captionAttempts + 1 WHERE id = :id")
     abstract suspend fun markCaptionAttempt(id: Long)

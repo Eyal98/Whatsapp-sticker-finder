@@ -102,4 +102,11 @@
     <string name="caption_status_waiting">Waiting for the charger. Plug in the phone to start.</string>
     <string name="caption_status_loading">Loading the model… This can take a minute.</string>
     <string name="caption_status_running">Running now: %1$d described so far.</string>
+    <string name="image_tags_title">Picture tags</string>
+    <string name="image_tags_body">A small image model (SigLIP 2) looks at each sticker and tags what it shows — a cat, a laughing face, a birthday cake — in Hebrew and English, so you can search for things that aren\'t written on the sticker. About a third of a second per sticker; no charger needed. Runs on the phone.</string>
+    <string name="image_tags_wrong_file">This isn\'t the SigLIP 2 file the tags were made for. Remove it and import siglip2_base_224_fp16.tflite from the download page.</string>
+    <string name="image_tags_pending">Tagging pictures: %1$d of %2$d left.</string>
+    <string name="image_tags_done">All stickers have picture tags.</string>
+    <string name="image_tags_running">Running now. Continues if you leave the app.</string>
+    <string name="image_tags_start">Start now</string>
 </resources>

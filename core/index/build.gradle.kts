@@ -31,6 +31,7 @@ dependencies {
     implementation(project(":core:caption"))
     implementation(project(":core:ml"))
     implementation(project(":core:embed"))
+    implementation(project(":core:vision"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.work.runtime.ktx)
     implementation(libs.kotlinx.coroutines.core)

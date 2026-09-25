@@ -8,8 +8,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [StickerEntity::class, StickerFts::class, StickerVector::class],
-    version = 5,
+    entities = [StickerEntity::class, StickerFts::class, StickerVector::class, StickerImageVector::class],
+    version = 6,
     exportSchema = true,
 )
 abstract class StickerDatabase : RoomDatabase() {
@@ -22,7 +22,7 @@ abstract class StickerDatabase : RoomDatabase() {
         // TODO(Phase 4): encrypt at rest with SQLCipher, key wrapped by Android Keystore.
         fun create(context: Context): StickerDatabase =
             Room.databaseBuilder(context.applicationContext, StickerDatabase::class.java, NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                 .build()
 
         /** Adds [StickerEntity.indexVersion]; existing rows start at 0 so they get OCR'd. */
@@ -57,6 +57,20 @@ abstract class StickerDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE stickers ADD COLUMN indexAttempts INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE stickers ADD COLUMN captionAttempts INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /** Adds picture tags from the SigLIP2 image model, and their vectors. */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stickers ADD COLUMN imageTags TEXT")
+                db.execSQL("ALTER TABLE stickers ADD COLUMN imageTaggedAt INTEGER")
+                db.execSQL("ALTER TABLE stickers ADD COLUMN imageTagsVersion TEXT")
+                db.execSQL("ALTER TABLE stickers ADD COLUMN imageTagAttempts INTEGER NOT NULL DEFAULT 0")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `sticker_image_vectors` (`stickerId` INTEGER NOT NULL, " +
+                        "`model` TEXT NOT NULL, `vector` BLOB NOT NULL, PRIMARY KEY(`stickerId`))",
+                )
             }
         }
     }

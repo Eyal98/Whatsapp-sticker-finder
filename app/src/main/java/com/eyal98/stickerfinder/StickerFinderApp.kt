@@ -41,6 +41,7 @@ class StickerFinderApp : Application(), StickerIndexHost {
             installedFeatures = buildSet {
                 if (ModelStore.CAPTION.installed(this@StickerFinderApp) != null) add(ModelCrashGuard.CAPTION)
                 if (ModelStore.EMBEDDING.installed(this@StickerFinderApp) != null) add(ModelCrashGuard.EMBEDDING)
+                if (ModelStore.IMAGE.installed(this@StickerFinderApp) != null) add(ModelCrashGuard.IMAGE_TAGS)
             },
         )
     }

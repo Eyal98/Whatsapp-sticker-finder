@@ -21,3 +21,12 @@ data class StickerVectorState(val stickerId: Long, val model: String, val finger
 
 /** Changes whenever any vector is added, replaced or removed. */
 data class VectorSignature(val count: Int, val total: Double)
+
+/** A sticker's picture vector from the SigLIP2 image model, kept to re-derive tags cheaply. */
+@Entity(tableName = "sticker_image_vectors")
+class StickerImageVector(
+    @PrimaryKey val stickerId: Long,
+    val model: String,
+    /** Little-endian float32s, L2-normalized. */
+    val vector: ByteArray,
+)

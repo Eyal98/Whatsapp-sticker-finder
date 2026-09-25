@@ -102,4 +102,11 @@
     <string name="caption_status_waiting">ממתין למטען. חברו את הטלפון לטעינה כדי להתחיל.</string>
     <string name="caption_status_loading">טוען את המודל… זה יכול לקחת דקה.</string>
     <string name="caption_status_running">פועל עכשיו: תוארו %1$d עד כה.</string>
+    <string name="image_tags_title">תגיות תמונה</string>
+    <string name="image_tags_body">מודל תמונה קטן (SigLIP 2) מסתכל על כל מדבקה ומתייג מה רואים בה — חתול, פרצוף צוחק, עוגת יום הולדת — בעברית ובאנגלית, כך שאפשר לחפש דברים שלא כתובים על המדבקה. בערך שליש שנייה למדבקה, בלי צורך במטען. פועל בטלפון.</string>
+    <string name="image_tags_wrong_file">זה לא קובץ ה־SigLIP 2 שהתגיות הוכנו עבורו. הסירו אותו וייבאו את siglip2_base_224_fp16.tflite מדף ההורדה.</string>
+    <string name="image_tags_pending">מתייג תמונות: נותרו %1$d מתוך %2$d.</string>
+    <string name="image_tags_done">לכל המדבקות יש תגיות תמונה.</string>
+    <string name="image_tags_running">פועל עכשיו. ממשיך גם אם יוצאים מהאפליקציה.</string>
+    <string name="image_tags_start">התחלה עכשיו</string>
 </resources>

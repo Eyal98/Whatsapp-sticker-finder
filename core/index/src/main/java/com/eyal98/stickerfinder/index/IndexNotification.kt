@@ -8,13 +8,19 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.ForegroundInfo
 
-/** The ongoing notification a foreground indexing job must show. */
+/** The ongoing notification a foreground indexing (or picture tagging) job must show. */
 internal object IndexNotification {
 
     private const val CHANNEL = "indexing"
-    private const val ID = 1001
+    const val INDEX_ID = 1001
+    const val IMAGE_TAGS_ID = 1003
 
-    fun foregroundInfo(context: Context, left: Int): ForegroundInfo {
+    fun foregroundInfo(
+        context: Context,
+        left: Int,
+        id: Int = INDEX_ID,
+        title: Int = R.string.index_notification_title,
+    ): ForegroundInfo {
         NotificationManagerCompat.from(context).createNotificationChannel(
             NotificationChannelCompat.Builder(CHANNEL, NotificationManagerCompat.IMPORTANCE_LOW)
                 .setName(context.getString(R.string.index_channel))
@@ -25,13 +31,13 @@ internal object IndexNotification {
         }
         val notification = NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_indexing)
-            .setContentTitle(context.getString(R.string.index_notification_title))
+            .setContentTitle(context.getString(title))
             .setContentText(context.getString(R.string.index_notification_text, left))
             .setContentIntent(open)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setSilent(true)
             .build()
-        return ForegroundInfo(ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        return ForegroundInfo(id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
     }
 }

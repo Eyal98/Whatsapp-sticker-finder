@@ -19,6 +19,9 @@ data class ModelSpec(
     val sha256: String?,
 )
 
+/** Pinned by the SigLIP labels workflow (it prints the model's hash). */
+private const val SIGLIP2_SHA256 = "UNPINNED"
+
 /** Gemma models are covered by the Gemma Terms of Use. */
 object ModelCatalog {
 
@@ -81,7 +84,22 @@ object ModelCatalog {
         sha256 = null,
     )
 
+    /**
+     * SigLIP 2 image tower (ViT-B/16, 224 px) for picture tags. The app's label vectors were made
+     * with the matching text tower, so only this exact file works: its hash is pinned.
+     */
+    val SIGLIP2_B16 = ModelSpec(
+        id = "siglip2-base-patch16-224-fp16",
+        displayName = "SigLIP 2 (image)",
+        fileName = "siglip2_base_224_fp16.tflite",
+        approxSize = "185 MB",
+        downloadPage = "https://huggingface.co/litert-community/SigLIP2-base-patch16-224",
+        minRamBytes = 3_000_000_000L,
+        sha256 = SIGLIP2_SHA256,
+    )
+
     val CAPTION_MODELS = listOf(GEMMA_3N_E2B, GEMMA_3N_E4B, GEMMA_3N_E2B_TASK, GEMMA_3N_E4B_TASK)
     val EMBEDDING_MODELS = listOf(EMBEDDING_GEMMA)
     val TOKENIZERS = listOf(EMBEDDING_GEMMA_TOKENIZER)
+    val IMAGE_MODELS = listOf(SIGLIP2_B16)
 }
