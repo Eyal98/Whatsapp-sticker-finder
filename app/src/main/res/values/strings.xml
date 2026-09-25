@@ -96,4 +96,7 @@
     <string name="diag_share">Share</string>
     <string name="diag_copy">Copy</string>
     <string name="diag_close">Close</string>
+    <string name="import_wrong_type">That isn\'t the right file for this. Choose the %1$s file from the download page.</string>
+    <string name="model_turned_off">Turned off: the app crashed while this model was running, so it won\'t load again until you turn it on. If it crashes again, remove it and import the file again, checking it\'s the one named above.</string>
+    <string name="model_turn_on">Turn on again</string>
 </resources>

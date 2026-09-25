@@ -31,6 +31,10 @@ class ModelStore private constructor(
     private val slot: String,
     val catalog: List<ModelSpec>,
     private val fileName: String,
+    /** File extensions this slot accepts; the wrong file can crash the native runtime. */
+    val extensions: Set<String>,
+    /** The [ModelCrashGuard] feature this file belongs to. */
+    val feature: String,
 ) {
 
     companion object {
@@ -42,15 +46,22 @@ class ModelStore private constructor(
         /** Space to leave free on top of the model itself. */
         private const val FREE_SPACE_MARGIN = 500_000_000L
 
-        val CAPTION = ModelStore("caption", ModelCatalog.CAPTION_MODELS, "caption.task")
-        val EMBEDDING = ModelStore("embedding", ModelCatalog.EMBEDDING_MODELS, "embedding.tflite")
-        val EMBEDDING_TOKENIZER = ModelStore("embedding_tokenizer", ModelCatalog.TOKENIZERS, "embedding.spm")
+        val CAPTION = ModelStore(
+            "caption", ModelCatalog.CAPTION_MODELS, "caption.task", setOf("task"), ModelCrashGuard.CAPTION,
+        )
+        val EMBEDDING = ModelStore(
+            "embedding", ModelCatalog.EMBEDDING_MODELS, "embedding.tflite", setOf("tflite"), ModelCrashGuard.EMBEDDING,
+        )
+        val EMBEDDING_TOKENIZER = ModelStore(
+            "embedding_tokenizer", ModelCatalog.TOKENIZERS, "embedding.spm", setOf("model", "spm"), ModelCrashGuard.EMBEDDING,
+        )
     }
 
     sealed interface ImportResult {
         data class Installed(val model: InstalledModel) : ImportResult
         data class NeedsConfirmation(val pending: PendingModel) : ImportResult
         data class NotEnoughSpace(val neededBytes: Long) : ImportResult
+        data class WrongFileType(val expected: Set<String>) : ImportResult
         data object Failed : ImportResult
     }
 
@@ -88,6 +99,12 @@ class ModelStore private constructor(
             val (name, size) = resolver.query(source, arrayOf(OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE), null, null, null)
                 ?.use { c -> if (c.moveToFirst()) (c.getString(0).orEmpty() to c.getLong(1)) else null }
                 ?: ("" to -1L)
+            // Checked by name, before copying gigabytes: some providers don't report a name, and
+            // then the file is accepted.
+            val extension = name.substringAfterLast('.', "").lowercase()
+            if (name.isNotEmpty() && extension !in extensions) {
+                return@withContext ImportResult.WrongFileType(extensions)
+            }
             if (size > 0 && dir(context).usableSpace < size + FREE_SPACE_MARGIN) {
                 return@withContext ImportResult.NotEnoughSpace(size + FREE_SPACE_MARGIN)
             }
@@ -148,6 +165,7 @@ class ModelStore private constructor(
             remove(KEY_PENDING_SHA)
             remove(KEY_PENDING_NAME)
         }
+        ModelCrashGuard.enable(context, feature)
         return installed(context)
     }
 
@@ -165,5 +183,6 @@ class ModelStore private constructor(
             remove(KEY_SHA)
             remove(KEY_MODEL_ID)
         }
+        ModelCrashGuard.enable(context, feature)
     }
 }

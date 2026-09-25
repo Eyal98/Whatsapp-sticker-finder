@@ -15,6 +15,7 @@ import com.eyal98.stickerfinder.index.IndexWorker
 import com.eyal98.stickerfinder.index.StickerFolder
 import com.eyal98.stickerfinder.keyboard.StickerKeyboardService
 import com.eyal98.stickerfinder.ml.DeviceCapability
+import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.ml.ModelStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -51,6 +52,12 @@ object Diagnostics {
                 appendLine("captions: ${ModelStore.CAPTION.installed(app)?.displayName ?: "none"}")
                 appendLine("embedding: ${ModelStore.EMBEDDING.installed(app)?.displayName ?: "none"}")
                 appendLine("tokenizer: ${ModelStore.EMBEDDING_TOKENIZER.installed(app)?.displayName ?: "none"}")
+                for (feature in listOf(ModelCrashGuard.CAPTION, ModelCrashGuard.EMBEDDING)) {
+                    appendLine(
+                        "$feature: turned off after crash ${ModelCrashGuard.isDisabled(app, feature)}, " +
+                            "crashes ${ModelCrashGuard.crashCount(app, feature)}",
+                    )
+                }
             }
             section("Index") {
                 val c = app.database.stickerDao().diagnosticCounts(IndexVersion.CURRENT)

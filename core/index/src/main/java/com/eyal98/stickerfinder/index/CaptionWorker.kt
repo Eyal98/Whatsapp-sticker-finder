@@ -14,6 +14,7 @@ import com.eyal98.stickerfinder.index.WorkBudget.Companion.continueSoon
 import com.eyal98.stickerfinder.caption.MediaPipeCaptioner
 import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ml.ModelCatalog
+import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.ml.ModelStore
 import java.util.concurrent.TimeUnit
 
@@ -28,14 +29,20 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
     override suspend fun doWork(): Result {
         val host = applicationContext as StickerIndexHost
         val model = ModelStore.CAPTION.installed(applicationContext) ?: return Result.success()
+        // Turned off after it crashed the app (see ModelCrashGuard), until the user turns it on.
+        if (ModelCrashGuard.isDisabled(applicationContext, ModelCrashGuard.CAPTION)) return Result.success()
         if (!DeviceCapability.canRun(applicationContext, model.model, ModelCatalog.GEMMA_3N_E2B)) {
             Log.w(TAG, "Not enough memory for ${model.displayName}")
             return Result.failure()
         }
+        // From here until the finally below, a crash in the model's native code turns it off.
+        ModelCrashGuard.markBusy(applicationContext, ModelCrashGuard.CAPTION)
         val captioner = try {
             MediaPipeCaptioner.create(applicationContext, model)
         } catch (e: RuntimeException) {
+            // Not a usable model for this runtime: turn it off rather than retry forever.
             Log.w(TAG, "Could not load ${model.displayName}", e)
+            ModelCrashGuard.disable(applicationContext, ModelCrashGuard.CAPTION)
             return Result.failure()
         }
         return try {
@@ -49,6 +56,7 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             if (progress.finished) Result.success() else Result.retry()
         } finally {
             captioner.close()
+            ModelCrashGuard.clearBusy(applicationContext, ModelCrashGuard.CAPTION)
         }
     }
 

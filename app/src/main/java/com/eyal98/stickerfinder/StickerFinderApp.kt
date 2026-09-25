@@ -10,6 +10,8 @@ import com.eyal98.stickerfinder.data.StickerDatabase
 import com.eyal98.stickerfinder.data.StickerRepository
 import com.eyal98.stickerfinder.embed.EmbedderHolder
 import com.eyal98.stickerfinder.index.StickerIndexHost
+import com.eyal98.stickerfinder.ml.ModelCrashGuard
+import com.eyal98.stickerfinder.ml.ModelStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -33,6 +35,14 @@ class StickerFinderApp : Application(), StickerIndexHost {
     override fun onCreate() {
         super.onCreate()
         Diagnostics.CrashLog.install(this)
+        // Before anything can load a model: turn off one that crashed the previous process.
+        ModelCrashGuard.onProcessStart(
+            this,
+            installedFeatures = buildSet {
+                if (ModelStore.CAPTION.installed(this@StickerFinderApp) != null) add(ModelCrashGuard.CAPTION)
+                if (ModelStore.EMBEDDING.installed(this@StickerFinderApp) != null) add(ModelCrashGuard.EMBEDDING)
+            },
+        )
     }
 
     override fun onTrimMemory(level: Int) {

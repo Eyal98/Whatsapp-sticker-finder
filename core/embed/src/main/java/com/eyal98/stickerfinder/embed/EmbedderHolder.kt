@@ -5,6 +5,7 @@ import android.util.Log
 import com.eyal98.stickerfinder.data.EmbedderAccess
 import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ml.ModelCatalog
+import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.ml.ModelStore
 import com.eyal98.stickerfinder.search.TextEmbedder
 import kotlinx.coroutines.Dispatchers
@@ -29,8 +30,9 @@ class EmbedderHolder(context: Context) : EmbedderAccess {
         }
     }
 
-    /** True when both files are installed and the phone has enough memory. */
+    /** True when both files are installed, not turned off after a crash, and memory suffices. */
     fun isAvailable(): Boolean {
+        if (ModelCrashGuard.isDisabled(appContext, ModelCrashGuard.EMBEDDING)) return false
         val model = ModelStore.EMBEDDING.installed(appContext) ?: return false
         ModelStore.EMBEDDING_TOKENIZER.installed(appContext) ?: return false
         return DeviceCapability.canRun(appContext, model.model, ModelCatalog.EMBEDDING_GEMMA)
@@ -39,6 +41,7 @@ class EmbedderHolder(context: Context) : EmbedderAccess {
     suspend fun release() = lock.withLock {
         loaded?.second?.close()
         loaded = null
+        ModelCrashGuard.clearBusy(appContext, ModelCrashGuard.EMBEDDING)
     }
 
     private fun current(): TextEmbedder? {
@@ -49,10 +52,13 @@ class EmbedderHolder(context: Context) : EmbedderAccess {
         loaded?.let { (k, embedder) -> if (k == key) return embedder }
         loaded?.second?.close()
         loaded = null
+        // Busy while the model is loaded; a native crash meanwhile turns it off next start.
+        ModelCrashGuard.markBusy(appContext, ModelCrashGuard.EMBEDDING)
         return try {
             GemmaTextEmbedder.create(model, tokenizer).also { loaded = key to it }
         } catch (e: RuntimeException) {
             Log.w(TAG, "Could not load the embedding model", e)
+            ModelCrashGuard.disable(appContext, ModelCrashGuard.EMBEDDING)
             null
         }
     }

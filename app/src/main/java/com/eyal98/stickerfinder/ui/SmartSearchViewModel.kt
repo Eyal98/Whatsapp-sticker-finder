@@ -12,6 +12,7 @@ import com.eyal98.stickerfinder.index.EmbedWorker
 import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ml.InstalledModel
 import com.eyal98.stickerfinder.ml.ModelCatalog
+import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.ml.ModelSpec
 import com.eyal98.stickerfinder.ml.ModelStore
 import com.eyal98.stickerfinder.ml.PendingModel
@@ -35,6 +36,7 @@ enum class ModelSlot(val store: ModelStore, val recommended: ModelSpec) {
 
 sealed interface ImportProblem {
     data class NotEnoughSpace(val neededBytes: Long) : ImportProblem
+    data class WrongFileType(val expected: Set<String>) : ImportProblem
     data object Failed : ImportProblem
 }
 
@@ -53,6 +55,8 @@ data class SmartSearchUiState(
     val total: Int = 0,
     val captionMemoryOk: Boolean = true,
     val embeddingMemoryOk: Boolean = true,
+    /** Features turned off because their model crashed the app (see ModelCrashGuard). */
+    val turnedOff: Set<String> = emptySet(),
 ) {
     fun slot(slot: ModelSlot) = slots[slot] ?: SlotUiState()
     val importing: Boolean get() = slots.values.any { it.importProgress != null }
@@ -66,14 +70,20 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
         ModelSlot.entries.associateWith { SlotUiState(it.store.installed(app), it.store.pending(app)) },
     )
     private var importJob: Job? = null
+    private val turnedOff = MutableStateFlow(currentTurnedOff())
+
+    private fun currentTurnedOff() = setOf(ModelCrashGuard.CAPTION, ModelCrashGuard.EMBEDDING)
+        .filterTo(HashSet()) { ModelCrashGuard.isDisabled(app, it) }
 
     val uiState: StateFlow<SmartSearchUiState> = combine(
         slotState,
         app.repository.captionPendingCount,
         app.repository.vectorCount,
         app.repository.stickerCount,
-    ) { slots, captionPending, vectors, total ->
+        turnedOff,
+    ) { slots, captionPending, vectors, total, off ->
         SmartSearchUiState(
+            turnedOff = off,
             slots = slots,
             captionPending = captionPending,
             vectorCount = vectors,
@@ -102,6 +112,8 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
                 is ModelStore.ImportResult.NeedsConfirmation -> update(slot) { it.copy(pending = result.pending) }
                 is ModelStore.ImportResult.NotEnoughSpace ->
                     update(slot) { it.copy(problem = ImportProblem.NotEnoughSpace(result.neededBytes)) }
+                is ModelStore.ImportResult.WrongFileType ->
+                    update(slot) { it.copy(problem = ImportProblem.WrongFileType(result.expected)) }
                 ModelStore.ImportResult.Failed -> update(slot) { it.copy(problem = ImportProblem.Failed) }
             }
         }
@@ -129,13 +141,25 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
             }
             withContext(Dispatchers.IO) { slot.store.remove(app) }
             update(slot) { it.copy(installed = null) }
+            turnedOff.value = currentTurnedOff()
         }
     }
 
     fun startCaptioning() = CaptionWorker.runNow(app)
 
+    /** Turns a feature back on after it was turned off for crashing the app. */
+    fun turnOn(feature: String) {
+        ModelCrashGuard.enable(app, feature)
+        turnedOff.value = currentTurnedOff()
+        when (feature) {
+            ModelCrashGuard.CAPTION -> CaptionWorker.runNow(app)
+            ModelCrashGuard.EMBEDDING -> EmbedWorker.runNow(app)
+        }
+    }
+
     private fun onInstalled(slot: ModelSlot, model: InstalledModel) {
         update(slot) { it.copy(installed = model, pending = null, problem = null) }
+        turnedOff.value = currentTurnedOff()
         when (slot) {
             ModelSlot.CAPTION -> {
                 CaptionWorker.schedulePeriodic(app)

@@ -46,6 +46,7 @@ import kotlinx.coroutines.launch
 import com.eyal98.stickerfinder.Diagnostics
 import com.eyal98.stickerfinder.R
 import com.eyal98.stickerfinder.StickerFinderApp
+import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.ml.PendingModel
 
 @Composable
@@ -88,6 +89,7 @@ fun SmartSearchScreen(
             Text(stringResource(R.string.captions_title), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.smart_search_body), style = MaterialTheme.typography.bodyMedium)
             if (!state.captionMemoryOk) ErrorText(stringResource(R.string.not_enough_memory))
+            TurnedOffNotice(ModelCrashGuard.CAPTION, state, viewModel::turnOn)
             SlotSection(ModelSlot.CAPTION, state, onImport, viewModel::remove)
             if (state.slot(ModelSlot.CAPTION).installed != null) {
                 Text(
@@ -109,6 +111,7 @@ fun SmartSearchScreen(
             Text(stringResource(R.string.meaning_title), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.meaning_body), style = MaterialTheme.typography.bodyMedium)
             if (!state.embeddingMemoryOk) ErrorText(stringResource(R.string.not_enough_memory))
+            TurnedOffNotice(ModelCrashGuard.EMBEDDING, state, viewModel::turnOn)
             SlotSection(ModelSlot.EMBEDDING, state, onImport, viewModel::remove)
             SlotSection(ModelSlot.TOKENIZER, state, onImport, viewModel::remove)
             val embeddingReady = state.slot(ModelSlot.EMBEDDING).installed != null &&
@@ -183,9 +186,20 @@ private fun SlotSection(
         is ImportProblem.NotEnoughSpace -> ErrorText(
             stringResource(R.string.import_no_space, Formatter.formatShortFileSize(context, problem.neededBytes)),
         )
+        is ImportProblem.WrongFileType -> ErrorText(
+            stringResource(R.string.import_wrong_type, problem.expected.joinToString(" / ") { ".$it" }),
+        )
         ImportProblem.Failed -> ErrorText(stringResource(R.string.import_failed))
         null -> Unit
     }
+}
+
+/** Shown when a feature was turned off because its model crashed the app. */
+@Composable
+private fun TurnedOffNotice(feature: String, state: SmartSearchUiState, onTurnOn: (String) -> Unit) {
+    if (feature !in state.turnedOff) return
+    ErrorText(stringResource(R.string.model_turned_off))
+    OutlinedButton(onClick = { onTurnOn(feature) }) { Text(stringResource(R.string.model_turn_on)) }
 }
 
 private fun openPage(context: Context, url: String) {
