@@ -19,6 +19,10 @@ object Synonyms {
         setOf("לילה", "night", "sleep", "לישון"),
         setOf("חתול", "cat", "kitten"),
         setOf("כלב", "dog", "puppy"),
+        // English contractions lose the apostrophe in normalization ("can't" -> "cant").
+        // Single words only: each entry becomes one FTS term.
+        setOf("cannot", "cant"),
+        setOf("sorry", "סליחה", "מצטער", "מצטערת"),
     ).map { group -> group.map { TextNormalizer.normalize(it) }.toSet() }
 
     private val INDEX: Map<String, Set<String>> = buildMap {

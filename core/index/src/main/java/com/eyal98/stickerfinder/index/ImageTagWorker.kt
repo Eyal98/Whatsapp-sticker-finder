@@ -53,6 +53,8 @@ class ImageTagWorker(context: Context, params: WorkerParameters) : CoroutineWork
         // A new label list: re-derive tags from the stored vectors first. Doesn't need the model.
         if (!tagger.retagOld(budget)) return Result.retry()
         if (pendingCount() == 0) return Result.success()
+        // Captioning is running: wait; it starts this work again when it ends (see CaptionWorker).
+        if (HeavyWork.captioning) return Result.retry()
 
         // From here until the finally below, a crash in the model's native code turns it off.
         ModelCrashGuard.markBusy(applicationContext, ModelCrashGuard.IMAGE_TAGS)
@@ -64,7 +66,7 @@ class ImageTagWorker(context: Context, params: WorkerParameters) : CoroutineWork
             return Result.failure()
         }
         return try {
-            val progress = tagger.tagPending(encoder, budget) { done ->
+            val progress = tagger.tagPending(encoder, budget, shouldPause = { HeavyWork.captioning }) { done ->
                 if (foreground && done % NOTIFY_EVERY == 0) tryForeground(pendingCount())
             }
             // New tags change what stickers mean for semantic search.

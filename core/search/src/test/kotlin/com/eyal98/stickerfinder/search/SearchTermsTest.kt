@@ -21,6 +21,19 @@ class SearchTermsTest {
     }
 
     @Test
+    fun `cannot matches the contraction as normalized from can't`() {
+        val term = QueryParser.parse("I cannot").last()
+        assertTrue(TextNormalizer.tokenize("can't").single() in term.alternatives)
+    }
+
+    @Test
+    fun `synonyms are single words so each is one FTS term`() {
+        for (word in listOf("cannot", "sorry", "חחח", "love")) {
+            QueryParser.parse(word).single().alternatives.forEach { assertTrue(it, ' ' !in it) }
+        }
+    }
+
+    @Test
     fun `prefixed query word finds synonyms of its stem`() {
         val term = QueryParser.parse("והחתול").single()
         assertTrue("cat" in term.alternatives)

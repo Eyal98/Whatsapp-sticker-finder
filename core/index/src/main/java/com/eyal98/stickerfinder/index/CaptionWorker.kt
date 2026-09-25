@@ -18,9 +18,11 @@ import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ml.ModelCatalog
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.ml.ModelStore
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
 /**
@@ -40,32 +42,39 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             Log.w(TAG, "Not enough memory for ${model.displayName}")
             return Result.failure()
         }
-        val dao = host.database.stickerDao()
-        // From here until the finally below, a crash in the model's native code turns it off.
-        ModelCrashGuard.markBusy(applicationContext, ModelCrashGuard.CAPTION)
-        report(done = null, left = dao.observeCaptionPendingCount().first())
-        val captioner = try {
-            StickerCaptioners.create(applicationContext, model)
-        } catch (e: Exception) {
-            return loadFailed(model.displayName, e)
-        } catch (e: LinkageError) {
-            // A runtime's native library that doesn't load on this phone.
-            return loadFailed(model.displayName, e)
-        }
-        return try {
-            report(done = 0, left = dao.observeCaptionPendingCount().first())
-            val progress = CaptionIndexer(
-                applicationContext.contentResolver,
-                dao,
-                host.repository,
-                captioner,
-            ).captionPending { done -> report(done, dao.observeCaptionPendingCount().first()) }
-            if (progress.processed > 0) EmbedWorker.runNow(applicationContext)
-            if (progress.finished) Result.success() else Result.retry()
+        // Picture tagging steps aside while this runs, and is started again when it ends.
+        HeavyWork.captioning = true
+        try {
+            val dao = host.database.stickerDao()
+            // From here until the finally below, a crash in the model's native code turns it off.
+            ModelCrashGuard.markBusy(applicationContext, ModelCrashGuard.CAPTION)
+            report(done = null, left = dao.observeCaptionPendingCount().first())
+            val captioner = try {
+                StickerCaptioners.create(applicationContext, model)
+            } catch (e: Exception) {
+                return loadFailed(model.displayName, e)
+            } catch (e: LinkageError) {
+                // A runtime's native library that doesn't load on this phone.
+                return loadFailed(model.displayName, e)
+            }
+            return try {
+                report(done = 0, left = dao.observeCaptionPendingCount().first())
+                val progress = CaptionIndexer(
+                    applicationContext.contentResolver,
+                    dao,
+                    host.repository,
+                    captioner,
+                ).captionPending { done -> report(done, dao.observeCaptionPendingCount().first()) }
+                if (progress.processed > 0) EmbedWorker.runNow(applicationContext)
+                if (progress.finished) Result.success() else Result.retry()
+            } finally {
+                captioner.close()
+                ModelCrashGuard.clearBusy(applicationContext, ModelCrashGuard.CAPTION)
+                CaptionNotification.cancel(applicationContext)
+            }
         } finally {
-            captioner.close()
-            ModelCrashGuard.clearBusy(applicationContext, ModelCrashGuard.CAPTION)
-            CaptionNotification.cancel(applicationContext)
+            HeavyWork.captioning = false
+            withContext(NonCancellable) { ImageTagWorker.startNow(applicationContext) }
         }
     }
 

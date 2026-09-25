@@ -45,6 +45,8 @@ class ImageTagger(
     suspend fun tagPending(
         encoder: SiglipImageEncoder,
         budget: WorkBudget,
+        /** Checked before each sticker; true stops the run early, as if the budget ran out. */
+        shouldPause: () -> Boolean = { false },
         onTagged: suspend (processed: Int) -> Unit = {},
     ): StickerIndexer.Progress = withContext(Dispatchers.Default) {
         var processed = 0
@@ -52,7 +54,9 @@ class ImageTagger(
         while (batch.isNotEmpty()) {
             for (sticker in batch) {
                 ensureActive()
-                if (budget.exhausted) return@withContext StickerIndexer.Progress(processed, finished = false)
+                if (budget.exhausted || shouldPause()) {
+                    return@withContext StickerIndexer.Progress(processed, finished = false)
+                }
                 // Counted first, so a sticker that crashes the model is skipped after MAX_ATTEMPTS.
                 dao.markImageTagAttempt(sticker.id)
                 val vector = if (sticker.imageTagAttempts >= WorkBudget.MAX_ATTEMPTS) {
