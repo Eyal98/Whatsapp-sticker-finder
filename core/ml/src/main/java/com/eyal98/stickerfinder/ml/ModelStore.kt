@@ -35,6 +35,12 @@ class ModelStore private constructor(
     val extensions: Set<String>,
     /** The [ModelCrashGuard] feature this file belongs to. */
     val feature: String,
+    /**
+     * For slots that take more than one format: the extension to store a file under, from its
+     * content. Runtimes pick the format by extension (LiteRT-LM opens a ".task" file as a zip),
+     * so the installed file must keep the right one.
+     */
+    private val formatExtension: ((File) -> String)? = null,
 ) {
 
     companion object {
@@ -47,9 +53,21 @@ class ModelStore private constructor(
         private const val FREE_SPACE_MARGIN = 500_000_000L
 
         val CAPTION = ModelStore(
-            // The file keeps this name whatever its format; the captioner tells them apart by content.
             "caption", ModelCatalog.CAPTION_MODELS, "caption.task", setOf("litertlm", "task"), ModelCrashGuard.CAPTION,
+            formatExtension = { if (isZip(it)) "task" else "litertlm" },
         )
+        /** A zip archive, like MediaPipe .task bundles; .litertlm files aren't. */
+        fun isZip(file: File): Boolean {
+            val header = ByteArray(4)
+            val read = try {
+                file.inputStream().use { it.read(header) }
+            } catch (e: IOException) {
+                return false
+            }
+            return read == 4 && header[0] == 'P'.code.toByte() && header[1] == 'K'.code.toByte() &&
+                header[2] == 3.toByte() && header[3] == 4.toByte()
+        }
+
         val EMBEDDING = ModelStore(
             "embedding", ModelCatalog.EMBEDDING_MODELS, "embedding.tflite", setOf("tflite"), ModelCrashGuard.EMBEDDING,
         )
@@ -70,7 +88,24 @@ class ModelStore private constructor(
     }
 
     private fun dir(context: Context) = File(context.noBackupFilesDir, "models").apply { mkdirs() }
-    private fun modelFile(context: Context) = File(dir(context), fileName)
+    private val baseName = fileName.substringBeforeLast('.')
+
+    /** Every name the installed file can have in this slot. */
+    private fun candidates(context: Context): List<File> =
+        if (formatExtension == null) {
+            listOf(File(dir(context), fileName))
+        } else {
+            (listOf(fileName.substringAfterLast('.')) + extensions).distinct().map { File(dir(context), "$baseName.$it") }
+        }
+
+    private fun modelFile(context: Context): File {
+        val file = candidates(context).firstOrNull { it.isFile } ?: return File(dir(context), fileName)
+        val format = formatExtension ?: return file
+        // Files installed before the extension was kept were all named "caption.task"; rename
+        // a .litertlm one so its runtime can open it.
+        val right = File(dir(context), "$baseName.${format(file)}")
+        return if (right != file && file.renameTo(right)) right else file
+    }
     private fun pendingFile(context: Context) = File(dir(context), "$slot.pending")
     private fun prefs(context: Context) = context.getSharedPreferences("${slot}_model", Context.MODE_PRIVATE)
 
@@ -160,9 +195,10 @@ class ModelStore private constructor(
     /** Installs the pending file, replacing any current model. */
     fun confirmPending(context: Context, model: ModelSpec? = pending(context)?.guessedModel): InstalledModel? {
         val sha = prefs(context).getString(KEY_PENDING_SHA, null) ?: return null
-        val target = modelFile(context)
-        target.delete()
-        if (!pendingFile(context).renameTo(target)) return null
+        val pending = pendingFile(context)
+        val target = formatExtension?.let { File(dir(context), "$baseName.${it(pending)}") } ?: File(dir(context), fileName)
+        candidates(context).forEach { it.delete() }
+        if (!pending.renameTo(target)) return null
         prefs(context).edit {
             putString(KEY_SHA, sha)
             if (model != null) putString(KEY_MODEL_ID, model.id) else remove(KEY_MODEL_ID)
@@ -182,7 +218,7 @@ class ModelStore private constructor(
     }
 
     fun remove(context: Context) {
-        modelFile(context).delete()
+        candidates(context).forEach { it.delete() }
         prefs(context).edit {
             remove(KEY_SHA)
             remove(KEY_MODEL_ID)
