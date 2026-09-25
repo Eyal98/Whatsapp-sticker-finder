@@ -22,6 +22,7 @@ import java.io.ByteArrayOutputStream
 class LiteRtLmCaptioner private constructor(
     private val engine: Engine,
     override val modelId: String,
+    override val setupName: String,
     /** Called once, after the first caption: this model/backend setup works. */
     private var onFirstCaption: (() -> Unit)?,
 ) : StickerCaptioner {
@@ -111,6 +112,7 @@ class LiteRtLmCaptioner private constructor(
                     return LiteRtLmCaptioner(
                         engine,
                         model.id,
+                        "litert-lm ${setup.name}",
                         if (confirmed) null else ({ prefs.edit { putInt("ok_$key", index) } }),
                     )
                 } catch (e: Exception) {

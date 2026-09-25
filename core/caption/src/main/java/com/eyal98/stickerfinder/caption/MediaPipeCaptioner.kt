@@ -17,6 +17,8 @@ class MediaPipeCaptioner private constructor(
     override val modelId: String,
 ) : StickerCaptioner {
 
+    override val setupName: String = "mediapipe"
+
     override fun caption(sticker: Bitmap, printedText: String?): StickerCaption? {
         val image = StickerImage.flatten(sticker)
         try {

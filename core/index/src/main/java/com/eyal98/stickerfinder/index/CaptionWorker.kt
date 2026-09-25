@@ -59,12 +59,14 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             }
             return try {
                 report(done = 0, left = dao.observeCaptionPendingCount().first())
+                val start = System.currentTimeMillis()
                 val progress = CaptionIndexer(
                     applicationContext.contentResolver,
                     dao,
                     host.repository,
                     captioner,
                 ).captionPending { done -> report(done, dao.observeCaptionPendingCount().first()) }
+                CaptionStats.record(applicationContext, progress.processed, System.currentTimeMillis() - start, captioner.setupName)
                 if (progress.processed > 0) EmbedWorker.runNow(applicationContext)
                 if (progress.finished) Result.success() else Result.retry()
             } finally {

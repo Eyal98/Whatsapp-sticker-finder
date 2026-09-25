@@ -16,6 +16,9 @@ interface StickerCaptioner : Closeable {
     /** Identifies the model, stored with each caption. */
     val modelId: String
 
+    /** Where it runs (runtime and CPU/GPU), for the diagnostics report. */
+    val setupName: String
+
     /**
      * @param printedText text OCR found on the sticker, given to the model as a hint.
      * @return the caption, or null if the model's reply couldn't be understood.

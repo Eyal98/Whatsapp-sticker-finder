@@ -9,6 +9,7 @@ import android.os.Build
 import android.view.inputmethod.InputMethodManager
 import androidx.work.WorkManager
 import com.eyal98.stickerfinder.data.IndexVersion
+import com.eyal98.stickerfinder.index.CaptionStats
 import com.eyal98.stickerfinder.index.CaptionWorker
 import com.eyal98.stickerfinder.index.EmbedWorker
 import com.eyal98.stickerfinder.index.ImageTagWorker
@@ -72,6 +73,7 @@ object Diagnostics {
                 appendLine("captioned ${c.captioned} (with text ${c.withCaption}, retried ${c.captionRetried}), vectors ${c.vectors}")
                 appendLine("picture-tagged ${c.imageTagged} (with tags ${c.withImageTags}, retried ${c.imageTagRetried})")
                 IndexStats.describe(app)?.let(::appendLine)
+                CaptionStats.describe(app)?.let(::appendLine)
             }
             section("Background work") {
                 val workManager = WorkManager.getInstance(app)
@@ -116,7 +118,14 @@ object Diagnostics {
 
     /** The app's own warning and error lines; apps can only read their own log. */
     private fun readLog(): String {
-        val process = Runtime.getRuntime().exec(arrayOf("logcat", "-d", "-v", "time", "-t", "1000", "*:W"))
+        // This process only: earlier crashes are already under "Last crash", and repeating them
+        // here buried what's new. Warnings and errors, plus which setup the caption model loaded.
+        val process = Runtime.getRuntime().exec(
+            arrayOf(
+                "logcat", "-d", "-v", "time", "-t", "1000", "--pid=${android.os.Process.myPid()}",
+                "*:W", "LiteRtLmCaptioner:I",
+            ),
+        )
         val lines = process.inputStream.bufferedReader().use { it.readLines() }
         process.waitFor()
         return lines.takeLast(LOG_LINES).joinToString("\n") { redact(it) }.ifEmpty { "(empty)" }
