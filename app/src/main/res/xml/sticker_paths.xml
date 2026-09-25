@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Only the one sticker being sent from the keyboard is ever shared from here. -->
+<paths>
+    <cache-path name="send" path="send/" />
+</paths>

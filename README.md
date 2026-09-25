@@ -24,6 +24,13 @@ Google AI Edge RAG SDK) turns each sticker's description, printed text and tags 
 Queries are embedded the same way, and results merge keyword and meaning matches with
 Reciprocal Rank Fusion, so "running late" can find a sticker described as "מאחר".
 
+**Sticker keyboard** (Phase 3): stickers shared through the share sheet arrive in WhatsApp as
+photos, so the app also includes a sticker-only keyboard. Type a search in the chat box with your
+usual keyboard, switch to Sticker Finder, and tap a result: it's inserted with the keyboard
+content API as `image/webp.wasticker` (falling back to WebP/PNG where that's what the field
+accepts), and the search text is removed. It reads at most 100 characters before the cursor, only
+when opened, never in password fields.
+
 **Search quality test** (Smart search screen): write test searches in Hebrew and English, mark the
 stickers each should find, and run them through the real pipeline on the phone. Reports Recall@5
 and MRR@10 per language for keyword, meaning and combined ranking, search latency, and the best

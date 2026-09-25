@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sticker-only keyboard: no keys, so it needs no subtypes. -->
+<input-method xmlns:android="http://schemas.android.com/apk/res/android"
+    android:settingsActivity="com.eyal98.stickerfinder.MainActivity"
+    android:supportsSwitchingToNextInputMethod="true" />

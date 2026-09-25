@@ -41,6 +41,7 @@ import com.eyal98.stickerfinder.data.StickerEntity
 @Composable
 fun SearchScreen(
     onOpenSmartSearch: () -> Unit,
+    onOpenKeyboard: () -> Unit,
     viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory),
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
@@ -76,6 +77,7 @@ fun SearchScreen(
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier.weight(1f),
                 )
+                TextButton(onClick = onOpenKeyboard) { Text(stringResource(R.string.keyboard_open)) }
                 TextButton(onClick = onOpenSmartSearch) { Text(stringResource(R.string.smart_search)) }
             }
             when {
