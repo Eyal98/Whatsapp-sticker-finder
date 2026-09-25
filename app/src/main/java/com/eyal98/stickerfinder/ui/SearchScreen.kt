@@ -127,7 +127,7 @@ private fun StickerGrid(
             ) {
                 StickerThumbnail(
                     documentUri = sticker.documentUri,
-                    contentDescription = sticker.userTags.ifBlank { null },
+                    contentDescription = sticker.userTags.ifBlank { sticker.ocrText },
                     modifier = Modifier.fillMaxSize(),
                 )
                 TextButton(

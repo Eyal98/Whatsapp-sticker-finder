@@ -12,6 +12,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.eyal98.stickerfinder.data.StickerDatabase
 import com.eyal98.stickerfinder.data.StickerRepository
+import com.eyal98.stickerfinder.ocr.TesseractTextReader
 import java.util.concurrent.TimeUnit
 
 /** Implemented by the Application so the worker can reach the shared database. */
@@ -27,9 +28,17 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         val host = applicationContext as StickerIndexHost
         val treeUri = StickerFolder.current(applicationContext) ?: return Result.failure()
         val dao = host.database.stickerDao()
+        val resolver = applicationContext.contentResolver
+        // Null if the language files failed to load; stickers then get basic indexing and are
+        // picked up for OCR on a later run.
+        val textReader = TesseractTextReader.create(applicationContext)
+        if (textReader == null) Log.w(TAG, "OCR unavailable")
         return try {
-            StickerScanner(applicationContext.contentResolver, dao).scan(treeUri)
-            StickerIndexer(applicationContext.contentResolver, dao, host.repository).indexPending()
+            StickerScanner(resolver, dao).scan(treeUri)
+            // OCR takes a fraction of a second per sticker, so a first run over a large folder
+            // may hit WorkManager's time limit; the work is then stopped and resumes later from
+            // where it left off, since each sticker is saved as soon as it's done.
+            StickerIndexer(resolver, dao, host.repository, textReader).indexPending()
             Result.success()
         } catch (e: SecurityException) {
             Log.w(TAG, "Folder access was revoked", e)
@@ -37,6 +46,8 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         } catch (e: IllegalStateException) {
             Log.w(TAG, "Folder could not be listed", e)
             Result.retry()
+        } finally {
+            textReader?.close()
         }
     }
 

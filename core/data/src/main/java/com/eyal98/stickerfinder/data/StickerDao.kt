@@ -38,15 +38,18 @@ abstract class StickerDao {
         }
     }
 
-    @Query("SELECT * FROM stickers WHERE indexedAt IS NULL ORDER BY lastModified DESC LIMIT :limit")
-    abstract suspend fun needingIndex(limit: Int): List<StickerEntity>
+    @Query(
+        "SELECT * FROM stickers WHERE indexedAt IS NULL OR indexVersion < :version " +
+            "ORDER BY lastModified DESC LIMIT :limit",
+    )
+    abstract suspend fun needingIndex(version: Int, limit: Int): List<StickerEntity>
 
     @Query("SELECT * FROM stickers WHERE id = :id")
     abstract suspend fun byId(id: Long): StickerEntity?
 
     @Query(
         "UPDATE stickers SET isAnimated = :isAnimated, perceptualHash = :perceptualHash, " +
-            "ocrText = :ocrText, indexedAt = :indexedAt WHERE id = :id",
+            "ocrText = :ocrText, indexedAt = :indexedAt, indexVersion = :indexVersion WHERE id = :id",
     )
     abstract suspend fun saveIndexResult(
         id: Long,
@@ -54,6 +57,7 @@ abstract class StickerDao {
         perceptualHash: Long?,
         ocrText: String?,
         indexedAt: Long,
+        indexVersion: Int,
     )
 
     @Query("UPDATE stickers SET userTags = :tags WHERE id = :id")
@@ -92,6 +96,6 @@ abstract class StickerDao {
     @Query("SELECT COUNT(*) FROM stickers")
     abstract fun observeCount(): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM stickers WHERE indexedAt IS NULL")
-    abstract fun observePendingCount(): Flow<Int>
+    @Query("SELECT COUNT(*) FROM stickers WHERE indexedAt IS NULL OR indexVersion < :version")
+    abstract fun observePendingCount(version: Int): Flow<Int>
 }

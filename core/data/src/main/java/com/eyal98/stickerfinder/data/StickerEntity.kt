@@ -1,5 +1,6 @@
 package com.eyal98.stickerfinder.data
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -32,7 +33,20 @@ data class StickerEntity(
     val lastUsedAt: Long? = null,
     /** When the indexer last processed this file. Null means it still needs indexing. */
     val indexedAt: Long? = null,
+    /** Which [IndexVersion] produced the indexed fields; older rows are processed again. */
+    @ColumnInfo(defaultValue = "0") val indexVersion: Int = 0,
 )
+
+/** What the indexer extracts. Bump [CURRENT] when it learns something new, to re-index old rows. */
+object IndexVersion {
+    /** Animated flag and duplicate hash. */
+    const val BASIC = 1
+
+    /** Adds text read from the sticker (OCR). */
+    const val OCR = 2
+
+    const val CURRENT = OCR
+}
 
 /** The subset of columns the folder scanner needs to detect new, changed and removed files. */
 data class StickerFileState(

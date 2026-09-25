@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
 class StickerRepository(private val dao: StickerDao) {
 
     val stickerCount: Flow<Int> = dao.observeCount()
-    val pendingCount: Flow<Int> = dao.observePendingCount()
+    val pendingCount: Flow<Int> = dao.observePendingCount(IndexVersion.CURRENT)
 
     fun browse(limit: Int = BROWSE_LIMIT): Flow<List<StickerEntity>> = dao.observeBrowse(limit)
 

@@ -22,6 +22,11 @@ jobs:
       # Also verifies the checksum of gradle-wrapper.jar.
       - uses: gradle/actions/setup-gradle@v4
 
+      # Downloads the Tesseract language files and checks them against the SHA-256 hashes
+      # pinned in core/ocr/tessdata.properties.
+      - name: Fetch OCR language files
+        run: ./gradlew --no-daemon :core:ocr:fetchTessdata
+
       - name: Unit tests
         run: ./gradlew --no-daemon :core:search:test testDebugUnitTest
 
