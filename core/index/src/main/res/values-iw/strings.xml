@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="index_channel">עיבוד מדבקות</string>
+    <string name="index_notification_title">מעבד מדבקות</string>
+    <string name="index_notification_text">נותרו %1$d. ממשיך גם אם יוצאים מהאפליקציה.</string>
+</resources>

@@ -3,6 +3,7 @@ package com.eyal98.stickerfinder
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -17,6 +18,7 @@ import com.eyal98.stickerfinder.ui.OnboardingScreen
 import com.eyal98.stickerfinder.ui.SearchScreen
 import com.eyal98.stickerfinder.ui.SmartSearchScreen
 import com.eyal98.stickerfinder.ui.StickerFinderTheme
+import kotlinx.coroutines.launch
 
 private enum class Screen { SEARCH, SMART_SEARCH, QUALITY_TEST, KEYBOARD }
 
@@ -58,7 +60,9 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startIndexing() {
-        IndexWorker.runNow(this)
+        // Opening the app starts (or restarts) indexing in the foreground, where Android lets it
+        // run to the end instead of in throttled background slices.
+        lifecycleScope.launch { IndexWorker.startNow(this@MainActivity) }
         IndexWorker.schedulePeriodic(this)
         if (ModelStore.CAPTION.installed(this) != null) CaptionWorker.schedulePeriodic(this)
     }

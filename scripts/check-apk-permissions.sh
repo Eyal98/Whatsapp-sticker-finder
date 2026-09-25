@@ -15,6 +15,8 @@ allowed=(
   "android.permission.WAKE_LOCK"
   "android.permission.RECEIVE_BOOT_COMPLETED"
   "android.permission.FOREGROUND_SERVICE"
+  # Indexing started from the app runs as a foreground job, so Android doesn't throttle it.
+  "android.permission.FOREGROUND_SERVICE_DATA_SYNC"
   # WorkManager declares this for network constraints. It only reads connectivity state; it can't
   # open sockets without INTERNET.
   "android.permission.ACCESS_NETWORK_STATE"

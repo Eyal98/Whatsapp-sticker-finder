@@ -8,13 +8,17 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.eyal98.stickerfinder.index.WorkBudget.Companion.continueSoon
+import com.eyal98.stickerfinder.data.IndexVersion
+import com.eyal98.stickerfinder.data.StickerDao
 import com.eyal98.stickerfinder.data.StickerDatabase
 import com.eyal98.stickerfinder.data.StickerRepository
 import com.eyal98.stickerfinder.embed.EmbedderHolder
 import com.eyal98.stickerfinder.ocr.TesseractTextReader
+import kotlinx.coroutines.flow.first
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -38,10 +42,18 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         val textReader = TesseractTextReader.create(applicationContext)
         if (textReader == null) Log.w(TAG, "OCR unavailable")
         return try {
-            StickerScanner(resolver, dao).scan(treeUri)
-            // OCR takes a fraction of a second per sticker, so a large folder takes several runs:
-            // each stops before Android's time limit and asks to continue shortly after.
-            val progress = StickerIndexer(resolver, dao, host.repository, textReader).indexPending()
+            // Listing a folder of 10,000+ files through the storage provider is expensive, so
+            // continuation runs (retries of the same request) skip it.
+            if (runAttemptCount == 0) StickerScanner(resolver, dao).scan(treeUri)
+
+            // Started from the app, indexing runs as a foreground job: Android then doesn't stop
+            // it after 10 minutes, throttle it, or kill the app while it works in the background.
+            // Started in the background, Android doesn't allow that, so it runs in short slices.
+            val foreground = tryForeground(pendingCount(dao))
+            val budget = WorkBudget(if (foreground) FOREGROUND_BUDGET_MILLIS else WorkBudget.DEFAULT_MILLIS)
+            val progress = StickerIndexer(resolver, dao, host.repository, textReader).indexPending(budget) {
+                if (foreground) tryForeground(pendingCount(dao))
+            }
             // New printed text changes what stickers mean for semantic search.
             if (progress.processed > 0) EmbedWorker.runNow(applicationContext)
             if (progress.finished) Result.success() else Result.retry()
@@ -58,6 +70,21 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         }
     }
 
+    private suspend fun pendingCount(dao: StickerDao): Int =
+        dao.observePendingCount(IndexVersion.CURRENT).first()
+
+    /** Shows the progress notification and keeps the job in the foreground, if Android allows it. */
+    private suspend fun tryForeground(left: Int): Boolean =
+        try {
+            setForeground(IndexNotification.foregroundInfo(applicationContext, left))
+            true
+        } catch (e: IllegalStateException) {
+            // ForegroundServiceStartNotAllowedException: the app isn't in the foreground.
+            false
+        } catch (e: SecurityException) {
+            false
+        }
+
     companion object {
         private const val TAG = "IndexWorker"
         private const val NOW = "sticker-index-now"
@@ -66,7 +93,25 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         /** Unique work names, for diagnostics. */
         val UNIQUE_NAMES = listOf(NOW, PERIODIC)
 
-        /** Runs a scan right away, e.g. after the folder is granted or when the app opens. */
+        /** Well under Android's 6-hour daily limit for this kind of foreground job. */
+        private const val FOREGROUND_BUDGET_MILLIS = 2 * 60 * 60 * 1000L
+
+        /**
+         * Starts indexing now, while the app is open. A run waiting out its retry delay is
+         * replaced so it starts immediately (and in the foreground); a running one is kept.
+         */
+        suspend fun startNow(context: Context) {
+            val workManager = WorkManager.getInstance(context)
+            val running = workManager.getWorkInfosForUniqueWorkFlow(NOW).first()
+                .any { it.state == WorkInfo.State.RUNNING }
+            workManager.enqueueUniqueWork(
+                NOW,
+                if (running) ExistingWorkPolicy.KEEP else ExistingWorkPolicy.REPLACE,
+                OneTimeWorkRequestBuilder<IndexWorker>().continueSoon().build(),
+            )
+        }
+
+        /** Runs a scan right away unless one is already queued or running. */
         fun runNow(context: Context) {
             WorkManager.getInstance(context).enqueueUniqueWork(
                 NOW,

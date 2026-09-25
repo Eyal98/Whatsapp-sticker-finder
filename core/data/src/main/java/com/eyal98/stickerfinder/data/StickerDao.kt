@@ -94,7 +94,7 @@ abstract class StickerDao {
 
     @Query(
         "UPDATE stickers SET isAnimated = :isAnimated, perceptualHash = :perceptualHash, " +
-            "ocrText = :ocrText, indexedAt = :indexedAt, indexVersion = :indexVersion WHERE id = :id",
+            "ocrText = :ocrText, indexedAt = :indexedAt, indexVersion = :indexVersion, indexAttempts = 0 WHERE id = :id",
     )
     abstract suspend fun saveIndexResult(
         id: Long,
