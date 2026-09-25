@@ -57,6 +57,9 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         private const val NOW = "sticker-caption-now"
         private const val PERIODIC = "sticker-caption-periodic"
 
+        /** Unique work names, for diagnostics. */
+        val UNIQUE_NAMES = listOf(NOW, PERIODIC)
+
         /** "Start now" from the settings screen: still waits for the charger. */
         fun runNow(context: Context) {
             val constraints = Constraints.Builder()

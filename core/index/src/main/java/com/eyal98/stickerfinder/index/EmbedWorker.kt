@@ -25,6 +25,9 @@ class EmbedWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
     companion object {
         private const val NAME = "sticker-embed"
 
+        /** Unique work names, for diagnostics. */
+        val UNIQUE_NAMES = listOf(NAME)
+
         /** Runs after the current embedding pass (if any), so every change gets picked up. */
         fun runNow(context: Context) {
             WorkManager.getInstance(context).enqueueUniqueWork(

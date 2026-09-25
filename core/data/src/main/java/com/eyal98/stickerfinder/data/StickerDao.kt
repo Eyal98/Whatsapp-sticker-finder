@@ -64,6 +64,25 @@ abstract class StickerDao {
     @Query("SELECT COUNT(*) FROM sticker_vectors")
     abstract fun observeVectorCount(): Flow<Int>
 
+    /** Counts only, for the diagnostics report; no sticker content. */
+    @Query(
+        "SELECT COUNT(*) AS total, " +
+            "COALESCE(SUM(CASE WHEN indexedAt IS NOT NULL AND indexVersion >= :version THEN 1 ELSE 0 END), 0) AS indexed, " +
+            "COALESCE(SUM(CASE WHEN indexAttempts > 0 AND (indexedAt IS NULL OR indexVersion < :version) THEN 1 ELSE 0 END), 0) AS failingNow, " +
+            "COALESCE(SUM(CASE WHEN indexAttempts > 1 THEN 1 ELSE 0 END), 0) AS retried, " +
+            "COALESCE(MAX(indexAttempts), 0) AS maxAttempts, " +
+            "COALESCE(SUM(CASE WHEN perceptualHash IS NULL AND indexedAt IS NOT NULL THEN 1 ELSE 0 END), 0) AS undecodable, " +
+            "COALESCE(SUM(CASE WHEN ocrText IS NOT NULL AND ocrText != '' THEN 1 ELSE 0 END), 0) AS withText, " +
+            "COALESCE(SUM(CASE WHEN captionedAt IS NOT NULL THEN 1 ELSE 0 END), 0) AS captioned, " +
+            "COALESCE(SUM(CASE WHEN captionEn IS NOT NULL OR captionHe IS NOT NULL THEN 1 ELSE 0 END), 0) AS withCaption, " +
+            "COALESCE(SUM(CASE WHEN captionAttempts > 1 THEN 1 ELSE 0 END), 0) AS captionRetried, " +
+            "COALESCE(SUM(CASE WHEN isAnimated THEN 1 ELSE 0 END), 0) AS animated, " +
+            "COALESCE(SUM(CASE WHEN starred THEN 1 ELSE 0 END), 0) AS starred, " +
+            "(SELECT COUNT(*) FROM sticker_vectors) AS vectors " +
+            "FROM stickers",
+    )
+    abstract suspend fun diagnosticCounts(version: Int): DiagnosticCounts
+
     @Query(
         "SELECT * FROM stickers WHERE indexedAt IS NULL OR indexVersion < :version " +
             "ORDER BY indexAttempts ASC, lastModified DESC LIMIT :limit",

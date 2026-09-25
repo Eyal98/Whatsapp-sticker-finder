@@ -63,6 +63,9 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         private const val NOW = "sticker-index-now"
         private const val PERIODIC = "sticker-index-periodic"
 
+        /** Unique work names, for diagnostics. */
+        val UNIQUE_NAMES = listOf(NOW, PERIODIC)
+
         /** Runs a scan right away, e.g. after the folder is granted or when the app opens. */
         fun runNow(context: Context) {
             WorkManager.getInstance(context).enqueueUniqueWork(

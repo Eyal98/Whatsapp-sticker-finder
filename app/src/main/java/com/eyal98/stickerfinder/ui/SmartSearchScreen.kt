@@ -1,6 +1,8 @@
 package com.eyal98.stickerfinder.ui
 
 import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -10,6 +12,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -27,6 +31,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -36,7 +42,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
+import com.eyal98.stickerfinder.Diagnostics
 import com.eyal98.stickerfinder.R
+import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.ml.PendingModel
 
 @Composable
@@ -53,6 +62,9 @@ fun SmartSearchScreen(
         if (uri != null && slot != null) viewModel.import(slot, uri)
         pickingFor = null
     }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var diagnostics by remember { mutableStateOf<String?>(null) }
     val onImport: (ModelSlot) -> Unit = { slot ->
         pickingFor = slot
         pickFile.launch(arrayOf("*/*"))
@@ -107,7 +119,22 @@ fun SmartSearchScreen(
             Text(stringResource(R.string.eval_title), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.eval_entry_body), style = MaterialTheme.typography.bodyMedium)
             OutlinedButton(onClick = onOpenQualityTest) { Text(stringResource(R.string.eval_open)) }
+
+            HorizontalDivider()
+            Text(stringResource(R.string.diag_title), style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.diag_body), style = MaterialTheme.typography.bodyMedium)
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        diagnostics = Diagnostics.build(context.applicationContext as StickerFinderApp)
+                    }
+                },
+            ) { Text(stringResource(R.string.diag_button)) }
         }
+    }
+
+    diagnostics?.let { report ->
+        DiagnosticsDialog(report, onDismiss = { diagnostics = null })
     }
 
     state.firstPending?.let { (slot, pending) ->
@@ -172,6 +199,40 @@ private fun openPage(context: Context, url: String) {
 @Composable
 private fun ErrorText(text: String) {
     Text(text, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyLarge)
+}
+
+/** Shows the full report first, so the user sees exactly what they'd share. */
+@Composable
+private fun DiagnosticsDialog(report: String, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.diag_preview_title)) },
+        text = {
+            Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                Text(report, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, report)
+                    context.startActivity(Intent.createChooser(send, null))
+                },
+            ) { Text(stringResource(R.string.diag_share)) }
+        },
+        dismissButton = {
+            Row {
+                TextButton(
+                    onClick = {
+                        context.getSystemService(ClipboardManager::class.java)
+                            .setPrimaryClip(ClipData.newPlainText("Sticker Finder diagnostics", report))
+                    },
+                ) { Text(stringResource(R.string.diag_copy)) }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.diag_close)) }
+            }
+        },
+    )
 }
 
 @Composable

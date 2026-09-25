@@ -93,4 +93,11 @@
     <string name="keyboard_how_title">How to use it</string>
     <string name="keyboard_how">1. In a WhatsApp chat, type what you want with your usual keyboard, in Hebrew or English: \"חתול עצוב\", \"good morning\".\n2. Switch to the Sticker Finder keyboard (the keyboard button at the bottom of the screen, or long-press the space bar or globe key).\n3. Tap a sticker. It\'s sent as a sticker, and your search text is removed.\n4. Tap ⌨ to go back to your usual keyboard.</string>
     <string name="keyboard_privacy">It reads at most 100 characters before the cursor, only when you open it, never in password fields, and never saves them.</string>
+    <string name="diag_title">Troubleshooting</string>
+    <string name="diag_body">Builds a report to send to whoever helps you with the app: versions, index counts, background job states, recent crashes and the app\'s warning messages. It contains no stickers, file names, text from stickers, tags or searches. You\'ll see all of it before sharing.</string>
+    <string name="diag_button">Share diagnostics</string>
+    <string name="diag_preview_title">Diagnostics report</string>
+    <string name="diag_share">Share</string>
+    <string name="diag_copy">Copy</string>
+    <string name="diag_close">Close</string>
 </resources>

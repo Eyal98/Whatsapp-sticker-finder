@@ -30,6 +30,11 @@ class StickerFinderApp : Application(), StickerIndexHost {
         SearchEvaluator(database.stickerDao(), repository, semanticSearch, searchSettings)
     }
 
+    override fun onCreate() {
+        super.onCreate()
+        Diagnostics.CrashLog.install(this)
+    }
+
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         // The embedding model takes a few hundred MB; free it once the UI is hidden. It reloads
