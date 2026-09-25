@@ -29,7 +29,7 @@ jobs:
       - name: Install
         run: |
           pip install --quiet torch torchvision --index-url https://download.pytorch.org/whl/cpu
-          pip install --quiet open_clip_torch timm pillow numpy
+          pip install --quiet open_clip_torch timm transformers sentencepiece pillow numpy
           pip list 2>/dev/null | grep -iE "^(torch|torchvision|open.clip|timm|numpy) "
 
       - name: Image model
