@@ -19,29 +19,15 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - name: Candidates
+      - name: Languages
         run: |
-          api=https://huggingface.co/api/models
-          echo "== search"
-          for q in "search=embedding&author=litert-community&limit=50" "search=embed&filter=litert-lm&limit=30&sort=downloads" "search=embedding-litertlm&limit=30&sort=downloads" "search=embeddinggemma&limit=30&sort=downloads"; do
-            curl -sS "$api?$q" | jq -r '.[] | "\(.id)  gated=\(.gated // false)  dl=\(.downloads // 0)  \(.pipeline_tag // "")"'
-          done
-          for m in litert-community/Qwen3-Embedding-0.6B-LiteRT litert-community/granite-embedding-311m-multilingual-r2 \
-                   litert-community/harrier-oss-v1-0.6b litert-community/mLateOn litert-community/voyage-4-nano \
-                   litert-community/Nemotron-3-Embed-1B kontextdev/embeddinggemma-300m-litertlm kasimtmc/embeddinggemma-litertlm; do
+          for m in ibm-granite/granite-embedding-311m-multilingual-r2 microsoft/harrier-oss-v1-0.6b google/embeddinggemma-300m; do
             echo "=================== $m"
-            curl -sS "$api/$m?blobs=true" | jq -r '"gated: \(.gated // "n/a")  license: \(.cardData.license // "")", (.siblings[]? | "  \(.rfilename)  \(.size // "") \(.lfs.sha256 // "")")' | head -30
-            curl -fsSL "https://huggingface.co/$m/raw/main/README.md" -o card.md 2>/dev/null && {
-              head -c 2500 card.md; echo
-              echo "-- mentions:"; grep -niE "hebrew|\bhe\b|languages|multilingual|litert-lm|litertlm|tokenizer|dimension|matryoshka|prompt|query:|task:" card.md | head -25
-            }
+            curl -sS "https://huggingface.co/api/models/$m" | jq -r '"gated: \(.gated // "n/a")  languages: \(.cardData.language // [] | join(","))"'
+            curl -fsSL "https://huggingface.co/$m/raw/main/README.md" -o card.md 2>/dev/null && \
+              grep -niE "hebrew|\bhe\b|languages|200|100\+|multilingual|MTEB|MMTEB" card.md | cut -c1-300 | head -20
           done
-      - name: LiteRT-LM 0.16.1 embedding API
-        run: |
-          set +e
-          v=0.16.1
-          curl -fsSL -o lib.aar "https://dl.google.com/android/maven2/com/google/ai/edge/litertlm/litertlm-android/$v/litertlm-android-$v.aar"
-          unzip -o -q lib.aar classes.jar
-          for c in EmbeddingEngine EmbeddingEngineConfig EmbeddingOptions EmbeddingResponse; do
-            javap -cp classes.jar "com.google.ai.edge.litertlm.$c" | grep -v 'component[0-9]\|copy\|hashCode\|equals\|toString\|\$default\|DefaultConstructorMarker'
+          echo "== litert-community .litertlm embedding bundles"
+          curl -sS "https://huggingface.co/api/models?author=litert-community&limit=300" | jq -r '.[].id' | while read m; do
+            curl -sS "https://huggingface.co/api/models/$m" | jq -r --arg m "$m" 'select(any(.siblings[]?; .rfilename|endswith(".litertlm"))) | select((.pipeline_tag // "") | test("feature-extraction|sentence-similarity")) | $m'
           done
