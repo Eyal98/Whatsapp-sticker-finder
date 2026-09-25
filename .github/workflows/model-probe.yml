@@ -26,7 +26,8 @@ jobs:
           mc org/jetbrains/kotlin/kotlin-gradle-plugin 20
           mc com/google/devtools/ksp/symbol-processing-gradle-plugin 25
           mc org/jetbrains/kotlinx/kotlinx-coroutines-core 8
-          gm com/android/tools/build gradle 25
+          echo "== AGP 8.x"; curl -fsS "https://dl.google.com/android/maven2/com/android/tools/build/group-index.xml" | grep -o '<gradle versions="[^"]*"' | sed 's/.*versions="//; s/"$//' | tr ',' '\n' | grep '^8\.1[0-9]' | tr '\n' ' '; echo
+          echo "== gradle 8.14.x / 9.x"; curl -fsS https://services.gradle.org/versions/all | jq -r '.[] | select(.snapshot==false and .nightly==false and .rcFor=="" and .milestoneFor=="") | .version' | grep -E '^(8\.14|9\.)' | head -20 | tr '\n' ' '; echo
           gm androidx/room room-runtime
           gm androidx/room room-compiler 5
           gm androidx/compose compose-bom 8
