@@ -242,9 +242,15 @@ stickers in under ~2 hours while the phone is charging.
 ## 8. Quality and evaluation
 
 - **Golden set**: about 100 queries (50 Hebrew, 50 English, including mixed‑language, slang, and
-  emoji queries), each labeled with the sticker(s) it should return from a fixed sample of
-  about 300 stickers. The images stay local and out of git; only hashes and labels are committed.
-- **Metrics**: Recall@5, MRR@10, and latency, reported separately for Hebrew and English.
+  emoji queries), each labeled with the sticker(s) it should return. It's built and run **on the
+  phone** (Smart search → Search quality test), because that's where the stickers and models are.
+  Stickers are identified by image hash, so labels survive renames and rescans. The set lives in
+  app‑private storage; it can be exported as JSON (query text + hashes, no images) and imported
+  again, but isn't committed to git, since the queries describe personal stickers.
+- **Metrics**: Recall@5 (share of the right stickers in the top 5, out of as many as fit),
+  MRR@10, and search latency (p50/p95), for keyword, meaning and combined ranking, reported per
+  language (Hebrew, English, mixed). The run also sweeps the semantic similarity cut‑off and
+  offers to apply the best one.
 - **Targets for Phase 2**: Recall@5 ≥ 0.80 overall, with Hebrew no more than 0.05 below English.
 - **Unit tests**: Hebrew normalizer (niqqud, final letters, prefixes), ranking fusion,
   dedupe, and the incremental scanner.

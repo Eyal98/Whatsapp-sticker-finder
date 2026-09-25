@@ -20,21 +20,24 @@ interface EmbedderAccess {
 class SemanticSearch(
     private val dao: StickerDao,
     private val embedders: EmbedderAccess,
+    private val minSimilarity: () -> Float = { SearchSettings.DEFAULT_MIN_SIMILARITY },
 ) {
     private val lock = Mutex()
     private var cached: Triple<String, VectorSignature, VectorIndex>? = null
 
     /** Sticker ids ordered by similarity; empty when semantic search isn't available. */
-    suspend fun search(query: String, limit: Int = LIMIT): List<Long> {
+    suspend fun search(query: String, limit: Int = LIMIT): List<Long> =
+        searchScored(query, limit, minSimilarity()).map { it.first }
+
+    /** Sticker ids with their similarity, best first, keeping those at least [minSimilarity]. */
+    suspend fun searchScored(query: String, limit: Int, minSimilarity: Float): List<Pair<Long, Float>> {
         val result = embedders.withEmbedder { embedder ->
             embedder.modelId to Vectors.prepare(embedder.embed(query, TextEmbedder.Kind.QUERY))
         } ?: return emptyList()
         val (model, queryVector) = result
         val index = index(model)
         if (index.size == 0) return emptyList()
-        return withContext(Dispatchers.Default) {
-            index.search(queryVector, limit, MIN_SIMILARITY).map { it.first }
-        }
+        return withContext(Dispatchers.Default) { index.search(queryVector, limit, minSimilarity) }
     }
 
     private suspend fun index(model: String): VectorIndex = lock.withLock {
@@ -49,11 +52,5 @@ class SemanticSearch(
 
     companion object {
         const val LIMIT = 100
-
-        /**
-         * Below this cosine similarity a sticker is treated as unrelated. A first guess for
-         * EmbeddingGemma at 256 dimensions; to be tuned on the Hebrew/English golden query set.
-         */
-        const val MIN_SIMILARITY = 0.3f
     }
 }

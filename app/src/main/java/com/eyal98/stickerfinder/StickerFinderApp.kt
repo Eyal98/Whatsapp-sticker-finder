@@ -2,6 +2,9 @@ package com.eyal98.stickerfinder
 
 import android.app.Application
 import android.content.ComponentCallbacks2
+import com.eyal98.stickerfinder.data.GoldenSetStore
+import com.eyal98.stickerfinder.data.SearchEvaluator
+import com.eyal98.stickerfinder.data.SearchSettings
 import com.eyal98.stickerfinder.data.SemanticSearch
 import com.eyal98.stickerfinder.data.StickerDatabase
 import com.eyal98.stickerfinder.data.StickerRepository
@@ -17,9 +20,14 @@ class StickerFinderApp : Application(), StickerIndexHost {
 
     override val database: StickerDatabase by lazy { StickerDatabase.create(this) }
     override val embedders: EmbedderHolder by lazy { EmbedderHolder(this) }
-    override val repository: StickerRepository by lazy {
-        val dao = database.stickerDao()
-        StickerRepository(dao, SemanticSearch(dao, embedders))
+    val searchSettings: SearchSettings by lazy { SearchSettings(this) }
+    private val semanticSearch: SemanticSearch by lazy {
+        SemanticSearch(database.stickerDao(), embedders) { searchSettings.minSimilarity }
+    }
+    override val repository: StickerRepository by lazy { StickerRepository(database.stickerDao(), semanticSearch) }
+    val goldenSet: GoldenSetStore by lazy { GoldenSetStore(this) }
+    val evaluator: SearchEvaluator by lazy {
+        SearchEvaluator(database.stickerDao(), repository, semanticSearch, searchSettings)
     }
 
     override fun onTrimMemory(level: Int) {

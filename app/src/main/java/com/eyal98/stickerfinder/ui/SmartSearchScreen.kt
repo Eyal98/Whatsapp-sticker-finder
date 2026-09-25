@@ -42,6 +42,7 @@ import com.eyal98.stickerfinder.ml.PendingModel
 @Composable
 fun SmartSearchScreen(
     onBack: () -> Unit,
+    onOpenQualityTest: () -> Unit,
     viewModel: SmartSearchViewModel = viewModel(factory = SmartSearchViewModel.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -101,6 +102,11 @@ fun SmartSearchScreen(
             val embeddingReady = state.slot(ModelSlot.EMBEDDING).installed != null &&
                 state.slot(ModelSlot.TOKENIZER).installed != null
             if (embeddingReady) Text(stringResource(R.string.meaning_status, state.vectorCount, state.total))
+
+            HorizontalDivider()
+            Text(stringResource(R.string.eval_title), style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.eval_entry_body), style = MaterialTheme.typography.bodyMedium)
+            OutlinedButton(onClick = onOpenQualityTest) { Text(stringResource(R.string.eval_open)) }
         }
     }
 

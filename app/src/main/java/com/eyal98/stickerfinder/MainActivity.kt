@@ -11,10 +11,13 @@ import com.eyal98.stickerfinder.ml.ModelStore
 import com.eyal98.stickerfinder.index.CaptionWorker
 import com.eyal98.stickerfinder.index.IndexWorker
 import com.eyal98.stickerfinder.index.StickerFolder
+import com.eyal98.stickerfinder.ui.EvaluationScreen
 import com.eyal98.stickerfinder.ui.OnboardingScreen
 import com.eyal98.stickerfinder.ui.SearchScreen
 import com.eyal98.stickerfinder.ui.SmartSearchScreen
 import com.eyal98.stickerfinder.ui.StickerFinderTheme
+
+private enum class Screen { SEARCH, SMART_SEARCH, QUALITY_TEST }
 
 class MainActivity : ComponentActivity() {
 
@@ -26,11 +29,16 @@ class MainActivity : ComponentActivity() {
         setContent {
             StickerFinderTheme {
                 var hasFolder by rememberSaveable { mutableStateOf(hadFolder) }
-                var showSmartSearch by rememberSaveable { mutableStateOf(false) }
-                if (hasFolder && showSmartSearch) {
-                    SmartSearchScreen(onBack = { showSmartSearch = false })
-                } else if (hasFolder) {
-                    SearchScreen(onOpenSmartSearch = { showSmartSearch = true })
+                var screen by rememberSaveable { mutableStateOf(Screen.SEARCH) }
+                if (hasFolder) {
+                    when (screen) {
+                        Screen.SEARCH -> SearchScreen(onOpenSmartSearch = { screen = Screen.SMART_SEARCH })
+                        Screen.SMART_SEARCH -> SmartSearchScreen(
+                            onBack = { screen = Screen.SEARCH },
+                            onOpenQualityTest = { screen = Screen.QUALITY_TEST },
+                        )
+                        Screen.QUALITY_TEST -> EvaluationScreen(onBack = { screen = Screen.SMART_SEARCH })
+                    }
                 } else {
                     OnboardingScreen(
                         onFolderChosen = { treeUri ->

@@ -45,19 +45,8 @@ class StickerRepository(
         val byId = keyword.associateBy { it.id }.toMutableMap()
         val missing = semanticIds.filterNot(byId::containsKey)
         if (missing.isNotEmpty()) dao.byIds(missing).forEach { byId[it.id] = it }
-
-        val boosts = byId.values.associate { it.id to boost(it) }
-        val ranked = RankFusion.fuse(listOf(keyword.map { it.id }, semanticIds), boosts)
-        return dedupe(ranked.mapNotNull(byId::get)).take(limit)
+        return dedupe(fuse(keyword.map { it.id }, semanticIds, byId).mapNotNull(byId::get)).take(limit)
     }
-
-    /** Copies of the same image are shown once. */
-    private fun dedupe(results: List<StickerEntity>) =
-        results.distinctBy { it.perceptualHash?.let { h -> "hash:$h" } ?: "id:${it.id}" }
-
-    /** Small next to RRF scores (about 1/60 for a top hit), so it only reorders close calls. */
-    private fun boost(s: StickerEntity): Double =
-        (if (s.starred) STAR_BOOST else 0.0) + USE_BOOST * ln(1.0 + s.useCount)
 
     suspend fun setStarred(id: Long, starred: Boolean) = dao.setStarred(id, starred)
 
@@ -79,5 +68,23 @@ class StickerRepository(
         const val SEARCH_LIMIT = 100
         private const val STAR_BOOST = 0.004
         private const val USE_BOOST = 0.001
+
+        /** Merges keyword and semantic rankings; [stickers] must hold every id in both. */
+        fun fuse(keywordIds: List<Long>, semanticIds: List<Long>, stickers: Map<Long, StickerEntity>): List<Long> {
+            if (semanticIds.isEmpty()) return keywordIds
+            val boosts = (keywordIds + semanticIds).mapNotNull(stickers::get).associate { it.id to boost(it) }
+            return RankFusion.fuse(listOf(keywordIds, semanticIds), boosts)
+        }
+
+        /** Stable identity of a sticker's image; copies of the same image share it. */
+        fun imageKey(s: StickerEntity): String =
+            s.perceptualHash?.let { java.lang.Long.toHexString(it) } ?: "id:${s.id}"
+
+        /** Copies of the same image are shown once. */
+        fun dedupe(results: List<StickerEntity>) = results.distinctBy(::imageKey)
+
+        /** Small next to RRF scores (about 1/60 for a top hit), so it only reorders close calls. */
+        private fun boost(s: StickerEntity): Double =
+            (if (s.starred) STAR_BOOST else 0.0) + USE_BOOST * ln(1.0 + s.useCount)
     }
 }

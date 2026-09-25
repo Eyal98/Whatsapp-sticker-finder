@@ -24,6 +24,11 @@ Google AI Edge RAG SDK) turns each sticker's description, printed text and tags 
 Queries are embedded the same way, and results merge keyword and meaning matches with
 Reciprocal Rank Fusion, so "running late" can find a sticker described as "מאחר".
 
+**Search quality test** (Smart search screen): write test searches in Hebrew and English, mark the
+stickers each should find, and run them through the real pipeline on the phone. Reports Recall@5
+and MRR@10 per language for keyword, meaning and combined ranking, search latency, and the best
+similarity cut-off, which can be applied with one tap.
+
 ## Modules
 
 | Module | What it does |
