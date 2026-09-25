@@ -1,5 +1,5 @@
-# TEMPORARY: surveys on-device text embedding models (files, gating, languages) and the LiteRT-LM
-# embedding API. Delete after choosing.
+# TEMPORARY: library versions for the Kotlin 2.4 / LiteRT-LM 0.17 upgrade, and the 0.17 embedding
+# API. Delete after the upgrade builds.
 name: Model probe
 
 on:
@@ -19,15 +19,31 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
-      - name: Languages
+      - name: Versions
         run: |
-          for m in ibm-granite/granite-embedding-311m-multilingual-r2 microsoft/harrier-oss-v1-0.6b google/embeddinggemma-300m; do
-            echo "=================== $m"
-            curl -sS "https://huggingface.co/api/models/$m" | jq -r '"gated: \(.gated // "n/a")  languages: \(.cardData.language // [] | join(","))"'
-            curl -fsSL "https://huggingface.co/$m/raw/main/README.md" -o card.md 2>/dev/null && \
-              grep -niE "hebrew|\bhe\b|languages|200|100\+|multilingual|MTEB|MMTEB" card.md | cut -c1-300 | head -20
+          mc() { echo "== $1"; curl -fsS "https://repo1.maven.org/maven2/$1/maven-metadata.xml" | grep -o '<version>[^<]*' | sed 's/<version>//' | tail -n ${2:-15} | tr '\n' ' '; echo; }
+          gm() { echo "== $1 ($2)"; curl -fsS "https://dl.google.com/android/maven2/$1/group-index.xml" | grep -o "<$2 versions=\"[^\"]*\"" | sed 's/.*versions="//; s/"$//' | tr ',' '\n' | tail -n ${3:-12} | tr '\n' ' '; echo; }
+          mc org/jetbrains/kotlin/kotlin-gradle-plugin 20
+          mc com/google/devtools/ksp/symbol-processing-gradle-plugin 25
+          mc org/jetbrains/kotlinx/kotlinx-coroutines-core 8
+          gm com/android/tools/build gradle 25
+          gm androidx/room room-runtime
+          gm androidx/room room-compiler 5
+          gm androidx/compose compose-bom 8
+          gm androidx/work work-runtime-ktx 6
+          gm androidx/core core-ktx 6
+          gm androidx/activity activity-compose 6
+          gm androidx/lifecycle lifecycle-runtime-compose 6
+          echo "== gradle"; curl -fsS https://services.gradle.org/versions/current | jq -r .version
+      - name: LiteRT-LM 0.17.1 POM and embedding API
+        run: |
+          set +e
+          v=0.17.1
+          base=https://dl.google.com/android/maven2/com/google/ai/edge/litertlm/litertlm-android/$v
+          curl -fsS "$base/litertlm-android-$v.pom" | grep -A2 artifactId
+          curl -fsSL -o lib.aar "$base/litertlm-android-$v.aar" && unzip -o -q lib.aar classes.jar
+          for c in EmbeddingEngine EmbeddingEngineConfig EmbeddingOptions EmbeddingResponse InputData\$Text InputOverflowStrategy; do
+            echo "-- $c"
+            javap -cp classes.jar "com.google.ai.edge.litertlm.$c" | grep -v 'component[0-9]\|copy\|hashCode\|equals\|toString\|\$default\|DefaultConstructorMarker\|third_party'
           done
-          echo "== litert-community .litertlm embedding bundles"
-          curl -sS "https://huggingface.co/api/models?author=litert-community&limit=300" | jq -r '.[].id' | while read m; do
-            curl -sS "https://huggingface.co/api/models/$m" | jq -r --arg m "$m" 'select(any(.siblings[]?; .rfilename|endswith(".litertlm"))) | select((.pipeline_tag // "") | test("feature-extraction|sentence-similarity")) | $m'
-          done
+          unzip -Z1 classes.jar | grep -i embed
