@@ -30,12 +30,15 @@ class EmbedderHolder(context: Context) : EmbedderAccess {
         }
     }
 
-    /** True when both files are installed, not turned off after a crash, and memory suffices. */
+    /**
+     * True when the model (and, for a .tflite model, its tokenizer) is installed, it wasn't turned
+     * off after a crash, and memory suffices.
+     */
     fun isAvailable(): Boolean {
         if (ModelCrashGuard.isDisabled(appContext, ModelCrashGuard.EMBEDDING)) return false
         val model = ModelStore.EMBEDDING.installed(appContext) ?: return false
-        ModelStore.EMBEDDING_TOKENIZER.installed(appContext) ?: return false
-        return DeviceCapability.canRun(appContext, model.model, ModelCatalog.EMBEDDING_GEMMA)
+        if (!model.isLiteRtLm) ModelStore.EMBEDDING_TOKENIZER.installed(appContext) ?: return false
+        return DeviceCapability.canRun(appContext, model.model, ModelCatalog.GRANITE_EMBEDDING)
     }
 
     suspend fun release() = lock.withLock {
@@ -47,20 +50,33 @@ class EmbedderHolder(context: Context) : EmbedderAccess {
     private fun current(): TextEmbedder? {
         if (!isAvailable()) return null
         val model = ModelStore.EMBEDDING.installed(appContext) ?: return null
-        val tokenizer = ModelStore.EMBEDDING_TOKENIZER.installed(appContext) ?: return null
-        val key = model.sha256 + tokenizer.sha256
+        // A .litertlm model carries its own tokenizer; a .tflite one (EmbeddingGemma) doesn't.
+        val tokenizer = if (model.isLiteRtLm) null else ModelStore.EMBEDDING_TOKENIZER.installed(appContext) ?: return null
+        val key = model.sha256 + tokenizer?.sha256.orEmpty()
         loaded?.let { (k, embedder) -> if (k == key) return embedder }
         loaded?.second?.close()
         loaded = null
         // Busy while the model is loaded; a native crash meanwhile turns it off next start.
         ModelCrashGuard.markBusy(appContext, ModelCrashGuard.EMBEDDING)
         return try {
-            GemmaTextEmbedder.create(model, tokenizer).also { loaded = key to it }
-        } catch (e: RuntimeException) {
-            Log.w(TAG, "Could not load the embedding model", e)
-            ModelCrashGuard.disable(appContext, ModelCrashGuard.EMBEDDING, ModelCrashGuard.describe(e))
-            null
+            val embedder: TextEmbedder = if (tokenizer == null) {
+                LiteRtLmTextEmbedder.create(appContext, model)
+            } else {
+                GemmaTextEmbedder.create(model, tokenizer)
+            }
+            embedder.also { loaded = key to it }
+        } catch (e: Exception) {
+            loadFailed(e)
+        } catch (e: LinkageError) {
+            // A runtime's native library that doesn't load on this phone.
+            loadFailed(e)
         }
+    }
+
+    private fun loadFailed(e: Throwable): TextEmbedder? {
+        Log.w(TAG, "Could not load the embedding model", e)
+        ModelCrashGuard.disable(appContext, ModelCrashGuard.EMBEDDING, ModelCrashGuard.describe(e))
+        return null
     }
 
     private companion object {

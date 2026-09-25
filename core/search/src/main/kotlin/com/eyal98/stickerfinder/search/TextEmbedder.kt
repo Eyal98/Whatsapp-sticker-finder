@@ -8,6 +8,9 @@ interface TextEmbedder : Closeable {
     /** Identifies the model; vectors from different models can't be compared. */
     val modelId: String
 
+    /** How many leading dimensions to keep (see [Vectors.prepare]). */
+    val dimensions: Int get() = Vectors.DIMENSIONS
+
     enum class Kind {
         /** What the user typed in the search box. */
         QUERY,

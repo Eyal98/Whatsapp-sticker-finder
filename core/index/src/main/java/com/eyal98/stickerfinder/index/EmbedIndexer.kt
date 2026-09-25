@@ -50,7 +50,7 @@ class EmbedIndexer(
                     state != null && state.model == embedder.modelId && state.fingerprint == fingerprint ->
                         Outcome.UpToDate
                     else -> try {
-                        Outcome.Embedded(embedder.modelId, Vectors.prepare(embedder.embed(text, TextEmbedder.Kind.DOCUMENT)))
+                        Outcome.Embedded(embedder.modelId, Vectors.prepare(embedder.embed(text, TextEmbedder.Kind.DOCUMENT), embedder.dimensions))
                     } catch (e: RuntimeException) {
                         // Leave this sticker for the next run rather than stopping the whole pass.
                         Log.w(TAG, "Embedding failed", e)

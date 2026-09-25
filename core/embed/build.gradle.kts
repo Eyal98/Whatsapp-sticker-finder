@@ -33,4 +33,6 @@ dependencies {
     // Only its local embedding model is used; its cloud (Gemini) embedder is never constructed,
     // and the app has no INTERNET permission in any case.
     implementation(libs.localagents.rag)
+    // Single-file (.litertlm) embedding models, e.g. Granite multilingual.
+    implementation(libs.litertlm.android)
 }

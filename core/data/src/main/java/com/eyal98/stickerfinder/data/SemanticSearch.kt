@@ -32,7 +32,7 @@ class SemanticSearch(
     /** Sticker ids with their similarity, best first, keeping those at least [minSimilarity]. */
     suspend fun searchScored(query: String, limit: Int, minSimilarity: Float): List<Pair<Long, Float>> {
         val result = embedders.withEmbedder { embedder ->
-            embedder.modelId to Vectors.prepare(embedder.embed(query, TextEmbedder.Kind.QUERY))
+            embedder.modelId to Vectors.prepare(embedder.embed(query, TextEmbedder.Kind.QUERY), embedder.dimensions)
         } ?: return emptyList()
         val (model, queryVector) = result
         val index = index(model)

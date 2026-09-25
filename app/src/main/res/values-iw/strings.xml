@@ -35,7 +35,7 @@
     <string name="smart_search_intro">שני מודלים אופציונליים שרצים על הטלפון הופכים את החיפוש לחכם יותר. כל אחד מהם פועל רק על הטלפון הזה.</string>
     <string name="captions_title">תיאורים</string>
     <string name="meaning_title">חיפוש לפי משמעות</string>
-    <string name="meaning_body">מודל רב־לשוני קטן מוצא מדבקות שמשמעותן תואמת את מה שהקלדתם, גם במילים אחרות או בשפה השנייה: \"מאחר\" מוצא מדבקה עם התגית \"running late\". צריך שני קבצים מאותו דף הורדה, והוא עובד הכי טוב אחרי שלמדבקות יש תיאורים.</string>
+    <string name="meaning_body">מודל רב־לשוני קטן מוצא מדבקות שמשמעותן תואמת את מה שהקלדתם, גם במילים אחרות או בשפה השנייה: \"מאחר\" מוצא מדבקה עם התגית \"running late\". קובץ אחד, והוא עובד הכי טוב אחרי שלמדבקות יש תיאורים או תגיות תמונה.</string>
     <string name="meaning_status">מוכן עבור %1$d מתוך %2$d מדבקות.</string>
     <string name="model_file_needed">נדרש: %1$s (בערך %2$s).</string>
     <string name="eval_title">בדיקת איכות החיפוש</string>

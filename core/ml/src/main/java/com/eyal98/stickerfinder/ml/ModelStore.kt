@@ -14,6 +14,9 @@ import java.security.MessageDigest
 
 /** An installed model file. */
 data class InstalledModel(val file: File, val model: ModelSpec?, val sha256: String) {
+    /** A LiteRT-LM bundle (tokenizer inside) rather than a bare .tflite or .task. */
+    val isLiteRtLm: Boolean get() = file.name.endsWith(".litertlm")
+
     /** Catalog id, or a hash-based id for a model the catalog doesn't know by name. */
     val id: String get() = model?.id ?: "custom-${sha256.take(12)}"
     val displayName: String get() = model?.displayName ?: file.name
@@ -68,8 +71,21 @@ class ModelStore private constructor(
                 header[2] == 3.toByte() && header[3] == 4.toByte()
         }
 
+        /** A TFLite flatbuffer (identifier "TFL3" at offset 4); .litertlm bundles aren't. */
+        fun isTflite(file: File): Boolean {
+            val header = ByteArray(8)
+            val read = try {
+                file.inputStream().use { it.read(header) }
+            } catch (e: IOException) {
+                return false
+            }
+            return read == 8 && String(header, 4, 4, Charsets.US_ASCII) == "TFL3"
+        }
+
         val EMBEDDING = ModelStore(
-            "embedding", ModelCatalog.EMBEDDING_MODELS, "embedding.tflite", setOf("tflite"), ModelCrashGuard.EMBEDDING,
+            "embedding", ModelCatalog.EMBEDDING_MODELS, "embedding.tflite", setOf("litertlm", "tflite"),
+            ModelCrashGuard.EMBEDDING,
+            formatExtension = { if (isTflite(it)) "tflite" else "litertlm" },
         )
         val IMAGE = ModelStore(
             "image", ModelCatalog.IMAGE_MODELS, "image.tflite", setOf("tflite"), ModelCrashGuard.IMAGE_TAGS,

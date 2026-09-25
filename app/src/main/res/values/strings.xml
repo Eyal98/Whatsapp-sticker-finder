@@ -35,7 +35,7 @@
     <string name="smart_search_intro">Two optional on-device models make search smarter. Each runs only on this phone.</string>
     <string name="captions_title">Descriptions</string>
     <string name="meaning_title">Search by meaning</string>
-    <string name="meaning_body">A small multilingual model finds stickers that mean what you typed, even with different words or in the other language: \"running late\" finds a sticker tagged \"מאחר\". It needs two files from the same download page, and works best once stickers have descriptions.</string>
+    <string name="meaning_body">A small multilingual model finds stickers that mean what you typed, even with different words or in the other language: \"running late\" finds a sticker tagged \"מאחר\". One file, and it works best once stickers have descriptions or picture tags.</string>
     <string name="meaning_status">Ready for %1$d of %2$d stickers.</string>
     <string name="model_file_needed">Needed: %1$s (about %2$s).</string>
     <string name="eval_title">Search quality test</string>

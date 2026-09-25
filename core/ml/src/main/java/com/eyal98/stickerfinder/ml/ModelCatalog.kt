@@ -90,7 +90,25 @@ object ModelCatalog {
         downloadPage = "https://huggingface.co/google/gemma-3n-E4B-it-litert-preview",
     )
 
-    /** Multilingual (100+ languages, including Hebrew) text embedding model. */
+    /**
+     * The default embedding model: IBM Granite multilingual R2 (Hebrew is among its 52
+     * enhanced-support languages), as one LiteRT-LM file with the tokenizer inside, open to
+     * download. The int8 build, meant for phones.
+     */
+    val GRANITE_EMBEDDING = ModelSpec(
+        id = "granite-embedding-311m-r2-wi8fc",
+        displayName = "Granite multilingual embedding",
+        fileName = "granite-embedding-311m-r2_wi8fc.litertlm",
+        approxSize = "332 MB",
+        downloadPage = "https://huggingface.co/litert-community/granite-embedding-311m-multilingual-r2",
+        minRamBytes = 3_000_000_000L,
+        sha256 = "beb2be205abc766a670522e651be5713cecb4e4c33e5ef5c30f6a710d4226db5",
+    )
+
+    /**
+     * Multilingual (100+ languages, including Hebrew) text embedding model. The download page needs
+     * a login, and this format needs the tokenizer file too; kept so an installed copy still works.
+     */
     val EMBEDDING_GEMMA = ModelSpec(
         id = "embeddinggemma-300m-seq256",
         displayName = "EmbeddingGemma 300M",
@@ -127,7 +145,7 @@ object ModelCatalog {
     )
 
     val CAPTION_MODELS = listOf(GEMMA_4_E2B, GEMMA_4_E4B, GEMMA_3N_E2B, GEMMA_3N_E4B, GEMMA_3N_E2B_TASK, GEMMA_3N_E4B_TASK)
-    val EMBEDDING_MODELS = listOf(EMBEDDING_GEMMA)
+    val EMBEDDING_MODELS = listOf(GRANITE_EMBEDDING, EMBEDDING_GEMMA)
     val TOKENIZERS = listOf(EMBEDDING_GEMMA_TOKENIZER)
     val IMAGE_MODELS = listOf(SIGLIP2_B16)
 }
