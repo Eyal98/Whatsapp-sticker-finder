@@ -1,0 +1,389 @@
+# Picture-tag vocabulary for SigLIP2 sticker tagging.
+# Columns (tab-separated): prompt phrase (English, used with the model) | English tags | Hebrew tags.
+# Tags are comma-separated and are what search matches. Changing a prompt phrase or the order of
+# lines changes the label embeddings: re-run the SigLIP labels workflow and update the pinned hash
+# in core/vision/siglip.properties.
+#
+# Faces and emotions
+a laughing face with tears of joy	laughing, lol, funny	צוחק, צחוק, מצחיק, חחח
+a smiling happy face	happy, smile	שמח, חיוך, מחייך
+a big grin	grin, happy	חיוך רחב, שמח
+a crying sad face	crying, sad, tears	בוכה, עצוב, דמעות
+a sad disappointed face	sad, disappointed	עצוב, מאוכזב
+an angry face	angry, mad	כועס, עצבני
+a furious red angry face	furious, rage	זועם, רותח, עצבים
+a shocked surprised face	shocked, surprised, wow	בהלם, מופתע, וואו
+a scared frightened face	scared, afraid	מפוחד, פחד
+a face screaming in fear	scream, horror	צועק, צורח, אימה
+a confused face	confused, what	מבולבל, מה
+a thinking face	thinking, hmm	חושב, הממ
+a face rolling its eyes	eye roll, annoyed	מגלגל עיניים, נמאס
+an annoyed irritated face	annoyed, irritated	מעוצבן, מתעצבן
+a bored face	bored	משועמם, שעמום
+a tired exhausted face	tired, exhausted	עייף, מותש, גמור
+a sleeping face	sleeping, sleep	ישן, שינה
+a yawning face	yawn, sleepy	מפהק, מנומנם
+a sick face with a thermometer	sick, ill	חולה, לא מרגיש טוב
+a face with a medical mask	mask, sick	מסכה, חולה
+a nauseated vomiting face	disgusted, gross, vomit	מגעיל, בחילה, מקיא
+a disgusted face	disgusted, yuck	נגעל, איכס, מגעיל
+a face blowing a kiss	kiss, love	נשיקה, מנשק, אוהב
+a face with heart eyes	in love, love	מאוהב, אהבה
+a blushing shy face	shy, blushing	נבוך, מסמיק, ביישן
+an embarrassed face	embarrassed, awkward	נבוך, מביך
+a winking face	wink	קריצה, קורץ
+a face sticking out its tongue	tongue, silly, playful	לשון, שובב, מתלוצץ
+a crazy silly face	crazy, silly	משוגע, מטורף, מטופש
+a cool face with sunglasses	cool, sunglasses	קול, מגניב, משקפי שמש
+a smug face	smug	מתנשא, מרוצה מעצמו
+an evil grin	evil, devilish	רשע, שטני, מרושע
+a nervous sweating face	nervous, stress, sweat	לחוץ, לחץ, מזיע
+a worried anxious face	worried, anxious	מודאג, דאגה, חרדה
+a pleading face with puppy eyes	please, pleading, cute	בבקשה, מתחנן, עיניים של כלבלב
+a face holding back tears	emotional, touched	נרגש, מתרגש, נוגע ללב
+a relieved face	relieved, phew	הקלה, פיו
+a face with a hand over its mouth	oops, giggle	אופס, צחקוק
+a face with zipped mouth	quiet, secret, shh	שקט, סוד, שששש
+a shushing face	shh, quiet	שקט, ששש
+a lying face with a long nose	lying, liar	שקרן, שקר
+a face with a monocle	suspicious, curious	חשדן, סקרן
+a suspicious face with narrowed eyes	suspicious, side eye	חשדן, מבט חשדני
+a mind blown exploding head	mind blown, shocked	מפוצץ, המוח התפוצץ, בשוק
+a dizzy face	dizzy	מסוחרר, סחרחורת
+a hot sweating face	hot, heat	חם, חום, שרב
+a freezing cold face	cold, freezing	קר, קפוא, קור
+a party face with a party hat	party, celebrate	מסיבה, חוגג
+a starstruck face	excited, amazed	נלהב, מתלהב, מדהים
+a hugging face	hug	חיבוק, מחבק
+a face saluting	salute, yes sir	הצדעה, מצדיע
+a neutral expressionless face	meh, neutral	אדיש, בלי הבעה
+a face with no mouth	speechless	בלי מילים, המום
+a skull	dead, skull	מת, גולגולת, מתתי
+a ghost	ghost, boo	רוח רפאים, בו
+a clown face	clown	ליצן
+a pile of poop	poop	קקי, חרא
+a devil	devil	שטן
+an angel with a halo	angel, innocent	מלאך, תמים
+an alien	alien	חייזר
+a robot	robot	רובוט
+a monster	monster	מפלצת
+# Hands and gestures
+a thumbs up	thumbs up, like, ok	אגודל, לייק, אחלה, סבבה
+a thumbs down	thumbs down, dislike	אגודל למטה, דיסלייק, לא טוב
+an OK hand sign	ok, perfect	אוקיי, מושלם
+a waving hand saying hello	hello, hi, wave	שלום, היי, נפנוף
+a waving hand saying goodbye	bye, goodbye	ביי, להתראות
+clapping hands	clapping, applause, bravo	מחיאות כפיים, כל הכבוד, בראבו
+praying hands	please, thank you, pray	תודה, בבקשה, תפילה
+a high five	high five	כיף, היי פייב
+a fist bump	fist bump	אגרוף, כיף
+a raised fist	strength, power	אגרוף, כוח
+a flexed biceps	strong, muscle	חזק, שרירים, כוח
+a peace sign hand	peace, victory	שלום, ניצחון, וי
+a pointing finger	pointing, you	מצביע, אתה
+a middle finger	rude, middle finger	אצבע משולשת, גס
+a facepalm	facepalm, ugh	יד על הפנים, פייספאלם, אוף
+a shrug	shrug, whatever, dunno	לא יודע, מה אני יודע, מושך בכתפיים
+crossed fingers	good luck, hope	בהצלחה, מחזיק אצבעות
+a handshake	deal, agreement	לחיצת יד, עסקה, סגרנו
+open arms	welcome, hug	ברוך הבא, חיבוק
+hands raised in celebration	hooray, celebrate	הידד, יש, חוגג
+a person bowing	sorry, thank you, bow	סליחה, תודה, קידה
+a person dancing	dancing, dance	רוקד, ריקוד
+a person running	running, hurry	רץ, ממהר
+a person crying on the floor	sobbing, drama	מתייפח, דרמה
+a person sleeping in bed	sleep, good night	הולך לישון, לילה טוב
+a person eating	eating, hungry	אוכל, רעב
+a person drinking	drinking	שותה
+a person working on a laptop	work, busy	עבודה, עסוק, מחשב
+a person on the phone	phone call, call me	טלפון, תתקשר
+a person taking a selfie	selfie	סלפי
+a person thinking	thinking	חושב
+a person celebrating	celebrating, yay	חוגג, יש
+a person hiding	hiding	מתחבא
+a person waiting	waiting	מחכה, מחכים
+a person facepalming	facepalm	פייספאלם, אוף
+a person shrugging	shrug	לא יודע
+a couple in love	couple, love	זוג, אהבה, מאוהבים
+two people hugging	hug, friends	חיבוק, חברים
+a family	family	משפחה
+a baby	baby	תינוק
+a child	kid, child	ילד
+an old man	old man, grandpa	זקן, סבא
+an old woman	old woman, grandma	זקנה, סבתא
+a man	man, guy	גבר, בחור
+a woman	woman, girl	אישה, בחורה
+a teacher	teacher	מורה
+a doctor	doctor	רופא
+a police officer	police	שוטר, משטרה
+a soldier	soldier, army	חייל, צבא
+a chef	chef, cook	שף, טבח
+a superhero	superhero	גיבור על
+a king with a crown	king, crown	מלך, כתר
+a princess	princess	נסיכה
+a wizard	wizard, magic	קוסם, מכשף
+a pirate	pirate	פיראט, שודד ים
+a ninja	ninja	נינג'ה
+Santa Claus	santa, christmas	סנטה, כריסמס
+# Animals
+a cat	cat, kitty	חתול, חתולה, חתלתול
+a kitten	kitten, cute	חתלתול, גור חתולים
+a dog	dog	כלב, כלבה
+a puppy	puppy, cute	כלבלב, גור
+a bear	bear	דוב
+a teddy bear	teddy bear, cute	דובי, בובה
+a panda	panda	פנדה
+a rabbit	rabbit, bunny	ארנב, ארנבון
+a mouse	mouse	עכבר
+a hamster	hamster	אוגר
+a fox	fox	שועל
+a monkey	monkey	קוף
+a monkey covering its eyes	see no evil, oops	קוף מכסה עיניים, לא רואה
+a gorilla	gorilla	גורילה
+a lion	lion	אריה
+a tiger	tiger	נמר
+a cow	cow	פרה
+a pig	pig	חזיר
+a horse	horse	סוס
+a unicorn	unicorn	חד קרן
+a sheep	sheep	כבשה
+a goat	goat	עז
+a chicken	chicken	תרנגולת
+a duck	duck	ברווז
+a penguin	penguin	פינגווין
+an owl	owl	ינשוף
+a bird	bird	ציפור
+a parrot	parrot	תוכי
+a frog	frog	צפרדע
+a turtle	turtle	צב
+a snake	snake	נחש
+a dinosaur	dinosaur	דינוזאור
+a dragon	dragon	דרקון
+a fish	fish	דג
+a shark	shark	כריש
+a dolphin	dolphin	דולפין
+a whale	whale	לוויתן
+an octopus	octopus	תמנון
+a crab	crab	סרטן
+a butterfly	butterfly	פרפר
+a bee	bee	דבורה
+a ladybug	ladybug	פרת משה רבנו
+a spider	spider	עכביש
+a snail	snail	חילזון
+a sloth	sloth, lazy	עצלן
+a koala	koala	קואלה
+a raccoon	raccoon	דביבון
+a hedgehog	hedgehog	קיפוד
+an elephant	elephant	פיל
+a giraffe	giraffe	ג'ירפה
+a camel	camel	גמל
+a capybara	capybara	קפיברה
+a seal	seal	כלב ים
+# Food and drink
+coffee	coffee, morning	קפה, בוקר
+tea	tea	תה
+beer	beer, cheers	בירה, לחיים
+wine	wine, cheers	יין, לחיים
+a cocktail	cocktail, drinks	קוקטייל
+glasses clinking in a toast	cheers, toast	לחיים
+water	water	מים
+a birthday cake	birthday cake, happy birthday	עוגת יום הולדת, יום הולדת שמח
+cake	cake	עוגה
+a cupcake	cupcake	קאפקייק
+pizza	pizza	פיצה
+a hamburger	hamburger, burger	המבורגר
+french fries	fries, chips	צ'יפס
+a hot dog	hot dog	נקניקייה
+sushi	sushi	סושי
+pasta	pasta	פסטה
+falafel in pita	falafel	פלאפל
+hummus	hummus	חומוס
+shawarma	shawarma	שווארמה
+bread	bread	לחם
+challah bread	challah, shabbat	חלה, שבת
+cheese	cheese	גבינה
+eggs	eggs, breakfast	ביצים, ארוחת בוקר
+ice cream	ice cream	גלידה
+chocolate	chocolate	שוקולד
+candy	candy, sweets	ממתקים, סוכריות
+cookies	cookies	עוגיות
+a donut	donut	סופגנייה, דונאט
+popcorn	popcorn	פופקורן
+fruit	fruit	פירות
+a watermelon	watermelon	אבטיח
+an avocado	avocado	אבוקדו
+a banana	banana	בננה
+an apple	apple	תפוח
+strawberries	strawberry	תות
+a salad	salad, healthy	סלט, בריא
+a steak	steak, meat	סטייק, בשר
+a barbecue grill	barbecue, bbq	מנגל, על האש
+soup	soup	מרק
+# Occasions and greetings
+a happy birthday greeting	happy birthday	יום הולדת שמח, מזל טוב
+a congratulations greeting	congratulations, mazal tov	מזל טוב, ברכות
+a good morning greeting	good morning	בוקר טוב
+a good night greeting with a moon	good night	לילה טוב
+a thank you message	thank you, thanks	תודה, תודה רבה
+a sorry apology	sorry, apology	סליחה, מצטער
+an I love you message	i love you, love	אני אוהב אותך, אוהבת אותך
+a miss you message	miss you	מתגעגע, מתגעגעת
+a get well soon wish	get well soon	רפואה שלמה, תרגיש טוב
+a good luck wish	good luck	בהצלחה
+a welcome sign	welcome	ברוכים הבאים
+a shabbat shalom greeting with candles	shabbat shalom, shabbat	שבת שלום, שבת
+shabbat candles	shabbat candles	נרות שבת
+a happy new year celebration	new year	שנה טובה, שנה חדשה
+a Rosh Hashanah apple and honey	rosh hashanah, apple and honey	ראש השנה, תפוח בדבש, שנה טובה
+a pomegranate	pomegranate	רימון
+a shofar	shofar	שופר
+a Hanukkah menorah	hanukkah, menorah	חנוכה, חנוכייה
+a dreidel	dreidel	סביבון
+Passover matzah	passover, matzah	פסח, מצה
+Purim costume	purim, costume	פורים, תחפושת
+a sukkah	sukkot, sukkah	סוכות, סוכה
+Israeli flag	israel, flag	ישראל, דגל
+a Christmas tree	christmas	כריסמס, עץ אשוח
+fireworks	fireworks, celebration	זיקוקים, חגיגה
+party balloons	balloons, party	בלונים, מסיבה
+confetti party popper	party, celebration	מסיבה, חגיגה, קונפטי
+a gift box	gift, present	מתנה
+a wedding	wedding	חתונה
+a bride and groom	bride, groom, wedding	כלה, חתן, חתונה
+a wedding ring	ring, engagement	טבעת, אירוסין
+a graduation cap	graduation	סיום לימודים, בוגר
+a trophy	winner, trophy	גביע, ניצחון, זוכה
+a medal	medal, winner	מדליה
+a crown	crown, queen, king	כתר, מלכה, מלך
+# Hearts and symbols
+a red heart	heart, love	לב, אהבה
+a broken heart	broken heart, heartbroken	לב שבור
+many hearts	hearts, love	לבבות, אהבה
+a sparkling star	star, sparkle	כוכב, נצנוץ
+fire flames	fire, lit, hot	אש, בוער, לוהט
+a hundred points symbol	100, perfect	מאה, מושלם
+a check mark	done, yes, check	וי, בוצע, כן
+a red X mark	no, wrong	לא, איקס, טעות
+a question mark	question, what	סימן שאלה, מה
+an exclamation mark	important, alert	סימן קריאה, חשוב
+a lightning bolt	lightning, energy	ברק, אנרגיה
+a rainbow	rainbow	קשת
+the sun	sun, sunny	שמש
+the moon and stars	night, moon	לילה, ירח
+a cloud with rain	rain, rainy	גשם
+snow	snow, winter	שלג, חורף
+a flower	flower	פרח
+a bouquet of flowers	flowers, bouquet	זר פרחים, פרחים
+a rose	rose	ורד
+a tree	tree	עץ
+a clock	time, clock, late	שעון, זמן, מאחר
+an alarm clock	wake up, alarm	שעון מעורר, להתעורר
+money	money, cash	כסף, מזומן
+a bag of money	rich, money	עשיר, כסף
+a light bulb idea	idea	רעיון
+a speech bubble	talk, chat	דיבור, צ'אט
+musical notes	music	מוזיקה
+a microphone	singing, karaoke	מיקרופון, שר, קריוקי
+a guitar	guitar	גיטרה
+headphones	music, headphones	אוזניות, מוזיקה
+a camera	camera, photo	מצלמה, תמונה
+a phone	phone	טלפון, פלאפון
+a laptop computer	computer, laptop	מחשב
+a video game controller	gaming, video games	גיימינג, משחקי מחשב
+a television	tv	טלוויזיה
+a book	book, reading	ספר, קריאה
+a pencil and paper	writing, homework	כתיבה, שיעורי בית
+a school	school	בית ספר
+a house	home, house	בית
+a bed	bed	מיטה
+a couch	couch, relax	ספה, רביצה
+a bathtub	bath	אמבטיה
+a toilet	toilet	שירותים
+a car	car, driving	מכונית, אוטו, נהיגה
+a bus	bus	אוטובוס
+a train	train	רכבת
+an airplane	airplane, flight, travel	מטוס, טיסה, חופשה
+a bicycle	bicycle, bike	אופניים
+a rocket	rocket, launch	טיל, חללית
+a beach with palm trees	beach, vacation	חוף, ים, חופשה
+the sea	sea, ocean	ים
+a swimming pool	pool, swimming	בריכה, שחייה
+mountains	mountains	הרים
+a tent camping	camping	קמפינג, אוהל
+a suitcase	travel, vacation	מזוודה, חופשה, נסיעה
+a map	map	מפה
+a globe	world	עולם
+a soccer ball	soccer, football	כדורגל
+a basketball	basketball	כדורסל
+a gym workout with weights	gym, workout	חדר כושר, אימון
+yoga	yoga	יוגה
+a shopping bag	shopping	קניות
+a shopping cart	shopping, supermarket	קניות, סופר
+a dress	dress, fashion	שמלה, אופנה
+shoes	shoes	נעליים
+glasses	glasses	משקפיים
+makeup lipstick	makeup	איפור, שפתון
+a haircut	haircut	תספורת
+a toothbrush	brush teeth	מברשת שיניים
+a pill medicine	medicine, pills	תרופה, כדורים
+a syringe vaccine	vaccine, injection	חיסון, זריקה
+a hospital	hospital	בית חולים
+a bomb	bomb, explosion	פצצה, פיצוץ
+an explosion	boom, explosion	בום, פיצוץ
+a gun	gun	אקדח
+a sword	sword	חרב
+a key	key	מפתח
+a lock	locked, secret	מנעול, נעול
+a magnifying glass	search, look	זכוכית מגדלת, לחפש
+a calendar	calendar, date	לוח שנה, תאריך
+a mailbox letter	mail, letter	מכתב, דואר
+a bell notification	notification	פעמון, התראה
+a trash can	trash, garbage	פח, זבל
+a toilet paper roll	toilet paper	נייר טואלט
+a candle	candle	נר
+a crystal ball	future, magic	כדור בדולח, עתיד
+# Meme and chat reactions
+a meme with text	meme	מם, ממים
+a cartoon character	cartoon	דמות מצוירת, קריקטורה
+an anime character	anime	אנימה
+a cute chibi character	cute, kawaii	חמוד, קוואי
+a photo of a real person's face	person, face	פרצוף, פנים
+a famous celebrity	celebrity	סלב, מפורסם
+a politician	politician, politics	פוליטיקאי, פוליטיקה
+a text sticker with big letters	text	טקסט, כיתוב
+a sticker with Hebrew text	hebrew text	כיתוב בעברית
+a sticker with English text	english text	כיתוב באנגלית
+the word yes	yes	כן
+the word no	no	לא
+the word OK	ok	אוקיי, בסדר
+the word wow	wow	וואו
+the word LOL	lol	חחח
+a stop sign	stop	עצור, די
+a no entry sign	no, forbidden	אסור, אין כניסה
+a warning sign	warning, careful	אזהרה, זהירות
+a loading spinner	loading, waiting	טוען, מחכה
+a dancing character	dance, happy	ריקוד, רוקד
+a character running away	run away, escape	בורח, בריחה
+a character hiding under a blanket	hiding, shy	מתחבא, מתכרבל
+a character with a heart	love, heart	אהבה, לב
+a character giving flowers	flowers, gift, love	פרחים, מתנה
+a character drinking coffee	coffee, morning	קפה, בוקר
+a character sleeping	sleeping, good night	ישן, לילה טוב
+a character crying	crying	בוכה
+a character laughing	laughing	צוחק
+a character angry	angry	כועס
+a character waving	hello, bye	שלום, ביי
+a character with thumbs up	like, ok	לייק, אחלה
+a character celebrating	celebrate	חוגג
+a character eating	eating	אוכל
+a character working	working	עובד
+a character thinking	thinking	חושב
+a character shocked	shocked	בהלם
+a character facepalming	facepalm	פייספאלם
+a character hugging	hug	חיבוק
+a character kissing	kiss	נשיקה
+a character sad	sad	עצוב
+a character tired	tired	עייף
+a character sick	sick	חולה
+a character cold	cold	קר
+a character hot	hot	חם
