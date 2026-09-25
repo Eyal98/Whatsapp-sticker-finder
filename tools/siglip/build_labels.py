@@ -20,6 +20,7 @@ import hashlib
 import io
 import struct
 import sys
+import urllib.error
 import urllib.request
 
 import numpy as np
@@ -81,8 +82,8 @@ def main():
     model, _, preprocess = open_clip.create_model_and_transforms(MODEL, pretrained=PRETRAINED)
     tokenizer = open_clip.get_tokenizer(MODEL)
     model.eval()
-    scale = float(model.logit_scale.exp())
-    bias = float(model.logit_bias)
+    scale = float(model.logit_scale.exp().detach())
+    bias = float(model.logit_bias.detach())
     print(f"logit_scale {scale:.4f}, logit_bias {bias:.4f}")
 
     from ai_edge_litert.interpreter import Interpreter
@@ -119,9 +120,15 @@ def main():
     print(f"label embeddings {labels.shape}")
 
     worst = 1.0
+    checked = 0
     for name, code in TEST_EMOJI.items():
-        with urllib.request.urlopen(EMOJI_URL.format(code)) as r:
-            image = flatten(Image.open(io.BytesIO(r.read())))
+        try:
+            with urllib.request.urlopen(EMOJI_URL.format(code)) as r:
+                image = flatten(Image.open(io.BytesIO(r.read())))
+        except urllib.error.HTTPError as e:
+            print(f"\n{name}: test image unavailable ({e.code}), skipped")
+            continue
+        checked += 1
         a, b = encode_tflite(image), encode_torch(image)
         agreement = float(a @ b)
         worst = min(worst, agreement)
@@ -131,7 +138,9 @@ def main():
         print(f"\n{name}: tflite/torch cosine {agreement:.4f}")
         for j in top:
             print(f"  {cos[j]:.3f}  p={prob[j]:.4f}  {prompts[j]}")
-    print(f"\nworst tflite/torch agreement {worst:.4f}")
+    print(f"\nworst tflite/torch agreement {worst:.4f} over {checked} images")
+    if checked < 6:
+        sys.exit("Too few test images could be downloaded to check the model.")
     if worst < 0.98:
         sys.exit("The .tflite image tower does not match the open_clip model; label vectors would be wrong.")
 

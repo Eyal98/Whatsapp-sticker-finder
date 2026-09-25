@@ -20,7 +20,7 @@ data class ModelSpec(
 )
 
 /** Pinned by the SigLIP labels workflow (it prints the model's hash). */
-private const val SIGLIP2_SHA256 = "UNPINNED"
+private const val SIGLIP2_SHA256 = "a30ebb7b3ee15eaa68a18f9ab6a2ed740c15c343d25d898dc482317473320854"
 
 /** Gemma models are covered by the Gemma Terms of Use. */
 object ModelCatalog {
