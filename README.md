@@ -42,6 +42,30 @@ similarity cut-off, which can be applied with one tap.
 | `core/caption` | Caption prompt/parser and MediaPipe captioner |
 | `core/embed` | EmbeddingGemma text embedder (AI Edge RAG SDK), shared per process |
 
+## Install on your phone (no computer needed)
+
+Every push to this branch (or `main`) builds an APK signed with one stable key and publishes it
+as the **Sideload build** pre-release under Releases. Open that page on the phone, download the
+`.apk`, and open it (allow installing from your browser when asked). Later builds install over
+the previous one and keep your data. Android 11 or newer.
+
+This needs two repository secrets (Settings → Secrets and variables → Actions):
+
+| Secret | Value |
+|---|---|
+| `SIGNING_KEYSTORE_BASE64` | The PKCS12 keystore, base64-encoded (alias `stickerfinder`) |
+| `SIGNING_KEYSTORE_PASSWORD` | Its password (also the key password) |
+
+Without them CI still builds and tests everything, but doesn't publish an APK. Keep the key: an
+APK signed with a different key can't be installed over the current one without uninstalling
+(which deletes the app's data). To make one yourself:
+
+```sh
+keytool -genkeypair -storetype PKCS12 -keystore signing.p12 -alias stickerfinder \
+  -keyalg EC -groupname secp256r1 -validity 10000 -dname "CN=Sticker Finder sideload"
+base64 -w0 signing.p12   # paste the output into SIGNING_KEYSTORE_BASE64
+```
+
 ## Build
 
 Requires JDK 17 and the Android SDK (API 35).

@@ -11,6 +11,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # Set up the two SIGNING_* repository secrets to get installable builds (see README).
+      HAS_SIGNING_KEY: ${{ secrets.SIGNING_KEYSTORE_BASE64 != '' && secrets.SIGNING_KEYSTORE_PASSWORD != '' }}
+    outputs:
+      sideload: ${{ steps.sideload.outcome == 'success' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,6 +44,33 @@ jobs:
       - name: Check APK has no network access
         run: scripts/check-apk-permissions.sh app/build/outputs/apk/debug/app-debug.apk
 
+      - name: Build signed sideload APK
+        id: sideload
+        if: env.HAS_SIGNING_KEY == 'true' && github.event_name == 'push'
+        env:
+          SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
+          SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
+        run: |
+          store="$RUNNER_TEMP/signing.p12"
+          printf '%s' "$SIGNING_KEYSTORE_BASE64" | tr -d ' \r\n' | base64 -d > "$store"
+          ./gradlew --no-daemon assembleSideload -PsigningStoreFile="$store" -PversionCode=${{ github.run_number }}
+          rm -f "$store"
+          # An unsigned build would be named app-sideload-unsigned.apk, so this also checks signing.
+          apk=app/build/outputs/apk/sideload/app-sideload.apk
+          test -f "$apk"
+          scripts/check-apk-permissions.sh "$apk"
+          # The certificate digest must stay the same from build to build.
+          "$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)apksigner" verify --print-certs "$apk" | grep -i 'SHA-256'
+          cp "$apk" "$RUNNER_TEMP/sticker-finder-${{ github.run_number }}.apk"
+
+      - name: Keep sideload APK
+        if: steps.sideload.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: sideload-apk
+          path: ${{ runner.temp }}/sticker-finder-*.apk
+          retention-days: 14
+
       - name: Upload lint and test reports
         if: failure()
         uses: actions/upload-artifact@v4
@@ -47,3 +79,36 @@ jobs:
           path: |
             **/build/reports/
           retention-days: 7
+
+  # Publishes the signed APK as a pre-release so it can be downloaded and installed on a phone.
+  # The only job allowed to write to the repository, and it runs no project code.
+  publish-sideload:
+    needs: build
+    if: >-
+      needs.build.outputs.sideload == 'true' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/whatsapp-sticker-search-plugin-diz122')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sideload-apk
+          path: apk
+
+      - name: Update the "Sideload build" pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          apk=$(ls apk/*.apk)
+          notes="Built from ${GITHUB_SHA::7} on ${GITHUB_REF_NAME} (CI run ${{ github.run_number }}). Android 11 or newer. Installs over the previous sideload build and keeps your data."
+          if ! gh release view sideload >/dev/null 2>&1; then
+            gh release create sideload --prerelease --title "Sideload build" --target "$GITHUB_SHA" --notes "$notes"
+          fi
+          # Keep only the newest APK.
+          gh release view sideload --json assets --jq '.assets[].name' | while read -r old; do
+            gh release delete-asset sideload "$old" --yes
+          done
+          gh release upload sideload "$apk"
+          gh release edit sideload --notes "$notes"

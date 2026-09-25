@@ -14,8 +14,26 @@ android {
         applicationId = "com.eyal98.stickerfinder"
         minSdk = 30
         targetSdk = 35
-        versionCode = 1
+        // CI passes its run number so each sideload build installs over the previous one.
+        versionCode = (findProperty("versionCode") as String?)?.toInt() ?: 1
         versionName = "0.1.0"
+    }
+
+    // The sideload signing key: a PKCS12 file whose path CI passes as -PsigningStoreFile, with
+    // its password in the SIGNING_KEYSTORE_PASSWORD environment variable (never on the command
+    // line or in the repository). Without both, sideload builds come out unsigned.
+    val signingStore = (findProperty("signingStoreFile") as String?)?.let(::file)
+    val signingPassword: String? = System.getenv("SIGNING_KEYSTORE_PASSWORD")
+    signingConfigs {
+        if (signingStore != null && signingPassword != null) {
+            create("sideload") {
+                storeFile = signingStore
+                storeType = "pkcs12"
+                storePassword = signingPassword
+                keyAlias = "stickerfinder"
+                keyPassword = signingPassword
+            }
+        }
     }
 
     buildTypes {
@@ -23,6 +41,16 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+        // A release-like build for installing on your own phone from CI: not debuggable (so
+        // app data can't be read over USB), signed with one stable key so updates keep data.
+        // R8 stays off until minified builds have been tested with the ML libraries.
+        create("sideload") {
+            initWith(getByName("release"))
+            isMinifyEnabled = false
+            isShrinkResources = false
+            matchingFallbacks += listOf("release")
+            signingConfigs.findByName("sideload")?.let { signingConfig = it }
         }
     }
 
