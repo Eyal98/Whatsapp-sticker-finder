@@ -1,0 +1,47 @@
+# TEMPORARY: surveys on-device text embedding models (files, gating, languages) and the LiteRT-LM
+# embedding API. Delete after choosing.
+name: Model probe
+
+on:
+  push:
+    paths:
+      - .github/workflows/model-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Candidates
+        run: |
+          api=https://huggingface.co/api/models
+          echo "== search"
+          for q in "search=embedding&author=litert-community&limit=50" "search=embed&filter=litert-lm&limit=30&sort=downloads" "search=embedding-litertlm&limit=30&sort=downloads" "search=embeddinggemma&limit=30&sort=downloads"; do
+            curl -sS "$api?$q" | jq -r '.[] | "\(.id)  gated=\(.gated // false)  dl=\(.downloads // 0)  \(.pipeline_tag // "")"'
+          done
+          for m in litert-community/Qwen3-Embedding-0.6B-LiteRT litert-community/granite-embedding-311m-multilingual-r2 \
+                   litert-community/harrier-oss-v1-0.6b litert-community/mLateOn litert-community/voyage-4-nano \
+                   litert-community/Nemotron-3-Embed-1B kontextdev/embeddinggemma-300m-litertlm kasimtmc/embeddinggemma-litertlm; do
+            echo "=================== $m"
+            curl -sS "$api/$m?blobs=true" | jq -r '"gated: \(.gated // "n/a")  license: \(.cardData.license // "")", (.siblings[]? | "  \(.rfilename)  \(.size // "") \(.lfs.sha256 // "")")' | head -30
+            curl -fsSL "https://huggingface.co/$m/raw/main/README.md" -o card.md 2>/dev/null && {
+              head -c 2500 card.md; echo
+              echo "-- mentions:"; grep -niE "hebrew|\bhe\b|languages|multilingual|litert-lm|litertlm|tokenizer|dimension|matryoshka|prompt|query:|task:" card.md | head -25
+            }
+          done
+      - name: LiteRT-LM 0.16.1 embedding API
+        run: |
+          set +e
+          v=0.16.1
+          curl -fsSL -o lib.aar "https://dl.google.com/android/maven2/com/google/ai/edge/litertlm/litertlm-android/$v/litertlm-android-$v.aar"
+          unzip -o -q lib.aar classes.jar
+          for c in EmbeddingEngine EmbeddingEngineConfig EmbeddingOptions EmbeddingResponse; do
+            javap -cp classes.jar "com.google.ai.edge.litertlm.$c" | grep -v 'component[0-9]\|copy\|hashCode\|equals\|toString\|\$default\|DefaultConstructorMarker'
+          done
