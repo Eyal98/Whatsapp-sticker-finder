@@ -3,7 +3,7 @@ package com.eyal98.stickerfinder.data
 /** Aggregate numbers about the index, for the diagnostics report. Holds no sticker content. */
 data class DiagnosticCounts(
     val total: Int,
-    val indexed: Int,
+    val indexedCount: Int,
     /** Not yet indexed and already failed at least once. */
     val failingNow: Int,
     /** Needed more than one attempt (whether or not they finished since). */

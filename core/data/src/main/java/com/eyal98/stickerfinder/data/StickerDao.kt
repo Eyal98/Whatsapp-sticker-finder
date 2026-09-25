@@ -67,7 +67,7 @@ abstract class StickerDao {
     /** Counts only, for the diagnostics report; no sticker content. */
     @Query(
         "SELECT COUNT(*) AS total, " +
-            "COALESCE(SUM(CASE WHEN indexedAt IS NOT NULL AND indexVersion >= :version THEN 1 ELSE 0 END), 0) AS indexed, " +
+            "COALESCE(SUM(CASE WHEN indexedAt IS NOT NULL AND indexVersion >= :version THEN 1 ELSE 0 END), 0) AS indexedCount, " +
             "COALESCE(SUM(CASE WHEN indexAttempts > 0 AND (indexedAt IS NULL OR indexVersion < :version) THEN 1 ELSE 0 END), 0) AS failingNow, " +
             "COALESCE(SUM(CASE WHEN indexAttempts > 1 THEN 1 ELSE 0 END), 0) AS retried, " +
             "COALESCE(MAX(indexAttempts), 0) AS maxAttempts, " +

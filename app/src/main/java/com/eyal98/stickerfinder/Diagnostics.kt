@@ -53,7 +53,7 @@ object Diagnostics {
             }
             section("Index") {
                 val c = app.database.stickerDao().diagnosticCounts(IndexVersion.CURRENT)
-                appendLine("stickers ${c.total}, indexed ${c.indexed}, pending ${c.total - c.indexed}")
+                appendLine("stickers ${c.total}, indexed ${c.indexedCount}, pending ${c.total - c.indexedCount}")
                 appendLine("failing now ${c.failingNow}, needed retries ${c.retried}, most attempts ${c.maxAttempts}, undecodable ${c.undecodable}")
                 appendLine("with printed text ${c.withText}, animated ${c.animated}, starred ${c.starred}")
                 appendLine("captioned ${c.captioned} (with text ${c.withCaption}, retried ${c.captionRetried}), vectors ${c.vectors}")
