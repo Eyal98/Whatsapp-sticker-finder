@@ -36,7 +36,7 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         val model = ModelStore.CAPTION.installed(applicationContext) ?: return Result.success()
         // Turned off after it crashed the app (see ModelCrashGuard), until the user turns it on.
         if (ModelCrashGuard.isDisabled(applicationContext, ModelCrashGuard.CAPTION)) return Result.success()
-        if (!DeviceCapability.canRun(applicationContext, model.model, ModelCatalog.GEMMA_3N_E2B)) {
+        if (!DeviceCapability.canRun(applicationContext, model.model, ModelCatalog.GEMMA_4_E2B)) {
             Log.w(TAG, "Not enough memory for ${model.displayName}")
             return Result.failure()
         }

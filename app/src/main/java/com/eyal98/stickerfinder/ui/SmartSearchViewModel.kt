@@ -32,7 +32,7 @@ import kotlinx.coroutines.withContext
 /** The model files the user can install, each with the catalog entry to recommend. */
 enum class ModelSlot(val store: ModelStore, val recommended: ModelSpec) {
     IMAGE(ModelStore.IMAGE, ModelCatalog.SIGLIP2_B16),
-    CAPTION(ModelStore.CAPTION, ModelCatalog.GEMMA_3N_E2B),
+    CAPTION(ModelStore.CAPTION, ModelCatalog.GEMMA_4_E2B),
     EMBEDDING(ModelStore.EMBEDDING, ModelCatalog.EMBEDDING_GEMMA),
     TOKENIZER(ModelStore.EMBEDDING_TOKENIZER, ModelCatalog.EMBEDDING_GEMMA_TOKENIZER),
 }

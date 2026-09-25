@@ -43,14 +43,18 @@ class PictureLabels private constructor(
         private val MAGIC = "SLB1".toByteArray(Charsets.US_ASCII)
         private const val HEADER_BYTES = 4 + 4 + 4 + 4 + 4 + 32
 
+        // Tuned on 12 emoji test images (build_labels.py output): the right label was first on
+        // all of them with similarity 0.134-0.195; within 0.015 of the best keeps close synonyms
+        // (cake / birthday cake, dog / puppy) and drops near misses (a mouse for a cat).
+
         /** At most this many labels per sticker. */
-        const val MAX_LABELS = 5
+        const val MAX_LABELS = 4
 
         /** Below this similarity a label is never used: nothing in the list fits the sticker. */
-        const val MIN_SIMILARITY = 0.08f
+        const val MIN_SIMILARITY = 0.10f
 
-        /** Labels well behind the best match are dropped; they're usually unrelated. */
-        const val MAX_GAP = 0.025f
+        /** Labels further behind the best match than this are dropped. */
+        const val MAX_GAP = 0.015f
 
         /** The labels to tag a sticker with, best first. Pure, for tests. */
         fun pick(similarities: FloatArray): List<Int> {
