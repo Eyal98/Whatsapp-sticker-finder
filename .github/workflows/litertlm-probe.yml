@@ -20,31 +20,20 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Versions
-        run: |
-          for g in com/google/ai/edge/litertlm com/google/ai/edge/litert; do
-            echo "== Google Maven $g"; curl -fsS "https://dl.google.com/android/maven2/$g/group-index.xml" || true; echo
-          done
-          echo "== Maven Central"
-          curl -fsS "https://repo1.maven.org/maven2/com/google/ai/edge/litertlm/litertlm-android/maven-metadata.xml" || true
-
-      - name: API
+      - name: Kotlin level and core API per version
         run: |
           set +e
           google=https://dl.google.com/android/maven2/com/google/ai/edge/litertlm/litertlm-android
-          central=https://repo1.maven.org/maven2/com/google/ai/edge/litertlm/litertlm-android
-          v=$(curl -fsS https://dl.google.com/android/maven2/com/google/ai/edge/litertlm/group-index.xml \
-                | grep -o 'litertlm-android versions="[^"]*"' | sed 's/.*versions="//; s/"$//' | tr ',' '\n' | tail -n 1)
-          [ -z "$v" ] && v=$(curl -fsS "$central/maven-metadata.xml" | grep -o '<latest>[^<]*' | sed 's/<latest>//')
-          echo "VERSION=$v"
-          for base in "$google" "$central"; do
-            curl -fsSL -o lib.aar "$base/$v/litertlm-android-$v.aar" && { echo "AAR from $base"; curl -fsS "$base/$v/litertlm-android-$v.pom"; break; }
+          for v in 0.8.0 0.9.0 0.10.2 0.11.0 0.12.0 0.13.1 0.14.0 0.15.0 0.16.1 0.17.1; do
+            echo "=================== $v"
+            curl -fsS "$google/$v/litertlm-android-$v.pom" | tr -d '\n ' | grep -o '<artifactId>[^<]*</artifactId><version>[^<]*' | sed 's#</artifactId><version># #; s#<artifactId>##'
+            rm -rf x && mkdir x && cd x
+            curl -fsSL -o lib.aar "$google/$v/litertlm-android-$v.aar" && unzip -o -q lib.aar classes.jar
+            unzip -o -q classes.jar 'META-INF/*.kotlin_module' 2>/dev/null
+            for m in META-INF/*.kotlin_module; do echo "module $m: $(head -c 16 "$m" | od -An -tx1)"; done
+            for c in Engine EngineConfig ConversationConfig Content\$ImageBytes Content\$ImageFile Contents\$Companion Message\$Companion Backend\$CPU; do
+              javap -cp classes.jar "com.google.ai.edge.litertlm.$c" 2>/dev/null | grep -E 'public (com|final com|final .*(createConversation|initialize|of|user)\()' | grep -v 'DefaultConstructorMarker\|copy\|\$default'
+            done
+            javap -cp classes.jar com.google.ai.edge.litertlm.Conversation 2>/dev/null | grep -E 'Message sendMessage\((com.google.ai.edge.litertlm.(Contents|Message)|java.lang.String)\);'
+            cd ..
           done
-          [ -f lib.aar ] || { echo "no AAR found"; exit 0; }
-          unzip -o -q lib.aar classes.jar AndroidManifest.xml
-          echo "== Manifest"; cat AndroidManifest.xml
-          echo "== Native libs"; unzip -l lib.aar | grep '\.so' | head -20
-          classes=$(unzip -Z1 classes.jar | grep '\.class$' | grep -v '\$[0-9]' | sed 's/\.class$//; s#/#.#g')
-          echo "== Classes"; echo "$classes"
-          echo "== API"
-          for c in $classes; do javap -cp classes.jar "$c" 2>/dev/null | grep -v '^Compiled from'; done | head -n 900
