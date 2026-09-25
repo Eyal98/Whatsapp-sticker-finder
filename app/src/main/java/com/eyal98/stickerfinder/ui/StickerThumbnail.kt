@@ -8,7 +8,10 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -42,8 +45,9 @@ private object ThumbnailCache {
 @Composable
 fun StickerThumbnail(documentUri: String, contentDescription: String?, modifier: Modifier = Modifier) {
     val resolver = LocalContext.current.contentResolver
-    val bitmap by produceState<ImageBitmap?>(initialValue = null, documentUri) {
-        value = ThumbnailCache.load(resolver, documentUri)
+    var bitmap by remember(documentUri) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(documentUri) {
+        bitmap = ThumbnailCache.load(resolver, documentUri)
     }
     val image = bitmap
     if (image != null) {
