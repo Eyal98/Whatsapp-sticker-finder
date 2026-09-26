@@ -107,4 +107,26 @@
     <string name="image_tags_waiting">רץ מעצמו כשהטלפון בטעינה, או שאפשר להתחיל עכשיו.</string>
     <string name="image_tags_start">התחלה עכשיו</string>
     <string name="model_turned_off_reason">פרטים: %1$s</string>
+    <string name="people_title">אנשים</string>
+    <string name="people_open">פתיחת אנשים</string>
+    <string name="people_section_body">מוצאים מדבקות שלכם, של חברים ושל כל אחד אחר לפי שם, כולל עריכות ובדיחות פנימיות.</string>
+    <string name="people_intro">האפליקציה מוצאת פנים במדבקות ומקבצת יחד את הפנים של אותו אדם. נותנים לכל קבוצה שם פעם אחת, וכל מדבקה עם הפנים האלה נמצאת בחיפוש לפי השם, בעברית או באנגלית.</string>
+    <string name="people_privacy">כל פנים הופכות לטביעת פנים (מידע ביומטרי). טביעות הפנים לא יוצאות מהטלפון, לא מגובות, ואפשר למחוק את כולן בכל רגע.</string>
+    <string name="people_unavailable">הגרסה הזו עדיין לא כוללת את מודלי הפנים.</string>
+    <string name="people_turn_on">הפעלת אנשים</string>
+    <string name="people_scanning">מחפש פנים: נותרו %1$d מתוך %2$d מדבקות.</string>
+    <string name="people_done">כל המדבקות נבדקו.</string>
+    <string name="people_none">עדיין אין קבוצות. הן יופיעו כשיימצאו פנים.</string>
+    <string name="people_unnamed">בלי שם</string>
+    <string name="people_count">%1$d מדבקות</string>
+    <string name="people_name_hint">שם, למשל אייל או Eyal</string>
+    <string name="people_save">שמירת השם</string>
+    <string name="people_merge">אותו אדם כמו…</string>
+    <string name="people_merge_title">לאחד עם איזו קבוצה?</string>
+    <string name="people_remove_hint">הקישו על פנים שאינן של האדם הזה כדי להוציא אותן מהקבוצה.</string>
+    <string name="people_remove_confirm">להוציא את הפנים האלה מהקבוצה?</string>
+    <string name="people_remove">הוצאה</string>
+    <string name="people_delete">כיבוי ומחיקת נתוני הפנים</string>
+    <string name="people_delete_confirm">למחוק את כל טביעות הפנים ושמות הקבוצות? המדבקות נשארות, רק לא יימצאו יותר לפי השמות האלה.</string>
+    <string name="people_delete_yes">מחיקה</string>
 </resources>

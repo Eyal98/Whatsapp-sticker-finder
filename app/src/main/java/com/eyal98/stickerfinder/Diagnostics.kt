@@ -10,6 +10,8 @@ import android.view.inputmethod.InputMethodManager
 import androidx.work.WorkManager
 import com.eyal98.stickerfinder.data.IndexVersion
 import com.eyal98.stickerfinder.index.EmbedWorker
+import com.eyal98.stickerfinder.index.FaceSettings
+import com.eyal98.stickerfinder.index.FaceWorker
 import com.eyal98.stickerfinder.index.ImageTagWorker
 import com.eyal98.stickerfinder.index.IndexStats
 import com.eyal98.stickerfinder.index.IndexWorker
@@ -26,6 +28,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import com.eyal98.stickerfinder.vision.SiglipModel
+import com.eyal98.stickerfinder.vision.StickerFaces
 
 /**
  * A plain-text report for troubleshooting, shown to the user in full before they share it. It
@@ -53,6 +56,7 @@ object Diagnostics {
             section("Models") {
                 appendLine("embedding: ${ModelStore.EMBEDDING.installed(app)?.displayName ?: "none"}")
                 appendLine("picture model bundled: ${SiglipModel.isBundled(app)}")
+                appendLine("face models bundled: ${StickerFaces.isBundled(app)}, People on: ${FaceSettings.isEnabled(app)}")
                 for (feature in ModelCrashGuard.FEATURES) {
                     appendLine(
                         "$feature: turned off after crash ${ModelCrashGuard.isDisabled(app, feature)}, " +
@@ -70,11 +74,15 @@ object Diagnostics {
                 appendLine("with pack name ${c.withPackName}, with pack emojis ${c.withEmojis}")
                 appendLine("old Gemma descriptions ${c.withCaption}, vectors ${c.vectors}")
                 appendLine("picture-tagged ${c.imageTagged} (with tags ${c.withImageTags}, retried ${c.imageTagRetried})")
+                appendLine(
+                    "face-scanned ${c.faceScanned}, faces ${c.faces} (grouped ${c.groupedFaces}), " +
+                        "groups ${c.people} (named ${c.namedPeople})",
+                )
                 IndexStats.describe(app)?.let(::appendLine)
             }
             section("Background work") {
                 val workManager = WorkManager.getInstance(app)
-                for (name in IndexWorker.UNIQUE_NAMES + ImageTagWorker.UNIQUE_NAMES + EmbedWorker.UNIQUE_NAMES) {
+                for (name in IndexWorker.UNIQUE_NAMES + ImageTagWorker.UNIQUE_NAMES + FaceWorker.UNIQUE_NAMES + EmbedWorker.UNIQUE_NAMES) {
                     val infos = workManager.getWorkInfosForUniqueWorkFlow(name).first()
                     if (infos.isEmpty()) {
                         appendLine("$name: not scheduled")

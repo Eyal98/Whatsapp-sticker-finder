@@ -114,6 +114,62 @@ abstract class FetchSiglipLabels : DefaultTask() {
     }
 }
 
+/**
+ * Packages the SFace face model as an asset under `faces/`, downloaded from the "face-model"
+ * release (built by .github/workflows/face-model.yml) and checked against a pinned SHA-256
+ * (faces.properties). Until it's pinned, the app is built without the People feature.
+ */
+abstract class FetchFaceModel : DefaultTask() {
+    @get:Input abstract val url: Property<String>
+    @get:Input abstract val sha256: Property<String>
+    @get:OutputDirectory abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun fetch() {
+        val dir = outputDir.get().asFile.resolve("faces")
+        if (sha256.get() == "UNPINNED") {
+            logger.warn("Face model isn't pinned in faces.properties; building without People")
+            dir.deleteRecursively()
+            return
+        }
+        dir.mkdirs()
+        val target = dir.resolve("sface_fp16.tflite")
+        if (target.isFile && sha256(target) == sha256.get()) return
+        val part = File(target.path + ".part")
+        URI(url.get()).toURL().openStream().use { input -> part.outputStream().use { input.copyTo(it) } }
+        val actual = sha256(part)
+        if (actual != sha256.get()) {
+            part.delete()
+            throw GradleException("Face model checksum mismatch (see core/vision/faces.properties): expected ${sha256.get()}, got $actual")
+        }
+        target.delete()
+        check(part.renameTo(target)) { "Could not move $part to $target" }
+    }
+
+    private fun sha256(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(1 shl 16)
+            while (true) {
+                val n = input.read(buffer)
+                if (n < 0) break
+                digest.update(buffer, 0, n)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+}
+
+val facesConfig = Properties().apply {
+    file("faces.properties").inputStream().use { load(it) }
+}
+
+val fetchFaceModel = tasks.register<FetchFaceModel>("fetchFaceModel") {
+    url.set(facesConfig.getProperty("model.url").trim())
+    sha256.set(facesConfig.getProperty("model.sha256").trim())
+    outputDir.set(layout.buildDirectory.dir("generated/faces"))
+}
+
 val siglipConfig = Properties().apply {
     file("siglip.properties").inputStream().use { load(it) }
 }
@@ -130,6 +186,7 @@ val fetchSiglipLabels = tasks.register<FetchSiglipLabels>("fetchSiglipLabels") {
 androidComponents {
     onVariants { variant: LibraryVariant ->
         variant.sources.assets?.addGeneratedSourceDirectory(fetchSiglipLabels, FetchSiglipLabels::outputDir)
+        variant.sources.assets?.addGeneratedSourceDirectory(fetchFaceModel, FetchFaceModel::outputDir)
     }
 }
 
@@ -137,6 +194,9 @@ dependencies {
     implementation(project(":core:ml"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.litert)
+    // Face detection with landmarks, for grouping people. The bundled model: runs on the phone,
+    // no Google Play services download.
+    implementation(libs.mlkit.face.detection)
 
     testImplementation(libs.junit)
 }

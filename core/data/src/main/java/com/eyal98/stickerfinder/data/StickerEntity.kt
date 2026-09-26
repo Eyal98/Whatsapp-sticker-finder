@@ -62,6 +62,12 @@ data class StickerEntity(
     val packPublisher: String? = null,
     /** Words for the emojis the pack filed this sticker under, in both languages. */
     val emojiWords: String? = null,
+    /** Names the user gave the people whose faces are on it (see [StickerFace]), comma-separated. */
+    val peopleNames: String? = null,
+    /** When faces were last looked for. Null = pending. */
+    val facesScannedAt: Long? = null,
+    /** The same as [indexAttempts], for face scanning. */
+    @ColumnInfo(defaultValue = "0") val faceScanAttempts: Int = 0,
 )
 
 /** What the indexer extracts. Bump [CURRENT] when it learns something new, to re-index old rows. */

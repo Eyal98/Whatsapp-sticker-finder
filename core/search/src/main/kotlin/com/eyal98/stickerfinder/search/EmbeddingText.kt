@@ -21,12 +21,15 @@ object EmbeddingText {
         /** The sticker pack's name, and words for its emojis; also optional, for the same reason. */
         packName: String? = null,
         emojiWords: String? = null,
+        /** Names the user gave the people on the sticker. */
+        peopleNames: String? = null,
     ): String? {
         val parts = buildList {
             captionEn?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
             captionHe?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
             ocrText?.takeIf { it.isNotBlank() }?.let { add("Text: ${it.trim()}") }
             packName?.takeIf { it.isNotBlank() }?.let { add("Sticker pack: ${it.trim()}") }
+            peopleNames?.takeIf { it.isNotBlank() }?.let { add("People: ${it.trim()}") }
             val tags = listOfNotNull(captionTags, userTags, imageTags, emojiWords).filter { it.isNotBlank() }
                 .joinToString(", ") { it.trim() }.trim(',', ' ')
             if (tags.isNotEmpty()) add("Tags: $tags")

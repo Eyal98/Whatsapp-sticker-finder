@@ -22,5 +22,10 @@ data class DiagnosticCounts(
     val imageTagRetried: Int,
     val withPackName: Int,
     val withEmojis: Int,
+    val faceScanned: Int,
+    val faces: Int,
+    val groupedFaces: Int,
+    val people: Int,
+    val namedPeople: Int,
     val vectors: Int,
 )

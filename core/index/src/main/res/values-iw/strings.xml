@@ -4,4 +4,5 @@
     <string name="index_notification_title">מעבד מדבקות</string>
     <string name="index_notification_text">נותרו %1$d. ממשיך גם אם יוצאים מהאפליקציה.</string>
     <string name="image_tag_notification_title">מתייג תמונות</string>
+    <string name="face_notification_title">מזהה אנשים</string>
 </resources>

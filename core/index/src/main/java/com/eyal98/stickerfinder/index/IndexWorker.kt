@@ -65,6 +65,7 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             if (progress.processed > 0) {
                 EmbedWorker.runNow(applicationContext)
                 ImageTagWorker.runNow(applicationContext)
+                FaceWorker.runNow(applicationContext)
             }
             if (progress.finished) Result.success() else Result.retry()
         } catch (e: CancellationException) {

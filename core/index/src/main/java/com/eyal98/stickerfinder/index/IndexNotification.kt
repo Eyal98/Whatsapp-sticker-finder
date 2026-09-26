@@ -14,6 +14,7 @@ internal object IndexNotification {
     private const val CHANNEL = "indexing"
     const val INDEX_ID = 1001
     const val IMAGE_TAGS_ID = 1003
+    const val FACES_ID = 1004
 
     fun foregroundInfo(
         context: Context,

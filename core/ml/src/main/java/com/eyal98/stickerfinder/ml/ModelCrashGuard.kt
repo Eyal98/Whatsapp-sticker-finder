@@ -19,7 +19,8 @@ object ModelCrashGuard {
 
     const val EMBEDDING = "embedding"
     const val IMAGE_TAGS = "image_tags"
-    val FEATURES = listOf(EMBEDDING, IMAGE_TAGS)
+    const val FACES = "faces"
+    val FEATURES = listOf(EMBEDDING, IMAGE_TAGS, FACES)
 
     private const val TAG = "ModelCrashGuard"
     private const val PREFS = "model_crash_guard"

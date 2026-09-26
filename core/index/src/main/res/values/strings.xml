@@ -4,4 +4,5 @@
     <string name="index_notification_title">Indexing stickers</string>
     <string name="index_notification_text">%1$d left. Continues if you leave the app.</string>
     <string name="image_tag_notification_title">Tagging pictures</string>
+    <string name="face_notification_title">Finding people</string>
 </resources>

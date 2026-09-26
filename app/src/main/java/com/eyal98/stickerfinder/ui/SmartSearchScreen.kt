@@ -57,6 +57,7 @@ import com.eyal98.stickerfinder.ml.PendingModel
 fun SmartSearchScreen(
     onBack: () -> Unit,
     onOpenQualityTest: () -> Unit,
+    onOpenPeople: () -> Unit,
     viewModel: SmartSearchViewModel = viewModel(factory = SmartSearchViewModel.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -128,6 +129,12 @@ fun SmartSearchScreen(
 
                 HorizontalDivider()
             }
+
+            // People: faces grouped and named by the user.
+            Text(stringResource(R.string.people_title), style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.people_section_body), style = MaterialTheme.typography.bodyMedium)
+            OutlinedButton(onClick = onOpenPeople) { Text(stringResource(R.string.people_open)) }
+            HorizontalDivider()
 
             HorizontalDivider()
 

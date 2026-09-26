@@ -107,4 +107,26 @@
     <string name="image_tags_waiting">Runs by itself while the phone is charging, or start it now.</string>
     <string name="image_tags_start">Start now</string>
     <string name="model_turned_off_reason">Details: %1$s</string>
+    <string name="people_title">People</string>
+    <string name="people_open">Open People</string>
+    <string name="people_section_body">Find stickers of you, your friends and anyone else by name, including edits and inside jokes.</string>
+    <string name="people_intro">The app finds faces on your stickers and groups the same person\'s faces together. Name each group once, and every sticker with that face becomes searchable by the name, in Hebrew or English.</string>
+    <string name="people_privacy">Each face is turned into a face fingerprint (biometric data). Fingerprints never leave this phone, aren\'t backed up, and you can delete them all at any time.</string>
+    <string name="people_unavailable">This build doesn\'t include the face models yet.</string>
+    <string name="people_turn_on">Turn on People</string>
+    <string name="people_scanning">Looking for faces: %1$d of %2$d stickers left.</string>
+    <string name="people_done">All stickers were checked for faces.</string>
+    <string name="people_none">No groups yet. They appear as faces are found.</string>
+    <string name="people_unnamed">Unnamed</string>
+    <string name="people_count">%1$d stickers</string>
+    <string name="people_name_hint">Name, e.g. אייל or Eyal</string>
+    <string name="people_save">Save name</string>
+    <string name="people_merge">Same person as…</string>
+    <string name="people_merge_title">Merge into which group?</string>
+    <string name="people_remove_hint">Tap a face that isn\'t this person to take it out of the group.</string>
+    <string name="people_remove_confirm">Take this face out of the group?</string>
+    <string name="people_remove">Take out</string>
+    <string name="people_delete">Turn off and delete face data</string>
+    <string name="people_delete_confirm">Delete all face fingerprints and group names? Your stickers stay; they just won\'t be searchable by these names anymore.</string>
+    <string name="people_delete_yes">Delete</string>
 </resources>
