@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
@@ -23,12 +24,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.eyal98.stickerfinder.R
 import com.eyal98.stickerfinder.data.StickerEntity
 import com.eyal98.stickerfinder.ui.StickerThumbnail
@@ -66,7 +70,9 @@ interface KeyboardActions {
 @Composable
 fun StickerKeyboard(state: KeyboardUiState, actions: KeyboardActions) {
     Surface(tonalElevation = 3.dp) {
-        Column(Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+        // Since Android 15 a keyboard draws edge to edge: keep the keys above the system's
+        // navigation bar (back / switch keyboard) instead of under it.
+        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 4.dp)) {
             SearchBar(state, actions)
             Box(Modifier.fillMaxWidth().height(RESULTS_HEIGHT)) {
                 when {
@@ -100,16 +106,16 @@ fun StickerKeyboard(state: KeyboardUiState, actions: KeyboardActions) {
 @Composable
 private fun SearchBar(state: KeyboardUiState, actions: KeyboardActions) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 4.dp)) {
-        TextButton(onClick = actions::onSwitchKeyboard) { Text("⌨") }
+        TextButton(onClick = actions::onSwitchKeyboard) { Text("⌨", fontSize = ICON_TEXT) }
         Text(
             text = state.query.ifEmpty { stringResource(R.string.keyboard_hint) },
-            style = if (state.query.isEmpty()) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.titleMedium,
+            style = if (state.query.isEmpty()) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.titleLarge,
             color = if (state.query.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
-        if (state.query.isNotEmpty()) TextButton(onClick = actions::onClear) { Text("✕") }
+        if (state.query.isNotEmpty()) TextButton(onClick = actions::onClear) { Text("✕", fontSize = ICON_TEXT) }
     }
 }
 
@@ -117,13 +123,13 @@ private fun SearchBar(state: KeyboardUiState, actions: KeyboardActions) {
 private fun Keys(layout: KeyLayout, actions: KeyboardActions) {
     // A keyboard's key order is physical; don't mirror it when the phone's language is Hebrew.
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 2.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 3.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             for (row in layout.rows) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(KEY_GAP)) {
                     for (char in row) Key(char.toString(), Modifier.weight(1f)) { actions.onKey(char) }
                 }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(KEY_GAP)) {
                 Key(if (layout == KeyLayout.HEBREW) KeyLayout.ENGLISH.label else KeyLayout.HEBREW.label, Modifier.weight(1.5f)) {
                     actions.onToggleLayout()
                 }
@@ -136,13 +142,17 @@ private fun Keys(layout: KeyLayout, actions: KeyboardActions) {
 
 @Composable
 private fun Key(label: String, modifier: Modifier, onClick: () -> Unit) {
+    val haptics = LocalHapticFeedback.current
     Surface(
         shape = MaterialTheme.shapes.small,
         tonalElevation = 6.dp,
-        modifier = modifier.height(KEY_HEIGHT).clickable(onClick = onClick),
+        modifier = modifier.height(KEY_HEIGHT).clickable {
+            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        },
     ) {
         Box(contentAlignment = Alignment.Center) {
-            Text(label, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+            Text(label, fontSize = KEY_TEXT, textAlign = TextAlign.Center, maxLines = 1)
         }
     }
 }
@@ -154,5 +164,10 @@ private fun Centered(text: String) {
     }
 }
 
-private val RESULTS_HEIGHT = 150.dp
-private val KEY_HEIGHT = 42.dp
+private val RESULTS_HEIGHT = 170.dp
+
+// Sized like a regular phone keyboard: 10 Hebrew keys still fit a row on a narrow phone.
+private val KEY_HEIGHT = 54.dp
+private val KEY_GAP = 5.dp
+private val KEY_TEXT = 23.sp
+private val ICON_TEXT = 22.sp
