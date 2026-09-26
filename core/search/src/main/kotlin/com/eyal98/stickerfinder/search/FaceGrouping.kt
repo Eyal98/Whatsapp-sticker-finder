@@ -23,6 +23,14 @@ object FaceGrouping {
 
     const val MIN_GROUP = 2
     private const val ROUNDS = 20
+    private const val MAX_LINKS = 10
+
+    /**
+     * Random pairs of faces are mostly different people and should score far below
+     * [SAME_PERSON]. If their median is above this, the vectors can't tell people apart, and
+     * grouping would only produce one big wrong group: skip it.
+     */
+    const val MAX_TYPICAL_SIMILARITY = 0.45f
 
     class Face(val id: Long, val vector: FloatArray)
 
@@ -57,16 +65,16 @@ object FaceGrouping {
 
     private fun whispers(faces: List<Face>): List<List<Long>> {
         val n = faces.size
-        val neighbors = Array(n) { ArrayList<Int>() }
-        val weights = Array(n) { ArrayList<Float>() }
+        // Each face keeps only its [MAX_LINKS] closest matches: memory stays small even if many
+        // faces look alike (all-pairs links ran a 3,300-face collection out of memory).
+        val neighbors = Array(n) { IntArray(0) }
+        val weights = Array(n) { FloatArray(0) }
+        val scores = FloatArray(n)
         for (i in 0 until n) {
-            for (j in i + 1 until n) {
-                val score = Vectors.dot(faces[i].vector, faces[j].vector)
-                if (score >= SAME_PERSON) {
-                    neighbors[i] += j; weights[i] += score
-                    neighbors[j] += i; weights[j] += score
-                }
-            }
+            for (j in 0 until n) scores[j] = if (j == i) -1f else Vectors.dot(faces[i].vector, faces[j].vector)
+            val top = (0 until n).filter { scores[it] >= SAME_PERSON }.sortedByDescending { scores[it] }.take(MAX_LINKS)
+            neighbors[i] = top.toIntArray()
+            weights[i] = FloatArray(top.size) { scores[top[it]] }
         }
         val label = IntArray(n) { it }
         val order = (0 until n).toMutableList()

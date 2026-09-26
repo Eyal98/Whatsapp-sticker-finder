@@ -28,6 +28,7 @@ class FaceWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         if (!FaceSettings.isEnabled(context) || !StickerFaces.isBundled(context)) return Result.success()
         if (ModelCrashGuard.isDisabled(context, ModelCrashGuard.FACES)) return Result.success()
         val dao = (context as StickerIndexHost).database.stickerDao()
+        FaceGrouper.migrateVectors(context, dao)
         val pending = dao.observeFaceScanPendingCount().first()
         if (pending == 0) {
             if (FaceGrouper.regroup(context, dao) > 0) EmbedWorker.runNow(context)

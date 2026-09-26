@@ -109,6 +109,20 @@ object FaceGrouper {
     private const val VERSION = 2
     private const val PREFS = "face_grouping"
 
+    /**
+     * Bumped when face vectors change meaning: version 1 aligned faces upside down (so every
+     * vector was alike); stickers are scanned for faces again.
+     */
+    private const val VECTOR_VERSION = 2
+
+    /** Rescans every sticker for faces if the stored vectors are from an older version. */
+    suspend fun migrateVectors(context: Context, dao: StickerDao) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (prefs.getInt("vector_version", 1) >= VECTOR_VERSION) return
+        withContext(NonCancellable) { dao.deleteFaceData() }
+        prefs.edit { putInt("vector_version", VECTOR_VERSION) }
+    }
+
     /** Returns how many stickers' searchable names changed. */
     suspend fun regroup(context: Context, dao: StickerDao): Int = withContext(Dispatchers.Default) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -121,6 +135,11 @@ object FaceGrouper {
             .map { FaceGrouping.Face(it.id, Vectors.decode(it.vector)) to it.personId!! }
         val ungrouped = rows.filter { it.personId == null && !it.locked }
             .map { FaceGrouping.Face(it.id, Vectors.decode(it.vector)) }
+        val typical = FaceGrouping.pairStats(rows.map { Vectors.decode(it.vector) })?.first
+        if (typical != null && typical > FaceGrouping.MAX_TYPICAL_SIMILARITY) {
+            Log.w("FaceGrouper", "Face vectors are too alike (median $typical); not grouping")
+            return@withContext 0
+        }
         val result = FaceGrouping.group(grouped, ungrouped)
         withContext(NonCancellable) {
             result.joined.entries.groupBy({ it.value }, { it.key }).forEach { (person, faces) -> dao.assignFaces(faces, person) }

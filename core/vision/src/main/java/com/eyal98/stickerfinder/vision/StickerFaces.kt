@@ -60,11 +60,19 @@ class StickerFaces(model: ByteBuffer) : Closeable {
             val h = flat.height.toFloat()
             return faces.mapNotNull { face ->
                 if (face.boundingBox.width() < MIN_FACE_PIXELS) return@mapNotNull null
-                // The template's image-left eye is the person's right eye.
-                val points = listOf(
-                    FaceLandmark.RIGHT_EYE, FaceLandmark.LEFT_EYE, FaceLandmark.NOSE_BASE,
-                    FaceLandmark.MOUTH_RIGHT, FaceLandmark.MOUTH_LEFT,
-                ).map { face.getLandmark(it)?.position ?: return@mapNotNull null }
+                fun point(type: Int): PointF? = face.getLandmark(type)?.position
+                val eyes = listOf(point(FaceLandmark.LEFT_EYE) ?: return@mapNotNull null, point(FaceLandmark.RIGHT_EYE) ?: return@mapNotNull null)
+                val mouth = listOf(point(FaceLandmark.MOUTH_LEFT) ?: return@mapNotNull null, point(FaceLandmark.MOUTH_RIGHT) ?: return@mapNotNull null)
+                val nose = point(FaceLandmark.NOSE_BASE) ?: return@mapNotNull null
+                // The template's points go image-left to image-right. Sorting by x instead of
+                // trusting whose "left" a landmark means: with the pairs swapped, the fitted
+                // transform turned every face upside down and shrank it, so all faces got nearly
+                // the same vector (median pair similarity 0.73, build 134).
+                val (eyeL, eyeR) = eyes.sortedBy { it.x }
+                val (mouthL, mouthR) = mouth.sortedBy { it.x }
+                // Upside-down or badly found faces: skip rather than store a misleading vector.
+                if (maxOf(eyeL.y, eyeR.y) >= minOf(mouthL.y, mouthR.y)) return@mapNotNull null
+                val points = listOf(eyeL, eyeR, nose, mouthL, mouthR)
                 val box = face.boundingBox
                 FoundFace(
                     (box.left / w).coerceIn(0f, 1f), (box.top / h).coerceIn(0f, 1f),
