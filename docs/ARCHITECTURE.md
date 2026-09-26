@@ -294,7 +294,7 @@ flowchart LR
     checks --> alpha["Versioned pre-release<br/>(tags only)"]
     deps[Dependency changes] --> dv[Dependency verification workflow<br/>commits new checksums]
     tools1[tools/faces changes] --> fm[Face model workflow<br/>ONNX → TFLite release]
-    tools2[tools/siglip changes] --> sl[SigLIP labels workflow<br/>label vectors release]
+    tools2[tools/siglip changes] --> sl[SigLIP labels workflow<br/>label vectors release,<br/>pin commit, starts Android CI]
 ```
 
 - **Toolchain.** Kotlin 2.4, AGP 8.13, Gradle 8.14, Room with KSP, Jetpack Compose, JDK 17.
@@ -327,7 +327,8 @@ flowchart LR
   Delivery. Installing needs about 1.3 GB free because the Granite model is copied out once.
 - **RAM.** Meaning search needs about 3 GB; smaller phones fall back to keyword search.
 - **Label vocabulary.** Built-in picture tags only know the labels in `tools/siglip/labels.tsv`;
-  learned tags cover what the user tags themselves. Adding built-in labels still means editing the
-  list and re-running the labels workflow (next: have it pin the result automatically).
+  learned tags cover what the user tags themselves. Adding a built-in label is one edit to that
+  file: the SigLIP labels workflow builds the vectors, pins them in `siglip.properties` with a bot
+  commit and starts the Android build; phones retag from stored vectors on the next charge.
 - **Minification.** R8 is off for the sideload build until it's tested with the ML libraries.
 - **Target SDK.** Currently 35; Play's minimum rises every year.

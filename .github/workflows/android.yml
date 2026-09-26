@@ -3,9 +3,14 @@ name: Android CI
 on:
   push:
     branches: ["**"]
+    # A label-list-only change can't build until the SigLIP labels workflow pins its new vectors;
+    # that workflow then starts this build itself (workflow_dispatch below).
+    paths-ignore:
+      - tools/siglip/**
     # A v* tag (e.g. v0.1.0-alpha.1) also publishes a versioned alpha release.
     tags: ["v*"]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -61,7 +66,7 @@ jobs:
 
       - name: Build signed sideload APK
         id: sideload
-        if: env.HAS_SIGNING_KEY == 'true' && github.event_name == 'push'
+        if: env.HAS_SIGNING_KEY == 'true' && github.event_name != 'pull_request'
         env:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
           SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
