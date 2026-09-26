@@ -89,7 +89,7 @@ class CaptionIndexer(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            // An inference error (LiteRT-LM and MediaPipe report them as exceptions). Not saved,
+            // An inference error (LiteRT-LM reports them as exceptions). Not saved,
             // so a passing problem doesn't leave the sticker without a description for good.
             Log.w(TAG, "Captioning failed", e)
             outcomes.errors++

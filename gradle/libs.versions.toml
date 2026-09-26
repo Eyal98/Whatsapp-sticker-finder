@@ -12,10 +12,8 @@ work = "2.10.0"
 coroutines = "1.11.0"
 junit = "4.13.2"
 tesseract4android = "4.7.0"
-mediapipeGenai = "0.10.25"
 # tasks-genai needs MPImage from tasks-core but doesn't depend on it, and the two aren't released
 # in lockstep; 0.10.26 is the first tasks-core release after genai 0.10.25.
-mediapipeCore = "0.10.26"
 # Built with Kotlin 2.4, like this project. 0.17 adds EmbeddingEngine (single-file embedding models).
 litertlm = "0.17.1"
 # Classic LiteRT (TFLite) interpreter, for the SigLIP2 image model.
@@ -39,8 +37,6 @@ work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "w
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 junit = { module = "junit:junit", version.ref = "junit" }
 localagents-rag = { module = "com.google.ai.edge.localagents:localagents-rag", version.ref = "localagentsRag" }
-mediapipe-tasks-core = { module = "com.google.mediapipe:tasks-core", version.ref = "mediapipeCore" }
-mediapipe-tasks-genai = { module = "com.google.mediapipe:tasks-genai", version.ref = "mediapipeGenai" }
 litert = { module = "com.google.ai.edge.litert:litert", version.ref = "litert" }
 litertlm-android = { module = "com.google.ai.edge.litertlm:litertlm-android", version.ref = "litertlm" }
 tesseract4android = { module = "cz.adaptech.tesseract4android:tesseract4android", version.ref = "tesseract4android" }

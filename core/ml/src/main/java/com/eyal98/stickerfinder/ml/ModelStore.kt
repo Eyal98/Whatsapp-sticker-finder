@@ -14,7 +14,7 @@ import java.security.MessageDigest
 
 /** An installed model file. */
 data class InstalledModel(val file: File, val model: ModelSpec?, val sha256: String) {
-    /** A LiteRT-LM bundle (tokenizer inside) rather than a bare .tflite or .task. */
+    /** A LiteRT-LM bundle (tokenizer inside) rather than a bare .tflite. */
     val isLiteRtLm: Boolean get() = file.name.endsWith(".litertlm")
 
     /** Catalog id, or a hash-based id for a model the catalog doesn't know by name. */
@@ -55,11 +55,14 @@ class ModelStore private constructor(
         /** Space to leave free on top of the model itself. */
         private const val FREE_SPACE_MARGIN = 500_000_000L
 
+        // Only .litertlm is accepted now. The "caption.task" name and the zip check stay so a
+        // file installed by an older version is still found (and renamed, or reported).
         val CAPTION = ModelStore(
-            "caption", ModelCatalog.CAPTION_MODELS, "caption.task", setOf("litertlm", "task"), ModelCrashGuard.CAPTION,
+            "caption", ModelCatalog.CAPTION_MODELS, "caption.task", setOf("litertlm"), ModelCrashGuard.CAPTION,
             formatExtension = { if (isZip(it)) "task" else "litertlm" },
         )
-        /** A zip archive, like MediaPipe .task bundles; .litertlm files aren't. */
+
+        /** A zip archive, like MediaPipe .task bundles (no longer supported); .litertlm files aren't. */
         fun isZip(file: File): Boolean {
             val header = ByteArray(4)
             val read = try {

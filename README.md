@@ -14,7 +14,7 @@ printed on stickers (on-device Tesseract OCR, Hebrew + English) and by tags you 
 favorites, and share a sticker to WhatsApp. Search handles Hebrew prefixes, niqqud and common
 slang.
 
-Phase 2 (in progress): **Smart search**. An on-device Gemma 3n model (MediaPipe LLM Inference)
+Phase 2 (in progress): **Smart search**. An on-device Gemma 4 model (LiteRT-LM, `.litertlm` files)
 describes each sticker in Hebrew and English with search keywords, while the phone is charging
 and idle. The app can't download, so you import the model file yourself; its SHA-256 is shown
 for you to compare with the download page before it's used.
@@ -46,7 +46,7 @@ similarity cut-off, which can be applied with one tap.
 | `core/index` | Folder access (SAF), scanner, indexer, WorkManager job |
 | `core/ocr` | Tesseract OCR (`heb+eng`), text cleanup, bundled language files |
 | `core/ml` | Model files: import into private storage, SHA-256 verification, catalog, RAM check |
-| `core/caption` | Caption prompt/parser and MediaPipe captioner |
+| `core/caption` | Caption prompt/parser and LiteRT-LM captioner |
 | `core/embed` | EmbeddingGemma text embedder (AI Edge RAG SDK), shared per process |
 
 ## Install on your phone (no computer needed)
@@ -95,7 +95,7 @@ CI runs all of these on every push.
 
 - [Tesseract](https://github.com/tesseract-ocr/tesseract) and its
   [`tessdata_fast`](https://github.com/tesseract-ocr/tessdata_fast) language models: Apache-2.0
-- [MediaPipe](https://github.com/google-ai-edge/mediapipe) LLM Inference: Apache-2.0
+- [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) and [LiteRT](https://github.com/google-ai-edge/LiteRT): Apache-2.0
 - Gemma models (downloaded by the user, not bundled): [Gemma Terms of Use](https://ai.google.dev/gemma/terms)
 - [Google AI Edge RAG SDK](https://ai.google.dev/edge/mediapipe/solutions/genai/rag/android): Apache-2.0
 - [Tesseract4Android](https://github.com/adaptech-cz/Tesseract4Android): Apache-2.0. It is only

@@ -76,20 +76,6 @@ object ModelCatalog {
         sha256 = null,
     )
 
-    /** The same models in MediaPipe's older .task format, which also still work. */
-    private val GEMMA_3N_E2B_TASK = GEMMA_3N_E2B.copy(
-        id = "gemma-3n-e2b-it-int4",
-        fileName = "gemma-3n-E2B-it-int4.task",
-        approxSize = "3.1 GB",
-        downloadPage = "https://huggingface.co/google/gemma-3n-E2B-it-litert-preview",
-    )
-    private val GEMMA_3N_E4B_TASK = GEMMA_3N_E4B.copy(
-        id = "gemma-3n-e4b-it-int4",
-        fileName = "gemma-3n-E4B-it-int4.task",
-        approxSize = "4.4 GB",
-        downloadPage = "https://huggingface.co/google/gemma-3n-E4B-it-litert-preview",
-    )
-
     /**
      * The default embedding model: IBM Granite multilingual R2 (Hebrew is among its 52
      * enhanced-support languages), as one LiteRT-LM file with the tokenizer inside, open to
@@ -144,7 +130,7 @@ object ModelCatalog {
         sha256 = SIGLIP2_SHA256,
     )
 
-    val CAPTION_MODELS = listOf(GEMMA_4_E2B, GEMMA_4_E4B, GEMMA_3N_E2B, GEMMA_3N_E4B, GEMMA_3N_E2B_TASK, GEMMA_3N_E4B_TASK)
+    val CAPTION_MODELS = listOf(GEMMA_4_E2B, GEMMA_4_E4B, GEMMA_3N_E2B, GEMMA_3N_E4B)
     val EMBEDDING_MODELS = listOf(GRANITE_EMBEDDING, EMBEDDING_GEMMA)
     val TOKENIZERS = listOf(EMBEDDING_GEMMA_TOKENIZER)
     val IMAGE_MODELS = listOf(SIGLIP2_B16)
