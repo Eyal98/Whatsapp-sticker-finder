@@ -94,8 +94,7 @@ private fun TestOverview(state: EvaluationUiState, viewModel: EvaluationViewMode
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
-        item { TextButton(onClick = onBack) { Text(stringResource(R.string.back)) } }
-        item { Text(stringResource(R.string.eval_title), style = MaterialTheme.typography.headlineSmall) }
+        item { ScreenHeader(stringResource(R.string.eval_title), onBack) }
         item { Text(stringResource(R.string.eval_intro), style = MaterialTheme.typography.bodyMedium) }
         item {
             Text(

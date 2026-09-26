@@ -74,9 +74,7 @@ fun StickerDetailsScreen(
             Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
-                Box(Modifier.weight(1f))
+            ScreenHeader(stringResource(R.string.details_title), onBack) {
                 Button(onClick = { viewModel.save(onBack) }, enabled = !state.saving) {
                     Text(
                         if (state.shareCount > 0) stringResource(R.string.details_save_share, state.shareCount)
@@ -84,7 +82,13 @@ fun StickerDetailsScreen(
                     )
                 }
             }
-            StickerThumbnail(s.documentUri, null, Modifier.size(160.dp).align(Alignment.CenterHorizontally))
+            Surface(
+                shape = MaterialTheme.shapes.large,
+                color = MaterialTheme.colorScheme.surfaceContainerLow,
+                modifier = Modifier.size(180.dp).align(Alignment.CenterHorizontally),
+            ) {
+                StickerThumbnail(s.documentUri, null, Modifier.fillMaxSize().padding(12.dp))
+            }
             s.packName?.let { Labeled(stringResource(R.string.details_pack), it) }
             s.ocrText?.takeIf { it.isNotBlank() }?.let { Labeled(stringResource(R.string.details_printed_text), it) }
 

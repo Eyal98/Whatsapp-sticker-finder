@@ -5,6 +5,7 @@
     <string name="onboarding_body">Choose WhatsApp\'s sticker folder so the app can read your stickers. Access is read-only, and nothing leaves your phone: this app has no internet permission.\n\nThe folder is at:\nAndroid › media › com.whatsapp › WhatsApp › Media › WhatsApp Stickers</string>
     <string name="onboarding_choose_folder">Choose folder</string>
     <string name="search_hint">Search stickers (עברית / English)</string>
+    <string name="clear_search">Clear search</string>
     <string name="status_count">Stickers: %1$d</string>
     <string name="status_indexing">Indexing: %1$d of %2$d left</string>
     <string name="no_results">No stickers match. Try other words, or long-press a sticker to add tags.</string>
@@ -124,6 +125,7 @@
     <string name="people_delete_confirm">Delete all face fingerprints and group names? Your stickers stay; they just won\'t be searchable by these names anymore.</string>
     <string name="people_delete_yes">Delete</string>
     <string name="details_save_share">Save and share with %1$d</string>
+    <string name="details_title">Sticker</string>
     <string name="details_pack">Sticker pack</string>
     <string name="details_printed_text">Printed text</string>
     <string name="details_description">Description</string>

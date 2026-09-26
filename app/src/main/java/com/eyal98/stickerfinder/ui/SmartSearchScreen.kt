@@ -86,8 +86,7 @@ fun SmartSearchScreen(
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
-            Text(stringResource(R.string.smart_search), style = MaterialTheme.typography.headlineSmall)
+            ScreenHeader(stringResource(R.string.smart_search), onBack)
             Text(stringResource(R.string.smart_search_intro), style = MaterialTheme.typography.bodyLarge)
 
             // Picture tags: the model is part of the app, so there's nothing to install.

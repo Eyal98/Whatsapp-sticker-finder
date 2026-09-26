@@ -12,7 +12,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eyal98.stickerfinder.R
@@ -29,10 +31,12 @@ fun OnboardingScreen(onFolderChosen: (Uri) -> Unit) {
                 .fillMaxSize()
                 .padding(padding)
                 .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(stringResource(R.string.onboarding_title), style = MaterialTheme.typography.headlineSmall)
-            Text(stringResource(R.string.onboarding_body), style = MaterialTheme.typography.bodyLarge)
+            AppLogo(112.dp)
+            Text(stringResource(R.string.onboarding_title), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
+            Text(stringResource(R.string.onboarding_body), style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
             Button(onClick = { pickFolder.launch(StickerFolder.pickerStartUri) }) {
                 Text(stringResource(R.string.onboarding_choose_folder))
             }

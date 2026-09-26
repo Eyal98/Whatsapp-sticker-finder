@@ -1,22 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A magnifying glass over a sticker with a peeled corner. -->
+<!-- A smiling sticker with a peeled corner, tilted, and a magnifier badge. Kept inside the 66dp
+     safe zone (21..87) so every launcher mask shows it whole. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+    <group
+        android:pivotX="52"
+        android:pivotY="50"
+        android:rotation="-8">
+        <!-- Soft shadow -->
+        <path
+            android:fillColor="#33000000"
+            android:pathData="M37.5,30.5h32a6,6 0,0 1,6 6v22l-16,16h-22a6,6 0,0 1,-6 -6v-32a6,6 0,0 1,6 -6z" />
+        <!-- The sticker, bottom-right corner peeled -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M36,28h32a6,6 0,0 1,6 6v22l-16,16h-22a6,6 0,0 1,-6 -6v-32a6,6 0,0 1,6 -6z" />
+        <!-- The fold -->
+        <path
+            android:fillColor="#D9D4FF"
+            android:pathData="M74,56l-16,16v-10a6,6 0,0 1,6 -6z" />
+        <!-- Face -->
+        <path
+            android:fillColor="#2D2A4A"
+            android:pathData="M45,44m-3.2,0a3.2,3.2 0,1 1,6.4 0a3.2,3.2 0,1 1,-6.4 0" />
+        <path
+            android:fillColor="#2D2A4A"
+            android:pathData="M59,44m-3.2,0a3.2,3.2 0,1 1,6.4 0a3.2,3.2 0,1 1,-6.4 0" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#2D2A4A"
+            android:strokeLineCap="round"
+            android:strokeWidth="3.4"
+            android:pathData="M43,53q9,8 18,0" />
+    </group>
+    <!-- Magnifier badge -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M34,34h30l10,10v14a20,20 0,0 0,-6 -1a20,20 0,0 0,-20 20a20,20 0,0 0,1 6h-15z" />
+        android:fillColor="#FFC940"
+        android:pathData="M72,73m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0" />
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="5"
-        android:pathData="M68,77m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0" />
+        android:strokeColor="#2D2A4A"
+        android:strokeWidth="3"
+        android:pathData="M70,71m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
     <path
         android:fillColor="#00000000"
-        android:strokeColor="#FFFFFF"
+        android:strokeColor="#2D2A4A"
         android:strokeLineCap="round"
-        android:strokeWidth="5"
-        android:pathData="M77,86l7,7" />
+        android:strokeWidth="3.4"
+        android:pathData="M73.8,74.8l4.6,4.6" />
 </vector>

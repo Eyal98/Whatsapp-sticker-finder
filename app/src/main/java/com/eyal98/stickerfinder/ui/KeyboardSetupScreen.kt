@@ -50,8 +50,7 @@ fun KeyboardSetupScreen(onBack: () -> Unit) {
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
-            Text(stringResource(R.string.keyboard_setup_title), style = MaterialTheme.typography.headlineSmall)
+            ScreenHeader(stringResource(R.string.keyboard_setup_title), onBack)
             Text(stringResource(R.string.keyboard_setup_body), style = MaterialTheme.typography.bodyLarge)
             Text(
                 stringResource(if (enabled) R.string.keyboard_status_on else R.string.keyboard_status_off),

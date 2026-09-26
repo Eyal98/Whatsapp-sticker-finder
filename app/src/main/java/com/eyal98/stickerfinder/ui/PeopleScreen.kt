@@ -96,8 +96,7 @@ private fun Overview(state: PeopleUiState, viewModel: PeopleViewModel, onBack: (
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                TextButton(onClick = onBack) { Text(stringResource(R.string.back)) }
-                Text(stringResource(R.string.people_title), style = MaterialTheme.typography.headlineSmall)
+                ScreenHeader(stringResource(R.string.people_title), onBack)
                 Text(stringResource(R.string.people_intro), style = MaterialTheme.typography.bodyLarge)
                 Text(stringResource(R.string.people_privacy), style = MaterialTheme.typography.bodyMedium)
                 when {
@@ -180,7 +179,7 @@ private fun PersonDetail(person: PersonSummary, all: List<PersonSummary>, viewMo
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                TextButton(onClick = { viewModel.select(null) }) { Text(stringResource(R.string.back)) }
+                ScreenHeader(person.name ?: stringResource(R.string.people_unnamed), { viewModel.select(null) })
                 Text(stringResource(R.string.people_count, person.stickers), style = MaterialTheme.typography.titleMedium)
                 OutlinedTextField(
                     value = name,
