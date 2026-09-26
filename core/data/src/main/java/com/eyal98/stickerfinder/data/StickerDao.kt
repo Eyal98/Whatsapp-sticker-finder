@@ -211,6 +211,26 @@ abstract class StickerDao {
     @Query("UPDATE stickers SET userDescription = :description WHERE id = :id")
     abstract suspend fun setUserDescription(id: Long, description: String?)
 
+    @Query("SELECT COUNT(*) FROM sticker_image_vectors WHERE model = :model")
+    abstract suspend fun imageVectorCount(model: String): Int
+
+    /** The tag fields learned tags are computed from, for every sticker. */
+    @Query("SELECT id, userTags, learnedTags, removedImageTags FROM stickers")
+    abstract suspend fun tagStates(): List<StickerTagState>
+
+    @Query("UPDATE stickers SET learnedTags = :tags WHERE id = :id")
+    abstract suspend fun setLearnedTagsOnly(id: Long, tags: String?)
+
+    /** Saves a sticker's learned tags and rebuilds its search terms. */
+    @Transaction
+    open suspend fun setLearnedTags(id: Long, tags: String?) {
+        setLearnedTagsOnly(id, tags)
+        refreshFts(id)
+    }
+
+    @Query("SELECT COUNT(*) FROM stickers WHERE learnedTags IS NOT NULL AND learnedTags != ''")
+    abstract suspend fun countWithLearnedTags(): Int
+
     @Query("UPDATE stickers SET removedImageTags = :removed WHERE id = :id")
     abstract suspend fun setRemovedImageTags(id: Long, removed: String?)
 

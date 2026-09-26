@@ -15,6 +15,7 @@ import com.eyal98.stickerfinder.index.FaceWorker
 import com.eyal98.stickerfinder.index.ImageTagWorker
 import com.eyal98.stickerfinder.index.IndexStats
 import com.eyal98.stickerfinder.index.IndexWorker
+import com.eyal98.stickerfinder.index.LearnedTagger
 import com.eyal98.stickerfinder.index.StickerFolder
 import com.eyal98.stickerfinder.keyboard.StickerKeyboardService
 import com.eyal98.stickerfinder.ml.BundledEmbedding
@@ -89,6 +90,8 @@ object Diagnostics {
                 // Numbers only: how alike random pairs of faces are (mostly different people).
                 FaceGrouping.pairStats(app.database.stickerDao().faceRows().map { Vectors.decode(it.vector) })
                     ?.let { (median, p90) -> appendLine("face pair similarity: median %.2f, 90%% %.2f".format(median, p90)) }
+                appendLine("with learned tags ${app.database.stickerDao().countWithLearnedTags()}")
+                LearnedTagger.stats(app)?.let(::appendLine)
                 IndexStats.describe(app)?.let(::appendLine)
             }
             section("Background work") {

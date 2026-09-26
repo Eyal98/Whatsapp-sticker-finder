@@ -174,4 +174,6 @@
     <string name="about_native_text">Read the other licenses</string>
     <string name="about_native_title">Built-in image and text-reading libraries</string>
     <string name="mascot_description">Peel-It\'s mascot, an elephant peeling a sticker</string>
+    <string name="details_learned_tags">Learned from your tags</string>
+    <string name="details_learned_tags_hint">Suggested because this sticker looks like stickers you tagged. They\'re already searchable. Tap + to make one your tag, or ✕ to hide it.</string>
 </resources>

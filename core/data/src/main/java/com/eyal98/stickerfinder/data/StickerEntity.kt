@@ -72,9 +72,14 @@ data class StickerEntity(
     val userDescription: String? = null,
     /** Picture tags the user removed as wrong, comma-separated; they stay hidden after retagging. */
     val removedImageTags: String? = null,
+    /**
+     * The user's own tags, suggested here because the sticker looks like the ones that have them
+     * (see LearnedTags), comma-separated. Searchable like picture tags, and hidden the same way.
+     */
+    val learnedTags: String? = null,
 ) {
-    /** [imageTags] without the ones the user removed. */
-    val visibleImageTags: String? get() = ImageTagFilter.visible(imageTags, removedImageTags)
+    /** Picture tags and learned tags, without the ones the user removed. */
+    val visibleImageTags: String? get() = ImageTagFilter.visible(ImageTagFilter.join(imageTags, learnedTags), removedImageTags)
 }
 
 /**
@@ -95,6 +100,10 @@ object UserTags {
 /** Picture tags minus the ones the user removed (both comma-separated). */
 object ImageTagFilter {
     fun split(tags: String?): List<String> = tags.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
+
+    /** Both lists as one, each tag once (ignoring case). */
+    fun join(a: String?, b: String?): String? =
+        (split(a) + split(b)).distinctBy { it.lowercase() }.joinToString(", ").ifEmpty { null }
 
     fun visible(tags: String?, removed: String?): String? {
         val hidden = split(removed).map { it.lowercase() }.toSet()
@@ -122,4 +131,12 @@ data class StickerFileState(
     val documentUri: String,
     val sizeBytes: Long,
     val lastModified: Long,
+)
+
+/** A sticker's tag fields, for computing learned tags. */
+data class StickerTagState(
+    val id: Long,
+    val userTags: String,
+    val learnedTags: String?,
+    val removedImageTags: String?,
 )

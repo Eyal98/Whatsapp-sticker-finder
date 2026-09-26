@@ -91,6 +91,11 @@ class StickerDetailsViewModel(private val app: StickerFinderApp, private val id:
 
     fun removeTag(tag: String) = _state.update { it.copy(tags = it.tags - tag) }
     fun setDescription(value: String) = _state.update { it.copy(description = value) }
+    /** Makes a learned tag one of the sticker's own tags. */
+    fun acceptLearnedTag(tag: String) = _state.update { s ->
+        s.copy(tags = UserTags.parse(UserTags.format(s.tags + tag)))
+    }
+
     fun hidePictureTag(tag: String) = _state.update { it.copy(removedPictureTags = it.removedPictureTags + tag) }
     fun showPictureTag(tag: String) = _state.update { it.copy(removedPictureTags = it.removedPictureTags - tag) }
     fun setShareSamePerson(on: Boolean) = _state.update { it.copy(shareSamePerson = on) }

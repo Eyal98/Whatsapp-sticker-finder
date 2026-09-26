@@ -163,6 +163,39 @@ fun StickerDetailsScreen(
                 }
             }
 
+            // Learned tags: your tags on stickers that look like this one. Tap to make one yours,
+            // or hide it (it stays hidden, and isn't suggested here again).
+            val learned = ImageTagFilter.split(s.learnedTags).filter { tag ->
+                state.tags.none { it.equals(tag, ignoreCase = true) } &&
+                    state.removedPictureTags.none { it.equals(tag, ignoreCase = true) }
+            }
+            if (learned.isNotEmpty()) {
+                Text(stringResource(R.string.details_learned_tags), style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(R.string.details_learned_tags_hint), style = MaterialTheme.typography.bodySmall)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (tag in learned) {
+                        Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.tertiaryContainer) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "＋ $tag",
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    modifier = Modifier
+                                        .clickable { viewModel.acceptLearnedTag(tag) }
+                                        .padding(start = 12.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
+                                )
+                                Text(
+                                    "✕",
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    modifier = Modifier
+                                        .clickable { viewModel.hidePictureTag(tag) }
+                                        .padding(start = 6.dp, end = 12.dp, top = 6.dp, bottom = 6.dp),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             if (faces.isNotEmpty()) {
                 Text(stringResource(R.string.details_people), style = MaterialTheme.typography.titleSmall)
                 for (face in faces) FaceRow(face, viewModel)

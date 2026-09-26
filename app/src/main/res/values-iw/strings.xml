@@ -174,4 +174,6 @@
     <string name="about_native_text">לקריאת שאר הרישיונות</string>
     <string name="about_native_title">ספריות מובנות לתמונות ולקריאת טקסט</string>
     <string name="mascot_description">הקמעית של Peel-It, פילה שמקלפת מדבקה</string>
+    <string name="details_learned_tags">נלמד מהתגיות שלכם</string>
+    <string name="details_learned_tags_hint">מוצע כי המדבקה הזו דומה למדבקות שתייגתם. אפשר כבר לחפש לפיהן. הקישו + כדי להפוך לתגית שלכם, או ✕ כדי להסתיר.</string>
 </resources>

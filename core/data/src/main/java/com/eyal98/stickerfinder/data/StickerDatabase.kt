@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StickerEntity::class, StickerFts::class, StickerVector::class, StickerImageVector::class,
         StickerFace::class, Person::class,
     ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 abstract class StickerDatabase : RoomDatabase() {
@@ -25,7 +25,7 @@ abstract class StickerDatabase : RoomDatabase() {
         // TODO(Phase 4): encrypt at rest with SQLCipher, key wrapped by Android Keystore.
         fun create(context: Context): StickerDatabase =
             Room.databaseBuilder(context.applicationContext, StickerDatabase::class.java, NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
                 .build()
 
         /** Adds [StickerEntity.indexVersion]; existing rows start at 0 so they get OCR'd. */
@@ -111,6 +111,13 @@ abstract class StickerDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE stickers ADD COLUMN userDescription TEXT")
                 db.execSQL("ALTER TABLE stickers ADD COLUMN removedImageTags TEXT")
+            }
+        }
+
+        /** Adds [StickerEntity.learnedTags]: the user's tags suggested on look-alike stickers. */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stickers ADD COLUMN learnedTags TEXT")
             }
         }
     }

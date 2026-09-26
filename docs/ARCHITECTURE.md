@@ -70,7 +70,7 @@ flowchart TD
 |---|---|---|
 | `:app` | Screens (search, sticker details, Smart search, People, keyboard setup, quality test, About), the sticker keyboard, diagnostics, theme and branding | Compose Material 3, WorkManager |
 | `:core:search` | Pure JVM, no Android: Hebrew/English normalization, prefixes, stop words, synonyms, FTS query building, vector math, Reciprocal Rank Fusion, face grouping (Chinese whispers), evaluation metrics | none (fast unit tests) |
-| `:core:data` | Room database (v9, migrations 1→9), DAO, `StickerRepository` (search, edits, sharing edits), `SemanticSearch` | Room, KSP |
+| `:core:data` | Room database (v10, migrations 1→10), DAO, `StickerRepository` (search, edits, sharing edits), `SemanticSearch` | Room, KSP |
 | `:core:index` | Folder access (SAF), scanner, `StickerIndexer`, sticker-pack metadata reader, workers for indexing, picture tags, faces and embeddings, power/battery policy | WorkManager |
 | `:core:ocr` | Tesseract OCR (heb+eng, `tessdata_fast`), text cleanup, installs bundled language files | Tesseract4Android |
 | `:core:vision` | SigLIP 2 image encoder and picture-tag labels; face detection (ML Kit) + alignment + SFace embeddings | LiteRT, ML Kit face detection |
@@ -95,6 +95,7 @@ erDiagram
         string documentUri
         string ocrText "printed text"
         string imageTags "SigLIP picture tags"
+        string learnedTags "user tags suggested by look"
         string removedImageTags "tags the user hid"
         string userTags "user's tags, comma separated"
         string userDescription
@@ -166,10 +167,22 @@ flowchart LR
 | Scan + index (OCR, metadata) | `IndexWorker` | On app open (foreground job), daily otherwise; battery not low; 10-minute scan cooldown | One OCR reader per core; stickers that failed before run alone; after repeated failures OCR, then decoding, is skipped for that sticker |
 | Picture tags | `ImageTagWorker` | While charging, or immediately via "Start now" | SigLIP 2 image vector compared with precomputed label vectors; name labels need a higher threshold (0.135) than general ones (0.10) |
 | Faces | `FaceWorker` | While charging, only if People is on | Faces drawn on white, landmarks sorted by x, aligned to the ArcFace 112×112 template; grouping by nearest grouped face (≥0.5), else a kNN graph + Chinese whispers |
+| Learned tags | `EmbedWorker`, before embedding | With every embedding pass; skipped when no tags or pictures changed | The user's tags spread to look-alike stickers (below); stored picture vectors only, no model |
 | Meaning vectors | `EmbedWorker` | While charging for background changes; right away (battery not low) for user edits | At most one waiting pass; each pass embeds only stickers whose text fingerprint changed |
 
 All workers run in bounded slices (`WorkBudget`) and reschedule themselves, so Android can stop
 them at any time without losing progress.
+
+**Learned tags.** The picture model only knows a fixed label list, so the user's own tags are
+learned from their pictures (`LearnedTags` in `:core:search`, run by `LearnedTagger`). For each
+tag, the picture vectors of the stickers that have it are averaged into a prototype, and a sticker
+without the tag gets it when it is close enough. The threshold adapts to each tag: at least as
+close as the tag's own least typical example (leave-one-out, minus 0.03), clearly above how alike
+random stickers are (99th percentile + 0.05), and never below 0.6. Tags whose stickers look
+nothing alike ("funny") are skipped, a tag on a single sticker spreads only to near-copies (≥ 0.9),
+and each tag reaches at most 40 stickers, each sticker gets at most 3. Learned tags are
+searchable like picture tags; in the sticker's details the user can make one their own (which
+makes it an example too) or hide it for good.
 
 **Sticker-pack metadata.** WhatsApp stickers carry a JSON note in the WebP EXIF chunk with the
 pack name, publisher and emojis. `StickerMetadata` parses it without a JSON library, and
@@ -299,6 +312,7 @@ flowchart LR
 | Decision | Why | Alternatives set aside |
 |---|---|---|
 | Keyword FTS + embeddings fused with RRF | Keywords are exact and instant; embeddings catch paraphrases and cross-language matches; rank fusion needs no score calibration | Embeddings only (misses exact names), keywords only (misses meaning) |
+| Learned tags from the user's own tags, by picture prototype | Covers friends, inside jokes and local shows no fixed list has; offline, cheap (stored vectors), adapts thresholds per tag | The SigLIP text encoder on the phone (~400 MB with its vocabulary) |
 | Fixed label list scored by SigLIP 2 instead of generated captions | Specific, searchable names (shows, characters) in both languages; fast; deterministic | On-device Gemma captions: slow, often generic or wrong, multi-GB download (removed) |
 | Granite R2 as the embedding model | Strong Hebrew support, single-file LiteRT-LM bundle with tokenizer, runs on CPU | EmbeddingGemma via the RAG SDK: added ~70 MB of native code and was slower (removed) |
 | Bundle all models in the APK | Install is one tap for non-technical testers, no network permission needed | In-app download (needs INTERNET), manual import (hard for most people) |
@@ -312,7 +326,8 @@ flowchart LR
 - **APK size (~560 MB).** Most of it is the models; Play distribution would need Play Asset
   Delivery. Installing needs about 1.3 GB free because the Granite model is copied out once.
 - **RAM.** Meaning search needs about 3 GB; smaller phones fall back to keyword search.
-- **Label vocabulary.** Picture tags only know the labels in `tools/siglip/labels.tsv`; new shows
-  or characters mean adding labels and re-running the labels workflow.
+- **Label vocabulary.** Built-in picture tags only know the labels in `tools/siglip/labels.tsv`;
+  learned tags cover what the user tags themselves. Adding built-in labels still means editing the
+  list and re-running the labels workflow (next: have it pin the result automatically).
 - **Minification.** R8 is off for the sideload build until it's tested with the ML libraries.
 - **Target SDK.** Currently 35; Play's minimum rises every year.
