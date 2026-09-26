@@ -11,6 +11,10 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it is built (modules, d
 indexing, search, keyboard, models, security, CI) and
 [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) for the history and roadmap.
 
+**Showreel**: a 20-second video of the app in 16:9 and 9:16, drawn and scored in code
+([tools/showreel](tools/showreel)). Download it from the
+[showreel release](https://github.com/Eyal98/Whatsapp-sticker-finder/releases/tag/showreel).
+
 ## Status
 
 Phase 1: pick the WhatsApp Stickers folder, index it in the background, search by the text

@@ -1,0 +1,48 @@
+# Renders the Peel-It showreel (tools/showreel) and publishes it to the "showreel" pre-release: the
+# 16:9 and 9:16 cuts as MP4 (H.264 + AAC, plays everywhere) and WebM (VP9 + Opus, the frame-exact
+# render). The video is drawn and scored in code, so it only needs Chromium and ffmpeg.
+name: Showreel
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - tools/showreel/**
+      - .github/workflows/showreel.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: showreel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install Chromium and ffmpeg
+        run: |
+          npm install --no-save --prefix "$RUNNER_TEMP/pw" playwright@1.56.1
+          "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -hide_banner -encoders | grep -q libx264
+
+      - name: Render
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node tools/showreel/render.js --mp4
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -l tools/showreel/out
+          gh release view showreel >/dev/null 2>&1 || \
+            gh release create showreel --prerelease --title "Peel-It showreel" \
+              --notes "A 20-second showreel of Peel-It in 16:9 and 9:16, drawn and scored in code (tools/showreel). MP4 (H.264 + AAC) plays everywhere; WebM (VP9 + Opus) is the frame-exact render. Rebuilt by the Showreel workflow."
+          gh release upload showreel tools/showreel/out/*.mp4 tools/showreel/out/*.webm --clobber
