@@ -108,6 +108,13 @@ matches the SHA-256 pinned in its `*.properties` file (`core/ocr`, `core/vision`
 The app gets them from its own APK and never downloads anything itself. The APK is about 560 MB,
 most of it models (Granite 330 MB, SigLIP 2 185 MB).
 
+Gradle checks every downloaded library and plugin against `gradle/verification-metadata.xml`.
+The Dependency verification workflow updates that file when dependencies change. To update it
+yourself (for example on macOS, where Gradle downloads a different AAPT2 build), run the build
+once with `--write-verification-metadata sha256`.
+
+GitHub Actions are pinned to commit SHAs (the version is in a comment); Dependabot updates them.
+
 `scripts/check-16kb-pages.py` lists native libraries that wouldn't load on phones with 16 KB
 memory pages (CI prints it as a warning).
 
@@ -127,3 +134,8 @@ Full list, with the in-app notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES
 - [ML Kit face detection](https://developers.google.com/ml-kit/vision/face-detection) (bundled model): ML Kit Terms of Service
 - [Tesseract4Android](https://github.com/adaptech-cz/Tesseract4Android): Apache-2.0. It is only
   published on JitPack, so the build allows JitPack for that one package group only.
+
+## License
+
+Apache License 2.0: see [LICENSE](LICENSE) and [NOTICE](NOTICE). Bundled models and libraries
+keep their own licenses: see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

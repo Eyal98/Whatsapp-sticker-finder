@@ -171,4 +171,6 @@
     <string name="about_libraries_hide">הסתרת הרשימה</string>
     <string name="about_signing_title">תעודת החתימה</string>
     <string name="about_signing_body">עדכונים מותקנים מעל האפליקציה רק כשהם חתומים באותה תעודה. ה-SHA-256 שלה צריך להתאים לזה שבדף הגרסה:</string>
+    <string name="about_native_text">לקריאת שאר הרישיונות</string>
+    <string name="about_native_title">ספריות מובנות לתמונות ולקריאת טקסט</string>
 </resources>

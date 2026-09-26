@@ -67,12 +67,16 @@ private val MODELS = listOf(
     ),
 )
 
-/** Native code bundled inside libraries, which their Maven licenses don't list. */
+/**
+ * Native code bundled inside Tesseract4Android, which its Maven license doesn't list. Their full
+ * license texts are in the asset licenses/native-libraries.txt.
+ */
 private val BUNDLED_NATIVE = listOf(
     "Tesseract OCR engine — Apache License 2.0 — github.com/tesseract-ocr/tesseract",
     "Leptonica — BSD 2-Clause — leptonica.org",
-    "libjpeg-turbo — IJG License / BSD 3-Clause — libjpeg-turbo.org",
-    "libpng — PNG Reference Library License — libpng.org",
+    "Independent JPEG Group's JPEG software (libjpeg 9f) — IJG License — ijg.org",
+    "libpng — PNG Reference Library License v2 — libpng.org",
+    "This software is based in part on the work of the Independent JPEG Group.",
 )
 
 private data class Library(val coordinates: String, val license: String, val url: String)
@@ -82,7 +86,8 @@ fun AboutScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var diagnostics by remember { mutableStateOf<String?>(null) }
-    var licenseText by remember { mutableStateOf<String?>(null) }
+    // Title and text of the license being read.
+    var licenseText by remember { mutableStateOf<Pair<String, String>?>(null) }
     var showLibraries by rememberSaveable { mutableStateOf(false) }
     val version = remember { versionText(context) }
     val fingerprint = remember { signingFingerprint(context) }
@@ -136,8 +141,16 @@ fun AboutScreen(onBack: () -> Unit) {
             HorizontalDivider()
             Text(stringResource(R.string.about_libraries_title), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.about_libraries_body, libraries.size), style = MaterialTheme.typography.bodyMedium)
-            OutlinedButton(onClick = { licenseText = readAsset(context, "licenses/Apache-2.0.txt") }) {
+            OutlinedButton(onClick = {
+                licenseText = readAsset(context, "licenses/Apache-2.0.txt")?.let { "Apache License 2.0" to it }
+            }) {
                 Text(stringResource(R.string.about_apache_text))
+            }
+            val nativeTitle = stringResource(R.string.about_native_title)
+            OutlinedButton(onClick = {
+                licenseText = readAsset(context, "licenses/native-libraries.txt")?.let { nativeTitle to it }
+            }) {
+                Text(stringResource(R.string.about_native_text))
             }
             OutlinedButton(onClick = { showLibraries = !showLibraries }) {
                 Text(stringResource(if (showLibraries) R.string.about_libraries_hide else R.string.about_libraries_show))
@@ -166,10 +179,10 @@ fun AboutScreen(onBack: () -> Unit) {
     }
 
     diagnostics?.let { DiagnosticsDialog(it, onDismiss = { diagnostics = null }) }
-    licenseText?.let { text ->
+    licenseText?.let { (title, text) ->
         AlertDialog(
             onDismissRequest = { licenseText = null },
-            title = { Text("Apache License 2.0") },
+            title = { Text(title) },
             text = {
                 Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
                     Text(text, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)

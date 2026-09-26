@@ -1,5 +1,7 @@
 # Third-party notices
 
+Sticker Finder's own code is under the Apache License 2.0 ([LICENSE](LICENSE), [NOTICE](NOTICE)).
+
 Sticker Finder bundles the models and libraries below. The app shows the same notices under
 **About → Open-source licenses**, together with a list generated at build time of every library
 in the build and the license its Maven POM declares (`app/build.gradle.kts`, `dependencyNotices`).
@@ -19,20 +21,24 @@ Every model file is downloaded when the app is built and checked against a pinne
 `core/ocr/tessdata.properties`). The picture-tag label list (`tools/siglip/labels.tsv`) and its
 vectors are this project's own.
 
-**SFace training data.** The SFace weights are Apache-2.0, but face-recognition models are
+**SFace training data.** The SFace model files are Apache-2.0 (per OpenCV Zoo's model README), but face-recognition models are
 usually trained on research face datasets whose terms may restrict commercial use. That is fine
 for a free app; check the model's training data terms before any paid or commercial release.
 
 ## Native code inside libraries
 
-Tesseract4Android bundles native builds of these, which its Maven license doesn't list:
+Tesseract4Android 4.9.0 bundles native builds of these, which its Maven license doesn't list. Their
+full license texts are in `app/src/main/assets/licenses/native-libraries.txt` (shown in the app
+under About → Read the other licenses).
 
 | Component | License | Source |
 |---|---|---|
 | Tesseract OCR engine | Apache License 2.0 | https://github.com/tesseract-ocr/tesseract |
 | Leptonica | BSD 2-Clause | http://www.leptonica.org |
-| libjpeg-turbo | IJG License / BSD 3-Clause | https://libjpeg-turbo.org |
-| libpng | PNG Reference Library License | http://www.libpng.org |
+| Independent JPEG Group's JPEG software (libjpeg 9f) | IJG License | https://ijg.org |
+| libpng | PNG Reference Library License v2 | http://www.libpng.org |
+
+This software is based in part on the work of the Independent JPEG Group.
 
 ## Libraries
 

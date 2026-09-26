@@ -171,4 +171,6 @@
     <string name="about_libraries_hide">Hide the list</string>
     <string name="about_signing_title">Signing certificate</string>
     <string name="about_signing_body">Updates only install over this app when they\'re signed with the same certificate. Its SHA-256 should match the one on the release page:</string>
+    <string name="about_native_text">Read the other licenses</string>
+    <string name="about_native_title">Built-in image and text-reading libraries</string>
 </resources>
