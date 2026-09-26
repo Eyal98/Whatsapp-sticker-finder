@@ -28,7 +28,7 @@ jobs:
           java-version: 17
 
       # Also verifies the checksum of gradle-wrapper.jar.
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       # The bundled models are about 550 MB: keep them between runs. The fetch tasks still check
       # every file against its pinned SHA-256 and download again on any mismatch.
