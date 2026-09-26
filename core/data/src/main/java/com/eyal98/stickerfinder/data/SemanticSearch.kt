@@ -25,18 +25,33 @@ class SemanticSearch(
     private val lock = Mutex()
     private var cached: Triple<String, VectorSignature, VectorIndex>? = null
 
+    /**
+     * Recent queries' vectors: typing back and forth ("cat", "cats", "cat") and the keyboard
+     * repeating the app's search shouldn't run the model again. Access-ordered, so it's an LRU.
+     */
+    private val queryCache = object : LinkedHashMap<String, Pair<String, FloatArray>>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Pair<String, FloatArray>>) =
+            size > QUERY_CACHE_SIZE
+    }
+
     /** Sticker ids ordered by similarity; empty when semantic search isn't available. */
     suspend fun search(query: String, limit: Int = LIMIT): List<Long> =
         searchScored(query, limit, minSimilarity()).map { it.first }
 
     /** Sticker ids with their similarity, best first, keeping those at least [minSimilarity]. */
     suspend fun searchScored(query: String, limit: Int, minSimilarity: Float): List<Pair<Long, Float>> {
-        val result = embedders.withEmbedder { embedder ->
-            embedder.modelId to Vectors.prepare(embedder.embed(query, TextEmbedder.Kind.QUERY), embedder.dimensions)
-        } ?: return emptyList()
+        val key = query.trim()
+        val cachedQuery = synchronized(queryCache) { queryCache[key] }
+        val result = cachedQuery ?: embedders.withEmbedder { embedder ->
+            embedder.modelId to Vectors.prepare(embedder.embed(key, TextEmbedder.Kind.QUERY), embedder.dimensions)
+        }?.also { synchronized(queryCache) { queryCache[key] = it } } ?: return emptyList()
         val (model, queryVector) = result
         val index = index(model)
-        if (index.size == 0) return emptyList()
+        if (index.size == 0) {
+            // Possibly a vector from a model that has since been replaced.
+            if (cachedQuery != null) synchronized(queryCache) { queryCache.clear() }
+            return emptyList()
+        }
         return withContext(Dispatchers.Default) { index.search(queryVector, limit, minSimilarity) }
     }
 
@@ -52,5 +67,6 @@ class SemanticSearch(
 
     companion object {
         const val LIMIT = 100
+        private const val QUERY_CACHE_SIZE = 64
     }
 }

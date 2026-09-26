@@ -180,6 +180,9 @@ class StickerKeyboardService :
             } else {
                 // Keyword results first (instant), then the merged ranking once it's ready.
                 state.value = state.value.copy(results = app.repository.searchKeywords(query))
+                // The meaning search runs the embedding model: only once typing pauses (a new
+                // keystroke cancels this job).
+                if (!immediately) delay(MEANING_PAUSE_MS)
                 app.repository.search(query)
             }
             state.value = state.value.copy(results = results, loading = false)
@@ -227,6 +230,7 @@ class StickerKeyboardService :
         const val MAX_QUERY_CHARS = 100
         const val BROWSE_LIMIT = 200
         const val TYPING_PAUSE_MS = 250L
+        const val MEANING_PAUSE_MS = 250L
         const val PREFS = "sticker_keyboard"
         const val KEY_LAYOUT = "layout"
     }

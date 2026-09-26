@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import com.eyal98.stickerfinder.ml.ModelStore
 import com.eyal98.stickerfinder.index.CaptionWorker
 import com.eyal98.stickerfinder.index.ImageTagWorker
+import com.eyal98.stickerfinder.index.Power
 import com.eyal98.stickerfinder.index.IndexWorker
 import com.eyal98.stickerfinder.index.StickerFolder
 import com.eyal98.stickerfinder.ui.EvaluationScreen
@@ -65,7 +66,13 @@ class MainActivity : ComponentActivity() {
         // run to the end instead of in throttled background slices.
         lifecycleScope.launch {
             IndexWorker.startNow(this@MainActivity)
-            ImageTagWorker.startNow(this@MainActivity)
+            // Picture tagging is minutes of full CPU for a backlog: on battery it waits for the
+            // charger (the Smart search screen's Start now still runs it right away).
+            if (Power.isCharging(this@MainActivity)) {
+                ImageTagWorker.startNow(this@MainActivity)
+            } else {
+                ImageTagWorker.runNow(this@MainActivity)
+            }
         }
         IndexWorker.schedulePeriodic(this)
         if (ModelStore.CAPTION.installed(this) != null) CaptionWorker.schedulePeriodic(this)

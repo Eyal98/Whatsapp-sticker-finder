@@ -12,6 +12,7 @@ import com.eyal98.stickerfinder.data.StickerRepository
 import com.eyal98.stickerfinder.index.EmbedWorker
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -59,6 +60,9 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
                     // has been embedded (the first query also loads the model).
                     val keyword = repository.searchKeywords(q)
                     emit(keyword)
+                    // The meaning search runs the embedding model: only once typing pauses.
+                    // A new keystroke cancels this flow before it gets there.
+                    delay(MEANING_PAUSE_MS)
                     val hybrid = repository.search(q)
                     if (hybrid != keyword) emit(hybrid)
                 }
@@ -81,7 +85,7 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
 
     fun setTags(sticker: StickerEntity, tags: String) = edit {
         repository.setTags(sticker.id, tags)
-        EmbedWorker.runNow(app)
+        EmbedWorker.runForEdit(app)
         // New words only: re-saving existing tags shouldn't ask again.
         val old = sticker.userTags.split(' ').filter { it.isNotBlank() }.toSet()
         val added = tags.split(' ').map { it.trim() }.filter { it.isNotEmpty() && it !in old }.distinct()
@@ -107,7 +111,7 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
         if (offer.selected.isEmpty()) return
         edit {
             repository.addTags(offer.selected, offer.tags)
-            EmbedWorker.runNow(app)
+            EmbedWorker.runForEdit(app)
         }
     }
 
@@ -126,6 +130,7 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
 
     companion object {
         private const val DEBOUNCE_MS = 150L
+        private const val MEANING_PAUSE_MS = 350L
 
         /**
          * Look-alikes at least this close start out picked. A cautious first guess (not tuned

@@ -2,6 +2,7 @@ package com.eyal98.stickerfinder.index
 
 import android.content.Context
 import android.util.Log
+import androidx.core.content.edit
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -45,7 +46,10 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         return try {
             // Listing a folder of 10,000+ files through the storage provider is expensive, so
             // continuation runs (retries of the same request) skip it.
-            if (runAttemptCount == 0) StickerScanner(resolver, dao).scan(treeUri)
+            if (runAttemptCount == 0 && scanDue(treeUri.toString())) {
+                StickerScanner(resolver, dao).scan(treeUri)
+                scanDone(treeUri.toString())
+            }
 
             // Started from the app, indexing runs as a foreground job: Android then doesn't stop
             // it after 10 minutes, throttle it, or kill the app while it works in the background.
@@ -103,6 +107,18 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             false
         }
 
+    private fun prefs() = applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+
+    /** A newly chosen folder is always listed. */
+    private fun scanDue(folder: String): Boolean =
+        prefs().getString(LAST_SCAN_FOLDER, null) != folder ||
+            System.currentTimeMillis() - prefs().getLong(LAST_SCAN, 0) !in 0 until SCAN_COOLDOWN_MILLIS
+
+    private fun scanDone(folder: String) = prefs().edit {
+        putLong(LAST_SCAN, System.currentTimeMillis())
+        putString(LAST_SCAN_FOLDER, folder)
+    }
+
     companion object {
         private const val TAG = "IndexWorker"
         private const val NOW = "sticker-index-now"
@@ -141,13 +157,27 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             )
         }
 
-        /** Picks up newly saved stickers in the background. */
+        private const val PREFS = "index_worker"
+        private const val LAST_SCAN = "last_scan"
+        private const val LAST_SCAN_FOLDER = "last_scan_folder"
+
+        /**
+         * Reopening the app within this long doesn't list the folder again: WhatsApp adds a few
+         * stickers a day, and listing 10,000 files costs seconds of work in another process.
+         */
+        private const val SCAN_COOLDOWN_MILLIS = 10 * 60 * 1000L
+
+        /**
+         * Picks up newly saved stickers in the background, once a day; opening the app also
+         * checks for them.
+         */
         fun schedulePeriodic(context: Context) {
             val constraints = Constraints.Builder().setRequiresBatteryNotLow(true).build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 PERIODIC,
-                ExistingPeriodicWorkPolicy.KEEP,
-                PeriodicWorkRequestBuilder<IndexWorker>(6, TimeUnit.HOURS)
+                // UPDATE, not KEEP: phones already scheduled every 6 hours move to daily.
+                ExistingPeriodicWorkPolicy.UPDATE,
+                PeriodicWorkRequestBuilder<IndexWorker>(24, TimeUnit.HOURS)
                     .setConstraints(constraints)
                     .continueSoon()
                     .build(),

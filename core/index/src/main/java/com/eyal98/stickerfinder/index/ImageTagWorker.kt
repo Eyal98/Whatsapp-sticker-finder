@@ -22,8 +22,9 @@ import java.io.IOException
 
 /**
  * Tags stickers with the SigLIP2 image model (see [ImageTagger]). About a third of a second per
- * sticker on the CPU, so unlike captioning it doesn't wait for the charger. Started from the app
- * it runs in the foreground with a notification; otherwise in short background slices.
+ * sticker on the CPU: minutes of full CPU for a big backlog, so it waits for the charger unless
+ * the user starts it. Started from the app it runs in the foreground with a notification;
+ * otherwise in short background slices.
  */
 class ImageTagWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
 
@@ -105,14 +106,16 @@ class ImageTagWorker(context: Context, params: WorkerParameters) : CoroutineWork
         /** Unique work names, for diagnostics. */
         val UNIQUE_NAMES = listOf(NAME)
 
-        private fun request() = OneTimeWorkRequestBuilder<ImageTagWorker>()
-            .setConstraints(Constraints.Builder().setRequiresBatteryNotLow(true).build())
+        private fun request(whileCharging: Boolean) = OneTimeWorkRequestBuilder<ImageTagWorker>()
+            .setConstraints(
+                Constraints.Builder().setRequiresBatteryNotLow(true).setRequiresCharging(whileCharging).build(),
+            )
             .continueSoon()
             .build()
 
         /**
-         * Starts now, from the app, so it can run in the foreground. A run waiting out its retry
-         * delay is replaced; a running one is kept.
+         * Starts now, from the app, so it can run in the foreground: when the user asks for it,
+         * or while charging. A run waiting out its retry delay is replaced; a running one is kept.
          */
         suspend fun startNow(context: Context) {
             if (ModelStore.IMAGE.installed(context) == null) return
@@ -122,14 +125,17 @@ class ImageTagWorker(context: Context, params: WorkerParameters) : CoroutineWork
             workManager.enqueueUniqueWork(
                 NAME,
                 if (running) ExistingWorkPolicy.KEEP else ExistingWorkPolicy.REPLACE,
-                request(),
+                request(whileCharging = false),
             )
         }
 
-        /** Picks up newly indexed stickers, unless a run is already queued or running. */
+        /**
+         * Picks up newly indexed stickers the next time the phone charges, unless a run is
+         * already queued or running.
+         */
         fun runNow(context: Context) {
             if (ModelStore.IMAGE.installed(context) == null) return
-            WorkManager.getInstance(context).enqueueUniqueWork(NAME, ExistingWorkPolicy.KEEP, request())
+            WorkManager.getInstance(context).enqueueUniqueWork(NAME, ExistingWorkPolicy.KEEP, request(whileCharging = true))
         }
 
         fun cancel(context: Context) {

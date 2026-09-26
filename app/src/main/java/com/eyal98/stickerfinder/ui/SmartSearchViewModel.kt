@@ -182,7 +182,7 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
         turnedOff.value = currentTurnedOff()
         when (feature) {
             ModelCrashGuard.CAPTION -> CaptionWorker.runNow(app)
-            ModelCrashGuard.EMBEDDING -> EmbedWorker.runNow(app)
+            ModelCrashGuard.EMBEDDING -> EmbedWorker.runForEdit(app)
             ModelCrashGuard.IMAGE_TAGS -> startImageTags()
         }
     }
@@ -199,7 +199,7 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
             ModelSlot.EMBEDDING, ModelSlot.TOKENIZER -> viewModelScope.launch {
                 // Drop any model loaded from the previous files, then embed with the new ones.
                 app.embedders.release()
-                EmbedWorker.runNow(app)
+                EmbedWorker.runForEdit(app)
             }
         }
     }
