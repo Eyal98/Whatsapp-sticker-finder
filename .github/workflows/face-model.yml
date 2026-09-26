@@ -1,0 +1,46 @@
+# Converts the SFace face-recognition model (tools/faces) to TFLite and publishes it to the
+# "face-model" release, from where the app build downloads it with a pinned SHA-256
+# (core/vision/faces.properties).
+name: Face model
+
+on:
+  push:
+    paths:
+      - tools/faces/**
+      - .github/workflows/face-model.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: |
+          pip install --quiet "tensorflow==2.19.*" tf_keras onnx onnxruntime onnx2tf onnx_graphsurgeon sng4onnx onnxsim psutil numpy "ai-edge-litert==1.4.*"
+          pip list 2>/dev/null | grep -iE "^(tensorflow|onnx|onnx2tf|onnxruntime|ai-edge-litert|numpy) "
+
+      - name: Convert and verify
+        run: python tools/faces/convert_sface.py
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(sha256sum out/sface_fp16.tflite | cut -d' ' -f1)
+          mv out/sface_fp16.tflite "out/sface_fp16-${sha:0:12}.tflite"
+          ls -l out
+          gh release view face-model >/dev/null 2>&1 || \
+            gh release create face-model --prerelease --title "Face model (SFace, TFLite)" \
+              --notes "OpenCV Zoo SFace (Apache-2.0) converted by the Face model workflow from tools/faces. Downloaded by the app build with a pinned SHA-256."
+          gh release upload face-model out/*.tflite --clobber
+          echo "Pin in core/vision/faces.properties: model.url=https://github.com/${{ github.repository }}/releases/download/face-model/sface_fp16-${sha:0:12}.tflite model.sha256=$sha"
