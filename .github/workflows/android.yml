@@ -185,5 +185,12 @@ jobs:
 
           **Found a problem?** In the app: About → Report a problem, then send the report with a line about what happened.
           EOF
-          gh release create "$GITHUB_REF_NAME" --prerelease --verify-tag --title "Peel-It $GITHUB_REF_NAME" \
-            --notes-file notes.md "$apk" "$apk.sha256"
+          # The release may already exist when the tag was made from GitHub's "Draft a new release"
+          # page: fill that one in rather than failing.
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "$apk" "$apk.sha256" --clobber
+            gh release edit "$GITHUB_REF_NAME" --prerelease --title "Peel-It $GITHUB_REF_NAME" --notes-file notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" --prerelease --verify-tag --title "Peel-It $GITHUB_REF_NAME" \
+              --notes-file notes.md "$apk" "$apk.sha256"
+          fi
