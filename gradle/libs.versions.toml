@@ -12,7 +12,8 @@ room = "2.8.5"
 work = "2.10.0"
 coroutines = "1.11.0"
 junit = "4.13.2"
-tesseract4android = "4.7.0"
+# 4.9.0: native libraries built for 16 KB memory pages (Android 15+ phones that use them).
+tesseract4android = "4.9.0"
 # tasks-genai needs MPImage from tasks-core but doesn't depend on it, and the two aren't released
 # in lockstep; 0.10.26 is the first tasks-core release after genai 0.10.25.
 # Built with Kotlin 2.4, like this project. 0.17 adds EmbeddingEngine (single-file embedding models).
