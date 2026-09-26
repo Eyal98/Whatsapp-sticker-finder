@@ -127,6 +127,16 @@ abstract class StickerDao {
     )
     abstract suspend fun saveCaption(id: Long, en: String?, he: String?, tags: String?, at: Long, model: String)
 
+    /**
+     * Marks stickers whose description came back empty as not captioned, keeping at most
+     * [maxAttempts] recorded attempts so each gets at least one more try. Returns how many.
+     */
+    @Query(
+        "UPDATE stickers SET captionedAt = NULL, captionAttempts = MIN(captionAttempts, :maxAttempts) " +
+            "WHERE captionedAt IS NOT NULL AND captionEn IS NULL AND captionHe IS NULL AND captionTags IS NULL",
+    )
+    abstract suspend fun requeueEmptyCaptions(maxAttempts: Int): Int
+
     @Query("SELECT COUNT(*) FROM stickers WHERE captionedAt IS NULL")
     abstract fun observeCaptionPendingCount(): Flow<Int>
 

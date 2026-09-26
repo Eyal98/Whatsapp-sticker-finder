@@ -38,9 +38,12 @@ object CaptionPrompt {
     private val LINE = Regex("""^[\s*#>\-•]*([\p{L}]+)[\s*]*[:：=\-–]\s*(.*)$""")
     private val TAG_SEPARATORS = Regex("[,،;|\n]")
 
+    // Reasoning some models write before the answer ("<think>…</think>", Gemma's thought channel).
+    private val THINKING = Regex("""<think>.*?</think>|<\|channel>.*?<channel\|>""", RegexOption.DOT_MATCHES_ALL)
+
     fun parse(reply: String): StickerCaption? {
         val values = mutableMapOf<Field, String>()
-        for (raw in reply.lines()) {
+        for (raw in reply.replace(THINKING, "").lines()) {
             val match = LINE.find(raw.trim()) ?: continue
             val field = LABELS[match.groupValues[1].lowercase()] ?: continue
             val value = clean(match.groupValues[2])

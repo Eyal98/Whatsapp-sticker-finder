@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.io.IOException
+import kotlin.coroutines.cancellation.CancellationException
 
 /** Asks the on-device model to describe stickers that don't have a caption yet. */
 class CaptionIndexer(
@@ -20,6 +21,16 @@ class CaptionIndexer(
     private val captioner: StickerCaptioner,
 ) {
 
+    /** What happened to the stickers of one run, for the diagnostics report. */
+    class Outcomes {
+        var described = 0
+        var empty = 0
+        var errors = 0
+        var lastError: String? = null
+    }
+
+    val outcomes = Outcomes()
+
     /** Captions pending stickers until done or [budget] runs out. */
     suspend fun captionPending(
         budget: WorkBudget = WorkBudget(),
@@ -28,12 +39,18 @@ class CaptionIndexer(
     ): StickerIndexer.Progress =
         withContext(Dispatchers.Default) {
             var processed = 0
+            var errorsInARow = 0
             var batch = dao.needingCaption(batchSize)
             while (batch.isNotEmpty()) {
                 for (sticker in batch) {
                     ensureActive()
                     if (budget.exhausted) return@withContext StickerIndexer.Progress(processed, finished = false)
-                    caption(sticker)
+                    errorsInARow = if (caption(sticker)) 0 else errorsInARow + 1
+                    // The model itself is failing, not one sticker: stop instead of burning
+                    // through every sticker's attempts. The next run loads it again.
+                    if (errorsInARow >= MAX_ERRORS_IN_A_ROW) {
+                        return@withContext StickerIndexer.Progress(processed, finished = false)
+                    }
                     processed++
                     onCaptioned(processed)
                 }
@@ -42,10 +59,10 @@ class CaptionIndexer(
             StickerIndexer.Progress(processed, finished = true)
         }
 
-    private suspend fun caption(sticker: StickerEntity) {
-        // Every outcome is saved, even "nothing", so a sticker the model can't handle doesn't
-        // block the ones after it. It's tried again if the file changes. The attempt is recorded
-        // first, so one that crashes the model's native code is given up on after MAX_ATTEMPTS.
+    /** False when the model threw: the sticker stays pending and is tried again later. */
+    private suspend fun caption(sticker: StickerEntity): Boolean {
+        // The attempt is recorded first, so a sticker that crashes the model's native code (or
+        // keeps failing) is given up on after MAX_ATTEMPTS instead of blocking the others.
         dao.markCaptionAttempt(sticker.id)
         val result = if (sticker.captionAttempts >= WorkBudget.MAX_ATTEMPTS) {
             Log.w(TAG, "Sticker ${sticker.id} failed captioning ${sticker.captionAttempts} times; skipping")
@@ -53,21 +70,31 @@ class CaptionIndexer(
         } else try {
             val bitmap = StickerBitmaps.decode(resolver, Uri.parse(sticker.documentUri))
             try {
-                captioner.caption(bitmap, sticker.ocrText)
+                captioner.caption(bitmap, sticker.ocrText).also {
+                    if (it == null) outcomes.empty++ else outcomes.described++
+                }
             } finally {
                 bitmap.recycle()
             }
         } catch (e: IOException) {
+            // The file, not the model: nothing to retry.
             Log.w(TAG, "Could not read sticker", e)
             null
         } catch (e: SecurityException) {
             Log.w(TAG, "Lost access to sticker", e)
             null
-        } catch (e: RuntimeException) {
-            // MediaPipe reports inference errors as runtime exceptions.
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            // An inference error (LiteRT-LM and MediaPipe report them as exceptions). Not saved,
+            // so a passing problem doesn't leave the sticker without a description for good.
             Log.w(TAG, "Captioning failed", e)
-            null
+            outcomes.errors++
+            outcomes.lastError = "${e.javaClass.simpleName}: ${e.message}"
+            return false
         }
+        // Every other outcome is saved, even "nothing", so it isn't asked again; it's tried again
+        // if the file changes.
         dao.saveCaption(
             id = sticker.id,
             en = result?.english,
@@ -77,9 +104,11 @@ class CaptionIndexer(
             model = captioner.modelId,
         )
         repository.refreshSearchTerms(sticker.id)
+        return true
     }
 
     private companion object {
         const val TAG = "CaptionIndexer"
+        const val MAX_ERRORS_IN_A_ROW = 5
     }
 }

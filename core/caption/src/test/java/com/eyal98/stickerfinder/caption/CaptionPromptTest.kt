@@ -23,6 +23,15 @@ class CaptionPromptTest {
     }
 
     @Test
+    fun `ignores the model's reasoning before the answer`() {
+        val caption = CaptionPrompt.parse(
+            "<|channel>thought\nEN: draft\n<channel|>EN: A happy frog\nTAGS: frog, happy",
+        )
+        assertEquals("A happy frog", caption?.english)
+        assertEquals(listOf("frog", "happy"), caption?.tags)
+    }
+
+    @Test
     fun `tolerates markdown, other label names and chatter`() {
         val caption = CaptionPrompt.parse(
             """

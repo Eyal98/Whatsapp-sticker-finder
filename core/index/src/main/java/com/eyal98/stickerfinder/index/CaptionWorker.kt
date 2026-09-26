@@ -2,6 +2,7 @@ package com.eyal98.stickerfinder.index
 
 import android.content.Context
 import android.util.Log
+import androidx.core.content.edit
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -14,6 +15,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.eyal98.stickerfinder.index.WorkBudget.Companion.continueSoon
 import com.eyal98.stickerfinder.caption.StickerCaptioners
+import com.eyal98.stickerfinder.data.StickerDao
 import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ml.ModelCatalog
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
@@ -46,6 +48,7 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         HeavyWork.captioning = true
         try {
             val dao = host.database.stickerDao()
+            requeueEmptyOnce(dao)
             // From here until the finally below, a crash in the model's native code turns it off.
             ModelCrashGuard.markBusy(applicationContext, ModelCrashGuard.CAPTION)
             report(done = null, left = dao.observeCaptionPendingCount().first())
@@ -60,13 +63,12 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             return try {
                 report(done = 0, left = dao.observeCaptionPendingCount().first())
                 val start = System.currentTimeMillis()
-                val progress = CaptionIndexer(
-                    applicationContext.contentResolver,
-                    dao,
-                    host.repository,
-                    captioner,
-                ).captionPending { done -> report(done, dao.observeCaptionPendingCount().first()) }
-                CaptionStats.record(applicationContext, progress.processed, System.currentTimeMillis() - start, captioner.setupName)
+                val indexer = CaptionIndexer(applicationContext.contentResolver, dao, host.repository, captioner)
+                val progress = indexer.captionPending { done -> report(done, dao.observeCaptionPendingCount().first()) }
+                CaptionStats.record(
+                    applicationContext, progress.processed, System.currentTimeMillis() - start,
+                    captioner.setupName, indexer.outcomes,
+                )
                 if (progress.processed > 0) EmbedWorker.runNow(applicationContext)
                 if (progress.finished) Result.success() else Result.retry()
             } finally {
@@ -78,6 +80,18 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             HeavyWork.captioning = false
             withContext(NonCancellable) { ImageTagWorker.startNow(applicationContext) }
         }
+    }
+
+    /**
+     * Before this version, a model error was saved as an empty description and never retried.
+     * Gives those stickers one more try, once.
+     */
+    private suspend fun requeueEmptyOnce(dao: StickerDao) {
+        val prefs = applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (prefs.getBoolean(REQUEUED_EMPTY, false)) return
+        val count = dao.requeueEmptyCaptions(WorkBudget.MAX_ATTEMPTS - 1)
+        Log.i(TAG, "Requeued $count empty descriptions")
+        prefs.edit { putBoolean(REQUEUED_EMPTY, true) }
     }
 
     /** Not a usable model for this runtime: turn it off rather than retry forever, and say why. */
@@ -103,6 +117,8 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         val UNIQUE_NAMES = listOf(NOW, PERIODIC)
 
         private const val KEY_DONE = "done"
+        private const val PREFS = "caption_worker"
+        private const val REQUEUED_EMPTY = "requeued_empty_v1"
 
         fun observeStatus(context: Context): Flow<CaptionStatus> {
             val workManager = WorkManager.getInstance(context)
