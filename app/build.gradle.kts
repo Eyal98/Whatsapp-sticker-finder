@@ -17,6 +17,13 @@ android {
         // CI passes its run number so each sideload build installs over the previous one.
         versionCode = (findProperty("versionCode") as String?)?.toInt() ?: 1
         versionName = "0.1.0"
+
+        // 64-bit ARM only: every phone that can run the on-device models (Android 11+, 6 GB+
+        // RAM) is arm64. The ML runtimes ship native code for 4 CPU types, and the other three
+        // made the APK about 250 MB, big enough that sideload downloads failed to install.
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
     }
 
     // The sideload signing key: a PKCS12 file whose path CI passes as -PsigningStoreFile, with

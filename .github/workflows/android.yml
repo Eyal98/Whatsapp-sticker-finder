@@ -61,6 +61,10 @@ jobs:
           scripts/check-apk-permissions.sh "$apk"
           # The certificate digest must stay the same from build to build.
           "$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)apksigner" verify --print-certs "$apk" | grep -i 'SHA-256'
+          # Sideloaded over a phone connection: keep it small (see abiFilters in app/build.gradle.kts).
+          size=$(stat -c %s "$apk")
+          echo "APK size: $((size / 1024 / 1024)) MB"
+          test "$size" -lt $((150 * 1024 * 1024)) || { echo "APK is over 150 MB"; exit 1; }
           cp "$apk" "$RUNNER_TEMP/sticker-finder-${{ github.run_number }}.apk"
 
       - name: Keep sideload APK
