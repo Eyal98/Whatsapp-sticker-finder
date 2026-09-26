@@ -76,6 +76,7 @@ android {
             initWith(getByName("release"))
             matchingFallbacks += listOf("release")
             signingConfig = signingConfigs.getByName("debug")
+            proguardFile("minified-test-support.pro")
         }
     }
 
