@@ -292,11 +292,17 @@ flowchart LR
     end
     checks --> side["'Sideload build' pre-release<br/>peel-it-N.apk + .sha256"]
     checks --> alpha["Versioned pre-release<br/>(tags only)"]
+    push --> smoke[Smoke test<br/>emulator runs every model once]
     deps[Dependency changes] --> dv[Dependency verification workflow<br/>commits new checksums]
     tools1[tools/faces changes] --> fm[Face model workflow<br/>ONNX → TFLite release]
     tools2[tools/siglip changes] --> sl[SigLIP labels workflow<br/>label vectors release,<br/>pin commit, starts Android CI]
 ```
 
+- **On-device smoke test.** `app/src/androidTest/ModelSmokeTest` runs every bundled model once in
+  the real app on an API 34 emulator (`.github/workflows/smoke.yml`): OCR reads printed text,
+  SigLIP encodes and tags, ML Kit and SFace load and run, and Granite ranks "running late" closer
+  to "מאחר" than to "banana". It catches native libraries that fail to load or can't find their
+  Java classes, which unit tests can't; a minified build has to pass it.
 - **Toolchain.** Kotlin 2.4, AGP 8.13, Gradle 8.14, Room with KSP, Jetpack Compose, JDK 17.
 - **APK.** arm64-v8a only; native libraries compressed (extracted at install); `.tflite` and
   `.litertlm` stored uncompressed. About 560 MB, most of it the three models.
@@ -330,5 +336,5 @@ flowchart LR
   learned tags cover what the user tags themselves. Adding a built-in label is one edit to that
   file: the SigLIP labels workflow builds the vectors, pins them in `siglip.properties` with a bot
   commit and starts the Android build; phones retag from stored vectors on the next charge.
-- **Minification.** R8 is off for the sideload build until it's tested with the ML libraries.
+- **Minification.** R8 is off for the sideload build; the smoke test is the gate for turning it on.
 - **Target SDK.** Currently 35; Play's minimum rises every year.
