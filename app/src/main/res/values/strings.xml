@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Sticker Finder</string>
+    <string name="app_name">Peel-It</string>
     <string name="onboarding_title">Find your WhatsApp stickers</string>
     <string name="onboarding_body">Choose WhatsApp\'s sticker folder so the app can read your stickers. Access is read-only, and nothing leaves your phone: this app has no internet permission.\n\nThe folder is at:\nAndroid › media › com.whatsapp › WhatsApp › Media › WhatsApp Stickers</string>
     <string name="onboarding_choose_folder">Choose folder</string>
@@ -70,21 +70,21 @@
     <string name="eval_pick_help">Tap every sticker this search should find. Use the box below to find them.</string>
     <string name="eval_finder_label">Find stickers to mark</string>
     <string name="eval_selected">Marked: %1$d</string>
-    <string name="keyboard_name">Sticker Finder stickers</string>
+    <string name="keyboard_name">Peel-It stickers</string>
     <string name="keyboard_open">Keyboard</string>
     <string name="keyboard_hint">Type to search stickers</string>
     <string name="keyboard_no_results">No matching stickers.</string>
     <string name="keyboard_not_accepted">This text box doesn\'t accept stickers.</string>
     <string name="keyboard_failed">Couldn\'t send that sticker.</string>
     <string name="keyboard_setup_title">Sticker keyboard</string>
-    <string name="keyboard_setup_body">Stickers shared from this app arrive in WhatsApp as photos. To send real stickers, use the Sticker Finder keyboard: WhatsApp accepts stickers from keyboards, the same way Gboard sends them.</string>
+    <string name="keyboard_setup_body">Stickers shared from this app arrive in WhatsApp as photos. To send real stickers, use the Peel-It keyboard: WhatsApp accepts stickers from keyboards, the same way Gboard sends them.</string>
     <string name="keyboard_status_on">The sticker keyboard is on.</string>
     <string name="keyboard_status_off">The sticker keyboard is off.</string>
     <string name="keyboard_enable">Turn on in Settings</string>
     <string name="keyboard_warning">Android will warn that a keyboard can collect what you type. This one reads only your sticker search, only when you open it, and the app has no internet access.</string>
     <string name="keyboard_choose">Switch keyboard now</string>
     <string name="keyboard_how_title">How to use it</string>
-    <string name="keyboard_how">1. In a WhatsApp chat, switch to the Sticker Finder keyboard (the keyboard button at the bottom of the screen, or long-press the space bar or globe key).\n2. Type a few letters on its keys, in Hebrew or English (עב/EN switches). Results update as you type.\n3. Tap a sticker. It\'s sent as a real sticker and your usual keyboard comes back.\n\nIf you already typed something in the chat box, the sticker keyboard searches for that, and removes it when you send.</string>
+    <string name="keyboard_how">1. In a WhatsApp chat, switch to the Peel-It keyboard (the keyboard button at the bottom of the screen, or long-press the space bar or globe key).\n2. Type a few letters on its keys, in Hebrew or English (עב/EN switches). Results update as you type.\n3. Tap a sticker. It\'s sent as a real sticker and your usual keyboard comes back.\n\nIf you already typed something in the chat box, the sticker keyboard searches for that, and removes it when you send.</string>
     <string name="keyboard_privacy">What you type on its keys stays inside the keyboard. It reads at most 100 characters already in the chat box, only when you open it, never in password fields, and never saves them.</string>
     <string name="diag_title">Troubleshooting</string>
     <string name="diag_body">Builds a report to send to whoever helps you with the app: versions, index counts, background job states, recent crashes and the app\'s warning messages. It contains no stickers, file names, text from stickers, tags or searches. You\'ll see all of it before sharing.</string>
@@ -156,7 +156,7 @@
     <string name="report_body">Something crashed, got stuck or found the wrong stickers? Build a report and send it with a line about what happened. It has counts, versions and error messages only: no stickers, file names, sticker text, tags, names or searches. You\'ll see all of it before sharing.</string>
     <string name="report_button">Build report</string>
     <string name="about_privacy_title">Privacy</string>
-    <string name="about_privacy_body">• Sticker Finder has no internet access: Android doesn\'t let it connect to anything, so nothing you do in it can leave the phone.\n• It reads only the stickers folder you picked. The index, tags, people and settings are stored only in the app, and are left out of backups and phone-to-phone transfers.\n• People is off until you turn it on. It turns faces into face fingerprints, which count as biometric data. Only use it on stickers of people who are OK with it, and you can delete all face data from the People screen at any time.\n• The keyboard reads at most 100 characters already in the chat box, only when you open it, never in password fields, and never saves them.\n• Uninstalling the app deletes everything it stored.</string>
+    <string name="about_privacy_body">• Peel-It has no internet access: Android doesn\'t let it connect to anything, so nothing you do in it can leave the phone.\n• It reads only the stickers folder you picked. The index, tags, people and settings are stored only in the app, and are left out of backups and phone-to-phone transfers.\n• People is off until you turn it on. It turns faces into face fingerprints, which count as biometric data. Only use it on stickers of people who are OK with it, and you can delete all face data from the People screen at any time.\n• The keyboard reads at most 100 characters already in the chat box, only when you open it, never in password fields, and never saves them.\n• Uninstalling the app deletes everything it stored.</string>
     <string name="about_models_title">Built-in models</string>
     <string name="about_models_body">All run on this phone. They\'re downloaded when the app is built and checked against pinned fingerprints (SHA-256).</string>
     <string name="about_use_picture_tags">picture tags</string>
@@ -165,7 +165,7 @@
     <string name="about_use_faces">finding faces</string>
     <string name="about_use_ocr">reading printed text</string>
     <string name="about_libraries_title">Open-source licenses</string>
-    <string name="about_libraries_body">Sticker Finder is built with %1$d open-source libraries, most under the Apache License 2.0.</string>
+    <string name="about_libraries_body">Peel-It is built with %1$d open-source libraries, most under the Apache License 2.0.</string>
     <string name="about_apache_text">Read the Apache License 2.0</string>
     <string name="about_libraries_show">Show all libraries</string>
     <string name="about_libraries_hide">Hide the list</string>
@@ -173,4 +173,5 @@
     <string name="about_signing_body">Updates only install over this app when they\'re signed with the same certificate. Its SHA-256 should match the one on the release page:</string>
     <string name="about_native_text">Read the other licenses</string>
     <string name="about_native_title">Built-in image and text-reading libraries</string>
+    <string name="mascot_description">Peel-It\'s mascot, an elephant peeling a sticker</string>
 </resources>

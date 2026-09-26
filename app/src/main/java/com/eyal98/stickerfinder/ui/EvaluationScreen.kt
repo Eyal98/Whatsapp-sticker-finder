@@ -236,7 +236,7 @@ private fun fmt(value: Float) = String.format(Locale.US, "%.2f", value)
 
 /** Plain-text summary for sharing: metrics and the text of missed test searches, no images. */
 private fun reportText(report: EvaluationReport, queryCount: Int): String = buildString {
-    appendLine("Sticker Finder search quality test ($queryCount test searches, ${report.skipped} skipped)")
+    appendLine("Peel-It search quality test ($queryCount test searches, ${report.skipped} skipped)")
     appendLine("Targets met: ${report.targetsMet}  (Recall@5 >= 0.80, Hebrew within 0.05 of English)")
     appendLine("Recall@5/MRR@10:")
     for (ranker in Ranker.entries) appendLine("  ${ranker.name.lowercase()}: ${scoreLine(report.scores[ranker].orEmpty())}")

@@ -1,8 +1,8 @@
 # Third-party notices
 
-Sticker Finder's own code is under the Apache License 2.0 ([LICENSE](LICENSE), [NOTICE](NOTICE)).
+Peel-It's own code is under the Apache License 2.0 ([LICENSE](LICENSE), [NOTICE](NOTICE)).
 
-Sticker Finder bundles the models and libraries below. The app shows the same notices under
+Peel-It bundles the models and libraries below. The app shows the same notices under
 **About → Open-source licenses**, together with a list generated at build time of every library
 in the build and the license its Maven POM declares (`app/build.gradle.kts`, `dependencyNotices`).
 

@@ -1,6 +1,9 @@
-# WhatsApp Sticker Finder
+# Peel-It
 
-A privacy-first Android companion app that lets you search your WhatsApp stickers
+Peel-It (formerly Sticker Finder) finds the right WhatsApp sticker fast. Its mascot is a lady
+elephant peeling a sticker.
+
+A privacy-first Android app that lets you search your WhatsApp stickers
 using natural language, in Hebrew or English. All processing runs on the device, and
 the app has no network permission.
 
@@ -28,7 +31,7 @@ Reciprocal Rank Fusion, so "running late" can find a sticker described as "מא�
 
 **Sticker keyboard** (Phase 3): stickers shared through the share sheet arrive in WhatsApp as
 photos, so the app also includes a sticker-only keyboard. Type a search in the chat box with your
-usual keyboard, switch to Sticker Finder, and tap a result: it's inserted with the keyboard
+usual keyboard, switch to Peel-It, and tap a result: it's inserted with the keyboard
 content API as `image/webp.wasticker` (falling back to WebP/PNG where that's what the field
 accepts), and the search text is removed. It reads at most 100 characters before the cursor, only
 when opened, never in password fields.
@@ -88,7 +91,7 @@ lost every tester has to uninstall and start over. To make one yourself:
 
 ```sh
 keytool -genkeypair -storetype PKCS12 -keystore signing.p12 -alias stickerfinder \
-  -keyalg EC -groupname secp256r1 -validity 10000 -dname "CN=Sticker Finder sideload"
+  -keyalg EC -groupname secp256r1 -validity 10000 -dname "CN=Peel-It sideload"
 base64 -w0 signing.p12   # paste the output into SIGNING_KEYSTORE_BASE64
 ```
 

@@ -46,7 +46,7 @@ object Diagnostics {
 
     suspend fun build(app: StickerFinderApp): String = withContext(Dispatchers.IO) {
         buildString {
-            appendLine("Sticker Finder diagnostics, ${timestamp(System.currentTimeMillis())}")
+            appendLine("Peel-It diagnostics, ${timestamp(System.currentTimeMillis())}")
             section("App") {
                 val info = app.packageManager.getPackageInfo(app.packageName, 0)
                 val debuggable = app.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0

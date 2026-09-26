@@ -34,7 +34,7 @@ fun OnboardingScreen(onFolderChosen: (Uri) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            AppLogo(112.dp)
+            Mascot(200.dp)
             Text(stringResource(R.string.onboarding_title), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
             Text(stringResource(R.string.onboarding_body), style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
             Button(onClick = { pickFolder.launch(StickerFolder.pickerStartUri) }) {

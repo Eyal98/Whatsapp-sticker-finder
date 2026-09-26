@@ -41,6 +41,16 @@ fun AppLogo(size: Dp, modifier: Modifier = Modifier) {
     }
 }
 
+/** The mascot, a lady elephant lifting a sticker with her trunk. */
+@Composable
+fun Mascot(size: Dp, modifier: Modifier = Modifier) {
+    Image(
+        painterResource(R.drawable.mascot),
+        contentDescription = stringResource(R.string.mascot_description),
+        modifier = modifier.size(size),
+    )
+}
+
 /** A screen's top row: back arrow and title. */
 @Composable
 fun ScreenHeader(title: String, onBack: () -> Unit, modifier: Modifier = Modifier, actions: @Composable () -> Unit = {}) {

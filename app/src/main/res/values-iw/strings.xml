@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">מוצא המדבקות</string>
+    <string name="app_name">Peel-It</string>
     <string name="onboarding_title">מצאו את המדבקות שלכם מוואטסאפ</string>
     <string name="onboarding_body">בחרו את תיקיית המדבקות של וואטסאפ כדי שהאפליקציה תוכל לקרוא את המדבקות. הגישה היא לקריאה בלבד, ושום דבר לא יוצא מהטלפון: לאפליקציה אין הרשאת אינטרנט.\n\nהתיקייה נמצאת כאן:\nAndroid › media › com.whatsapp › WhatsApp › Media › WhatsApp Stickers</string>
     <string name="onboarding_choose_folder">בחירת תיקייה</string>
@@ -70,21 +70,21 @@
     <string name="eval_pick_help">הקישו על כל מדבקה שהחיפוש הזה צריך למצוא. השתמשו בתיבה למטה כדי למצוא אותן.</string>
     <string name="eval_finder_label">מציאת מדבקות לסימון</string>
     <string name="eval_selected">מסומנות: %1$d</string>
-    <string name="keyboard_name">מדבקות של מוצא המדבקות</string>
+    <string name="keyboard_name">מדבקות Peel-It</string>
     <string name="keyboard_open">מקלדת</string>
     <string name="keyboard_hint">הקלידו כדי לחפש מדבקות</string>
     <string name="keyboard_no_results">לא נמצאו מדבקות מתאימות.</string>
     <string name="keyboard_not_accepted">תיבת הטקסט הזו לא מקבלת מדבקות.</string>
     <string name="keyboard_failed">לא ניתן לשלוח את המדבקה.</string>
     <string name="keyboard_setup_title">מקלדת מדבקות</string>
-    <string name="keyboard_setup_body">מדבקות ששותפו מהאפליקציה מגיעות לוואטסאפ כתמונות. כדי לשלוח מדבקות אמיתיות, השתמשו במקלדת של מוצא המדבקות: וואטסאפ מקבל מדבקות ממקלדות, כמו ש־Gboard שולח אותן.</string>
+    <string name="keyboard_setup_body">מדבקות ששותפו מהאפליקציה מגיעות לוואטסאפ כתמונות. כדי לשלוח מדבקות אמיתיות, השתמשו במקלדת של Peel-It: וואטסאפ מקבל מדבקות ממקלדות, כמו ש־Gboard שולח אותן.</string>
     <string name="keyboard_status_on">מקלדת המדבקות מופעלת.</string>
     <string name="keyboard_status_off">מקלדת המדבקות כבויה.</string>
     <string name="keyboard_enable">הפעלה בהגדרות</string>
     <string name="keyboard_warning">אנדרואיד יזהיר שמקלדת יכולה לאסוף את מה שאתם מקלידים. המקלדת הזו קוראת רק את חיפוש המדבקה, רק כשאתם פותחים אותה, ולאפליקציה אין גישה לאינטרנט.</string>
     <string name="keyboard_choose">החלפת מקלדת עכשיו</string>
     <string name="keyboard_how_title">איך משתמשים</string>
-    <string name="keyboard_how">1. בצ׳אט בוואטסאפ, עברו למקלדת של מוצא המדבקות (כפתור המקלדת בתחתית המסך, או לחיצה ארוכה על מקש הרווח או הגלובוס).\n2. הקלידו כמה אותיות במקשים שלה, בעברית או באנגלית (עב/EN מחליף). התוצאות מתעדכנות תוך כדי הקלדה.\n3. הקישו על מדבקה. היא נשלחת כמדבקה אמיתית והמקלדת הרגילה חוזרת.\n\nאם כבר הקלדתם משהו בתיבת הצ׳אט, מקלדת המדבקות מחפשת אותו, ומוחקת אותו כשאתם שולחים.</string>
+    <string name="keyboard_how">1. בצ׳אט בוואטסאפ, עברו למקלדת של Peel-It (כפתור המקלדת בתחתית המסך, או לחיצה ארוכה על מקש הרווח או הגלובוס).\n2. הקלידו כמה אותיות במקשים שלה, בעברית או באנגלית (עב/EN מחליף). התוצאות מתעדכנות תוך כדי הקלדה.\n3. הקישו על מדבקה. היא נשלחת כמדבקה אמיתית והמקלדת הרגילה חוזרת.\n\nאם כבר הקלדתם משהו בתיבת הצ׳אט, מקלדת המדבקות מחפשת אותו, ומוחקת אותו כשאתם שולחים.</string>
     <string name="keyboard_privacy">מה שאתם מקלידים במקשים שלה נשאר בתוך המקלדת. היא קוראת לכל היותר 100 תווים שכבר נמצאים בתיבת הצ׳אט, רק כשאתם פותחים אותה, אף פעם לא בשדות סיסמה, ולא שומרת אותם.</string>
     <string name="diag_title">פתרון בעיות</string>
     <string name="diag_body">יוצר דוח לשליחה למי שעוזר לכם עם האפליקציה: גרסאות, מספרים על האינדקס, מצב העבודות ברקע, קריסות אחרונות והודעות האזהרה של האפליקציה. הוא לא כולל מדבקות, שמות קבצים, טקסט מהמדבקות, תגיות או חיפושים. תראו את כולו לפני השיתוף.</string>
@@ -156,7 +156,7 @@
     <string name="report_body">משהו קרס, נתקע או מצא את המדבקות הלא נכונות? צרו דוח ושלחו אותו עם שורה על מה שקרה. יש בו רק ספירות, גרסאות והודעות שגיאה: בלי מדבקות, שמות קבצים, טקסט ממדבקות, תגיות, שמות או חיפושים. תראו את כולו לפני השיתוף.</string>
     <string name="report_button">יצירת דוח</string>
     <string name="about_privacy_title">פרטיות</string>
-    <string name="about_privacy_body">• ל-Sticker Finder אין גישה לאינטרנט: אנדרואיד לא מאפשר לה להתחבר לשום דבר, כך ששום דבר שאתם עושים בה לא יכול לצאת מהטלפון.\n• היא קוראת רק את תיקיית המדבקות שבחרתם. האינדקס, התגיות, האנשים וההגדרות נשמרים רק באפליקציה, ולא נכללים בגיבויים ובהעברה לטלפון חדש.\n• אנשים כבוי עד שתפעילו אותו. הוא הופך פנים לטביעות פנים, שנחשבות מידע ביומטרי. השתמשו בו רק על מדבקות של אנשים שמסכימים לכך. אפשר למחוק את כל נתוני הפנים ממסך האנשים בכל רגע.\n• המקלדת קוראת לכל היותר 100 תווים שכבר כתובים בתיבת הצ\'אט, רק כשפותחים אותה, אף פעם לא בשדות סיסמה, ולא שומרת אותם.\n• הסרת האפליקציה מוחקת את כל מה שהיא שמרה.</string>
+    <string name="about_privacy_body">• ל-Peel-It אין גישה לאינטרנט: אנדרואיד לא מאפשר לה להתחבר לשום דבר, כך ששום דבר שאתם עושים בה לא יכול לצאת מהטלפון.\n• היא קוראת רק את תיקיית המדבקות שבחרתם. האינדקס, התגיות, האנשים וההגדרות נשמרים רק באפליקציה, ולא נכללים בגיבויים ובהעברה לטלפון חדש.\n• אנשים כבוי עד שתפעילו אותו. הוא הופך פנים לטביעות פנים, שנחשבות מידע ביומטרי. השתמשו בו רק על מדבקות של אנשים שמסכימים לכך. אפשר למחוק את כל נתוני הפנים ממסך האנשים בכל רגע.\n• המקלדת קוראת לכל היותר 100 תווים שכבר כתובים בתיבת הצ\'אט, רק כשפותחים אותה, אף פעם לא בשדות סיסמה, ולא שומרת אותם.\n• הסרת האפליקציה מוחקת את כל מה שהיא שמרה.</string>
     <string name="about_models_title">מודלים מובנים</string>
     <string name="about_models_body">כולם פועלים על הטלפון הזה. הם מורדים כשבונים את האפליקציה ונבדקים מול טביעות אצבע קבועות (SHA-256).</string>
     <string name="about_use_picture_tags">תגיות תמונה</string>
@@ -165,7 +165,7 @@
     <string name="about_use_faces">זיהוי פנים בתמונה</string>
     <string name="about_use_ocr">קריאת טקסט מודפס</string>
     <string name="about_libraries_title">רישיונות קוד פתוח</string>
-    <string name="about_libraries_body">Sticker Finder בנויה עם %1$d ספריות קוד פתוח, רובן ברישיון Apache 2.0.</string>
+    <string name="about_libraries_body">Peel-It בנויה עם %1$d ספריות קוד פתוח, רובן ברישיון Apache 2.0.</string>
     <string name="about_apache_text">לקריאת רישיון Apache 2.0</string>
     <string name="about_libraries_show">הצגת כל הספריות</string>
     <string name="about_libraries_hide">הסתרת הרשימה</string>
@@ -173,4 +173,5 @@
     <string name="about_signing_body">עדכונים מותקנים מעל האפליקציה רק כשהם חתומים באותה תעודה. ה-SHA-256 שלה צריך להתאים לזה שבדף הגרסה:</string>
     <string name="about_native_text">לקריאת שאר הרישיונות</string>
     <string name="about_native_title">ספריות מובנות לתמונות ולקריאת טקסט</string>
+    <string name="mascot_description">הקמעית של Peel-It, פילה שמקלפת מדבקה</string>
 </resources>

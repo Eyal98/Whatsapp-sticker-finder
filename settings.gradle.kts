@@ -20,7 +20,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "WhatsappStickerFinder"
+rootProject.name = "PeelIt"
 
 include(":app")
 include(":core:search")

@@ -148,7 +148,7 @@ private fun Message(text: String) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
         modifier = Modifier.fillMaxWidth().padding(32.dp),
     ) {
-        AppLogo(72.dp)
+        Mascot(140.dp)
         Text(
             text,
             style = MaterialTheme.typography.bodyLarge,

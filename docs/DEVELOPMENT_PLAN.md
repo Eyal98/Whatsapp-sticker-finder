@@ -1,4 +1,4 @@
-# WhatsApp Sticker Finder: Development Plan
+# Peel-It: Development Plan (formerly WhatsApp Sticker Finder)
 
 Find your WhatsApp stickers by describing them in plain language, in Hebrew or English
 ("חתול עצוב", "sad cat", "something to say I'm running late", "מזל טוב"). Everything

@@ -1,6 +1,6 @@
 # Privacy
 
-Sticker Finder is built so that nothing you do in it can leave your phone.
+Peel-It is built so that nothing you do in it can leave your phone.
 
 - **No internet access.** The app doesn't request Android's internet permission, so the system
   doesn't let it connect to anything. Every build is checked for this in CI

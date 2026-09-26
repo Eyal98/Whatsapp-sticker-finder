@@ -1,5 +1,5 @@
 Licenses of native code bundled inside Tesseract4Android 4.9.0
-(the text-reading library Sticker Finder uses).
+(the text-reading library Peel-It uses).
 
 Tesseract OCR engine: Apache License 2.0 (see the Apache License 2.0 text).
 

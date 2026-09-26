@@ -281,7 +281,7 @@ fun DiagnosticsDialog(report: String, onDismiss: () -> Unit) {
                 TextButton(
                     onClick = {
                         context.getSystemService(ClipboardManager::class.java)
-                            .setPrimaryClip(ClipData.newPlainText("Sticker Finder diagnostics", report))
+                            .setPrimaryClip(ClipData.newPlainText("Peel-It diagnostics", report))
                     },
                 ) { Text(stringResource(R.string.diag_copy)) }
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.diag_close)) }

@@ -106,7 +106,7 @@ fun AboutScreen(onBack: () -> Unit) {
             ScreenHeader(stringResource(R.string.about_title), onBack)
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                AppLogo(56.dp)
+                Mascot(96.dp)
                 Column(Modifier.padding(start = 16.dp)) {
                     Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge)
                     Text(version, style = MaterialTheme.typography.bodyMedium)
