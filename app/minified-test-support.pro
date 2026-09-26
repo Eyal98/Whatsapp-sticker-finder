@@ -12,3 +12,13 @@
 -keep class androidx.lifecycle.** { *; }
 -keep class androidx.core.** { *; }
 -keep class androidx.annotation.** { *; }
+
+# The app classes the smoke test calls directly. The test is compiled against their original
+# names; R8 renames them, merges companions and changes signatures, so the test can't find them
+# (NoSuchMethodError / NoSuchFieldError). Keeping these wrappers intact still leaves every ML
+# library minified under the sideload build's own rules, which is what the test checks.
+-keep class com.eyal98.stickerfinder.ocr.** { *; }
+-keep class com.eyal98.stickerfinder.vision.** { *; }
+-keep class com.eyal98.stickerfinder.ml.** { *; }
+-keep class com.eyal98.stickerfinder.embed.** { *; }
+-keep class com.eyal98.stickerfinder.search.** { *; }
