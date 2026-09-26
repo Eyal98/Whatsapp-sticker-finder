@@ -5,6 +5,8 @@ name: Face model
 
 on:
   push:
+    # Branches only: a release tag shouldn't rebuild and republish the model.
+    branches: ["**"]
     paths:
       - tools/faces/**
       - .github/workflows/face-model.yml

@@ -5,6 +5,8 @@ name: SigLIP labels
 
 on:
   push:
+    # Branches only: a release tag shouldn't rebuild and republish the model.
+    branches: ["**"]
     paths:
       - tools/siglip/**
       - .github/workflows/siglip-labels.yml
