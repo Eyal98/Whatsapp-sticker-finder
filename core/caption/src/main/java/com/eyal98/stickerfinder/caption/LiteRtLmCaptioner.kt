@@ -46,7 +46,7 @@ class LiteRtLmCaptioner private constructor(
         }
         onFirstCaption?.invoke()
         onFirstCaption = null
-        return CaptionPrompt.parse(text)
+        return CaptionPrompt.parse(text, listOfNotNull(packName))
     }
 
     override fun close() {

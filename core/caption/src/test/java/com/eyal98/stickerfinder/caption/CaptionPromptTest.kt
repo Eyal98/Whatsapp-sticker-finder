@@ -62,6 +62,20 @@ class CaptionPromptTest {
     }
 
     @Test
+    fun `generic keywords, the pack name and case-only repeats are dropped`() {
+        val caption = CaptionPrompt.parse(
+            "EN: JoJo nodding\nTAGS: JoJo, jojo, yes, Yes, meme, yes sticker pack, funny, JoJo pack, agreement",
+            exclude = listOf("JoJo pack"),
+        )
+        assertEquals(listOf("JoJo", "yes", "agreement"), caption?.tags)
+    }
+
+    @Test
+    fun `prompt says not to transcribe the printed text`() {
+        assertTrue(CaptionPrompt.build("שלום").contains("Do not quote, transcribe or translate them"))
+    }
+
+    @Test
     fun `prompt includes the pack name when known`() {
         assertFalse(CaptionPrompt.build(null, null).contains("sticker pack named"))
         assertTrue(CaptionPrompt.build(null, "Friends \"TV\"").contains("\"Friends 'TV'\""))
