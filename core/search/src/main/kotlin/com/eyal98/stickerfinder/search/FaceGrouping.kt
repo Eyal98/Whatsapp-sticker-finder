@@ -1,23 +1,28 @@
 package com.eyal98.stickerfinder.search
 
-import kotlin.math.sqrt
+import kotlin.random.Random
 
 /**
- * Groups face vectors (SFace, L2-normalized) into people. Groups the user already has are kept:
- * a new face joins the closest existing group if it's close enough; the rest are grouped among
- * themselves ("leader" clustering on running centroids), and a group needs [MIN_GROUP] faces to
- * be created. Faces that match nobody stay ungrouped and are tried again next time.
+ * Groups face vectors (SFace, L2-normalized) into people, by comparing faces with each other,
+ * never with a group average: an average of different people's faces drifts toward a generic
+ * face that looks close to everyone, which put almost every face in one group (build 133).
+ *
+ * - A new face joins an existing group through its single closest grouped face, if that face is
+ *   close enough.
+ * - The rest are linked to every other face that's close enough, and grouped with Chinese
+ *   whispers: each face repeatedly takes the group most of its links point to. A group needs
+ *   [MIN_GROUP] faces; the others stay ungrouped and are tried again later.
  */
 object FaceGrouping {
 
     /**
-     * Cosine similarity for "same person". OpenCV's threshold for SFace is 0.363 on photos;
-     * stickers are cut out, filtered and small, so this is stricter: a missed match costs a tap
-     * (merge), a wrong one puts someone else's name on a sticker.
+     * Cosine similarity for "same person", between two faces. OpenCV's threshold for SFace is
+     * 0.363 on photos; stickers are edited and small, so this is stricter.
      */
-    const val SAME_PERSON = 0.42f
+    const val SAME_PERSON = 0.5f
 
     const val MIN_GROUP = 2
+    private const val ROUNDS = 20
 
     class Face(val id: Long, val vector: FloatArray)
 
@@ -29,78 +34,80 @@ object FaceGrouping {
     )
 
     /**
-     * @param groups existing groups: group id to its faces' vectors.
+     * @param grouped faces already in a group, with the group's id.
      * @param ungrouped faces in no group that may be grouped (not ones the user took out).
      */
-    fun group(groups: Map<Long, List<FloatArray>>, ungrouped: List<Face>): Result {
-        val centroids = groups.mapNotNull { (id, vectors) -> centroid(vectors)?.let { id to it } }
+    fun group(grouped: List<Pair<Face, Long>>, ungrouped: List<Face>): Result {
         val joined = HashMap<Long, Long>()
         val rest = ArrayList<Face>()
         for (face in ungrouped) {
-            val best = centroids.maxByOrNull { Vectors.dot(it.second, face.vector) }
-            if (best != null && Vectors.dot(best.second, face.vector) >= SAME_PERSON) {
-                joined[face.id] = best.first
-            } else {
-                rest += face
-            }
-        }
-
-        // Leader clustering: each face joins the closest cluster whose centroid is close enough,
-        // or starts a new one. Then one more pass reassigns every face to its closest centroid,
-        // which undoes most of the order dependence.
-        val sums = ArrayList<FloatArray>()
-        val members = ArrayList<MutableList<Face>>()
-        fun closest(v: FloatArray): Int {
-            var best = -1
+            var best: Long? = null
             var bestScore = SAME_PERSON
-            for (i in sums.indices) {
-                val score = cosine(sums[i], v)
+            for ((other, group) in grouped) {
+                val score = Vectors.dot(face.vector, other.vector)
                 if (score >= bestScore) {
-                    best = i
+                    best = group
                     bestScore = score
                 }
             }
-            return best
+            if (best != null) joined[face.id] = best else rest += face
         }
-        for (face in rest) {
-            val i = closest(face.vector)
-            if (i < 0) {
-                sums += face.vector.copyOf()
-                members += mutableListOf(face)
-            } else {
-                add(sums[i], face.vector)
-                members[i] += face
+        return Result(joined, whispers(rest))
+    }
+
+    private fun whispers(faces: List<Face>): List<List<Long>> {
+        val n = faces.size
+        val neighbors = Array(n) { ArrayList<Int>() }
+        val weights = Array(n) { ArrayList<Float>() }
+        for (i in 0 until n) {
+            for (j in i + 1 until n) {
+                val score = Vectors.dot(faces[i].vector, faces[j].vector)
+                if (score >= SAME_PERSON) {
+                    neighbors[i] += j; weights[i] += score
+                    neighbors[j] += i; weights[j] += score
+                }
             }
         }
-        val finalMembers = List(sums.size) { mutableListOf<Long>() }
-        for (face in rest) {
-            val i = closest(face.vector)
-            if (i >= 0) finalMembers[i] += face.id
+        val label = IntArray(n) { it }
+        val order = (0 until n).toMutableList()
+        val random = Random(0)
+        repeat(ROUNDS) {
+            order.shuffle(random)
+            var changed = false
+            for (i in order) {
+                if (neighbors[i].isEmpty()) continue
+                val votes = HashMap<Int, Float>()
+                for (k in neighbors[i].indices) {
+                    val l = label[neighbors[i][k]]
+                    votes[l] = (votes[l] ?: 0f) + weights[i][k]
+                }
+                val best = votes.maxByOrNull { it.value }!!.key
+                if (best != label[i]) {
+                    label[i] = best
+                    changed = true
+                }
+            }
+            if (!changed) return@repeat
         }
-        return Result(joined, finalMembers.filter { it.size >= MIN_GROUP })
+        return (0 until n).groupBy { label[it] }.values
+            .filter { it.size >= MIN_GROUP }
+            .map { members -> members.map { faces[it].id } }
     }
 
-    private fun centroid(vectors: List<FloatArray>): FloatArray? {
-        if (vectors.isEmpty()) return null
-        val sum = vectors.first().copyOf()
-        for (v in vectors.drop(1)) add(sum, v)
-        return normalized(sum)
-    }
-
-    private fun add(into: FloatArray, v: FloatArray) {
-        for (i in into.indices) into[i] += v[i]
-    }
-
-    private fun cosine(sum: FloatArray, v: FloatArray): Float {
-        var norm = 0f
-        for (x in sum) norm += x * x
-        return if (norm == 0f) 0f else Vectors.dot(sum, v) / sqrt(norm)
-    }
-
-    private fun normalized(v: FloatArray): FloatArray {
-        var norm = 0f
-        for (x in v) norm += x * x
-        val n = sqrt(norm)
-        return if (n == 0f) v else FloatArray(v.size) { v[it] / n }
+    /**
+     * How similar random pairs of faces are, for the diagnostics report: median and 90th
+     * percentile. Most pairs are different people, so a high median means the vectors don't
+     * tell people apart (a broken model or preprocessing), not that thresholds are off.
+     */
+    fun pairStats(vectors: List<FloatArray>, pairs: Int = 2000): Pair<Float, Float>? {
+        if (vectors.size < 2) return null
+        val random = Random(1)
+        val scores = FloatArray(pairs) {
+            val a = random.nextInt(vectors.size)
+            var b = random.nextInt(vectors.size - 1)
+            if (b >= a) b++
+            Vectors.dot(vectors[a], vectors[b])
+        }.sorted()
+        return scores[scores.size / 2] to scores[scores.size * 9 / 10]
     }
 }

@@ -368,6 +368,17 @@ abstract class StickerDao {
     @Query("UPDATE stickers SET facesScannedAt = NULL, faceScanAttempts = 0")
     abstract suspend fun resetFaceScans()
 
+    @Query("UPDATE sticker_faces SET personId = NULL, locked = 0")
+    abstract suspend fun ungroupAllFaces()
+
+    /** Drops every group (and its name), keeping the faces to be grouped again. */
+    @Transaction
+    open suspend fun resetGroups() {
+        ungroupAllFaces()
+        deleteAllPeople()
+        syncPeopleNames()
+    }
+
     /** Deletes every face and group, and the names they made searchable. */
     @Transaction
     open suspend fun deleteFaceData() {

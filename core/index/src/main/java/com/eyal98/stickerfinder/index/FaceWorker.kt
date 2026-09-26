@@ -30,7 +30,7 @@ class FaceWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         val dao = (context as StickerIndexHost).database.stickerDao()
         val pending = dao.observeFaceScanPendingCount().first()
         if (pending == 0) {
-            if (FaceGrouper.regroup(dao) > 0) EmbedWorker.runNow(context)
+            if (FaceGrouper.regroup(context, dao) > 0) EmbedWorker.runNow(context)
             return Result.success()
         }
         val foreground = tryForeground(pending)
@@ -50,7 +50,7 @@ class FaceWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                 if (foreground && done % NOTIFY_EVERY == 0) tryForeground(dao.observeFaceScanPendingCount().first())
             }
             // Group what was found so far, even if the run stopped early: groups show up sooner.
-            val renamed = FaceGrouper.regroup(dao)
+            val renamed = FaceGrouper.regroup(context, dao)
             if (renamed > 0) EmbedWorker.runNow(context)
             if (progress.finished) Result.success() else Result.retry()
         } finally {

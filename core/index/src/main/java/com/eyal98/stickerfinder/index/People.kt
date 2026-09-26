@@ -102,14 +102,26 @@ class FaceScanner(
 /** Puts ungrouped faces into people groups, and keeps stickers' searchable names in step. */
 object FaceGrouper {
 
+    /**
+     * Bumped when grouping changes enough that existing groups should be rebuilt: version 1
+     * compared faces with group averages and put almost everyone in one group.
+     */
+    private const val VERSION = 2
+    private const val PREFS = "face_grouping"
+
     /** Returns how many stickers' searchable names changed. */
-    suspend fun regroup(dao: StickerDao): Int = withContext(Dispatchers.Default) {
+    suspend fun regroup(context: Context, dao: StickerDao): Int = withContext(Dispatchers.Default) {
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        if (prefs.getInt("version", 1) < VERSION) {
+            withContext(NonCancellable) { dao.resetGroups() }
+            prefs.edit { putInt("version", VERSION) }
+        }
         val rows = dao.faceRows()
-        val groups = rows.filter { it.personId != null }
-            .groupBy({ it.personId!! }, { Vectors.decode(it.vector) })
+        val grouped = rows.filter { it.personId != null }
+            .map { FaceGrouping.Face(it.id, Vectors.decode(it.vector)) to it.personId!! }
         val ungrouped = rows.filter { it.personId == null && !it.locked }
             .map { FaceGrouping.Face(it.id, Vectors.decode(it.vector)) }
-        val result = FaceGrouping.group(groups, ungrouped)
+        val result = FaceGrouping.group(grouped, ungrouped)
         withContext(NonCancellable) {
             result.joined.entries.groupBy({ it.value }, { it.key }).forEach { (person, faces) -> dao.assignFaces(faces, person) }
             for (faces in result.newGroups) dao.assignFaces(faces, dao.insertPerson(Person()))

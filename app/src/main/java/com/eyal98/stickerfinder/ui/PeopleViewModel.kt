@@ -41,6 +41,11 @@ class PeopleViewModel(private val app: StickerFinderApp) : ViewModel() {
 
     private val people = dao.observePeople(MIN_STICKERS)
 
+    init {
+        // Picks up faces not grouped yet, and rebuilds groups after a grouping change.
+        if (FaceSettings.isEnabled(app)) startNow()
+    }
+
     val state: StateFlow<PeopleUiState> = combine(
         enabled,
         dao.observeFaceScanPendingCount(),

@@ -29,6 +29,8 @@ import java.util.Date
 import java.util.Locale
 import com.eyal98.stickerfinder.vision.SiglipModel
 import com.eyal98.stickerfinder.vision.StickerFaces
+import com.eyal98.stickerfinder.search.Vectors
+import com.eyal98.stickerfinder.search.FaceGrouping
 
 /**
  * A plain-text report for troubleshooting, shown to the user in full before they share it. It
@@ -78,6 +80,9 @@ object Diagnostics {
                     "face-scanned ${c.faceScanned}, faces ${c.faces} (grouped ${c.groupedFaces}), " +
                         "groups ${c.people} (named ${c.namedPeople})",
                 )
+                // Numbers only: how alike random pairs of faces are (mostly different people).
+                FaceGrouping.pairStats(app.database.stickerDao().faceRows().map { Vectors.decode(it.vector) })
+                    ?.let { (median, p90) -> appendLine("face pair similarity: median %.2f, 90%% %.2f".format(median, p90)) }
                 IndexStats.describe(app)?.let(::appendLine)
             }
             section("Background work") {
