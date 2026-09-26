@@ -67,18 +67,24 @@ class StickerDetailsViewModel(private val app: StickerFinderApp, private val id:
     private var original: StickerEntity? = null
 
     init {
-        viewModelScope.launch {
-            val s = dao.byId(id) ?: return@launch
-            original = s
-            _state.value = StickerDetailsState(
-                loaded = true,
-                tags = UserTags.parse(s.userTags),
-                description = s.userDescription.orEmpty(),
-                removedPictureTags = ImageTagFilter.split(s.removedImageTags).toSet(),
-                samePerson = repository.samePersonStickers(id),
-                packSize = s.packName?.let { repository.packSize(it) } ?: 0,
-            )
-        }
+        viewModelScope.launch { load() }
+    }
+
+    /**
+     * Starts an edit session from what's saved now. Also run after saving: this view model
+     * outlives the screen, so opening the same sticker again must start fresh.
+     */
+    private suspend fun load() {
+        val s = dao.byId(id) ?: return
+        original = s
+        _state.value = StickerDetailsState(
+            loaded = true,
+            tags = UserTags.parse(s.userTags),
+            description = s.userDescription.orEmpty(),
+            removedPictureTags = ImageTagFilter.split(s.removedImageTags).toSet(),
+            samePerson = repository.samePersonStickers(id),
+            packSize = s.packName?.let { repository.packSize(it) } ?: 0,
+        )
     }
 
     fun setNewTag(value: String) = _state.update { it.copy(newTag = value) }
@@ -185,6 +191,7 @@ class StickerDetailsViewModel(private val app: StickerFinderApp, private val id:
                 }
             }
             EmbedWorker.runForEdit(app)
+            load()
             onDone()
         }
     }

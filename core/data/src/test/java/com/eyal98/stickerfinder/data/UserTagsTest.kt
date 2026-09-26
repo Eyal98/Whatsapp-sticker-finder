@@ -35,4 +35,12 @@ class UserTagsTest {
             imageTags = "cat", learnedTags = "Kermit", removedImageTags = "kermit")
         assertEquals("cat", sticker.visibleImageTags)
     }
+
+    @Test
+    fun `a single tag of several words stays one tag`() {
+        val stored = UserTags.format(listOf("Kermit the Frog"))
+        assertEquals(listOf("Kermit the Frog"), UserTags.parse(stored))
+        assertEquals(listOf("Kermit"), UserTags.parse(UserTags.format(listOf("Kermit"))))
+        assertEquals("", UserTags.format(emptyList()))
+    }
 }

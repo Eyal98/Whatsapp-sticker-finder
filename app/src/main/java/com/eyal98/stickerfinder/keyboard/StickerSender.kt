@@ -13,6 +13,7 @@ import androidx.core.view.inputmethod.InputConnectionCompat
 import androidx.core.view.inputmethod.InputContentInfoCompat
 import java.io.File
 import java.io.IOException
+import java.util.UUID
 
 /**
  * Hands a sticker to the app being typed in, the way keyboards insert stickers and GIFs
@@ -24,6 +25,9 @@ object StickerSender {
     const val WHATSAPP_STICKER = "image/webp.wasticker"
     private const val WEBP = "image/webp"
     private const val PNG = "image/png"
+
+    /** How long a sent copy stays readable: enough for the receiver to read it once. */
+    private const val KEEP_SENT_MILLIS = 10 * 60 * 1000L
 
     sealed interface Result {
         data class Sent(val mimeType: String) : Result
@@ -75,15 +79,17 @@ object StickerSender {
     }
 
     /**
-     * Copies the sticker into our own cache, served by our FileProvider. Only the file being sent
-     * is ever there: earlier ones are deleted first.
+     * Copies the sticker into our own cache, served by our FileProvider, under a new random name
+     * for every send. A receiving app keeps its read grant for as long as it holds the content,
+     * so a reused name would let an app that got an earlier sticker read a later one meant for
+     * someone else. Earlier copies are removed once they're old enough that no receiver is still
+     * reading them.
      */
     private fun copyToShareable(context: Context, source: Uri, asPng: Boolean): File {
-        val dir = File(context.cacheDir, "send").apply {
-            mkdirs()
-            listFiles()?.forEach { it.delete() }
-        }
-        val target = File(dir, if (asPng) "sticker.png" else "sticker.webp")
+        val dir = File(context.cacheDir, "send").apply { mkdirs() }
+        val now = System.currentTimeMillis()
+        dir.listFiles()?.filter { now - it.lastModified() > KEEP_SENT_MILLIS }?.forEach { it.delete() }
+        val target = File(dir, "${UUID.randomUUID()}.${if (asPng) "png" else "webp"}")
         if (asPng) {
             val bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, source))
             target.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }

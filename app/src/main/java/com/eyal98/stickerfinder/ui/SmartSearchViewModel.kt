@@ -198,6 +198,8 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
             val now = withContext(Dispatchers.IO) { currentSlot(slot) }
             update(slot) { it.copy(installed = now.installed, builtIn = now.builtIn) }
             turnedOff.value = currentTurnedOff()
+            // The stored vectors came from the removed model: embed again with the one now in use.
+            if (slot == ModelSlot.EMBEDDING && now.installed != null) EmbedWorker.runForEdit(app)
         }
     }
 

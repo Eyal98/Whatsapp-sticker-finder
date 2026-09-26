@@ -122,7 +122,11 @@ class PictureLabels private constructor(
             require(bin.size == HEADER_BYTES + count * dim * 2) { "Label vector file has the wrong size" }
 
             val vectors = FloatArray(count * dim) { halfToFloat(buffer.short) }
-            return PictureLabels(count, dim, vectors, tags, isName, promptHash.toHex().take(16))
+            // The version covers the whole list, not just the prompts: fixing a Hebrew tag or a
+            // name flag must re-derive existing stickers' tags too (cheap, from stored vectors).
+            val listHash = MessageDigest.getInstance("SHA-256")
+                .digest(rows.joinToString("\n") { cols -> cols.joinToString("\t") { it.trim() } }.toByteArray(Charsets.UTF_8))
+            return PictureLabels(count, dim, vectors, tags, isName, listHash.toHex().take(16))
         }
 
         private fun splitTags(column: String) = column.split(',').map { it.trim() }.filter { it.isNotEmpty() }

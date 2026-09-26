@@ -93,8 +93,12 @@ object UserTags {
         return parts.map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() }
     }
 
-    fun format(tags: List<String>): String =
-        tags.map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() }.joinToString(", ")
+    fun format(tags: List<String>): String {
+        val joined = tags.map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() }.joinToString(", ")
+        // One tag of several words has no comma, and would read back as old space-separated
+        // tags ("Kermit the Frog" → three tags): a trailing comma marks the new format.
+        return if (',' !in joined && joined.any { it.isWhitespace() }) "$joined," else joined
+    }
 }
 
 /** Picture tags minus the ones the user removed (both comma-separated). */

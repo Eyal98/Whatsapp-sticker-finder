@@ -47,7 +47,7 @@ class FaceWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
             return Result.failure()
         }
         return try {
-            val progress = FaceScanner(context.contentResolver, dao, faces).scanPending(budget) { done ->
+            val progress = FaceScanner(context, context.contentResolver, dao, faces).scanPending(budget) { done ->
                 if (foreground && done % NOTIFY_EVERY == 0) tryForeground(dao.observeFaceScanPendingCount().first())
             }
             // Group what was found so far, even if the run stopped early: groups show up sooner.

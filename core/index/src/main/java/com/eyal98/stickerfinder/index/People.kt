@@ -14,6 +14,8 @@ import com.eyal98.stickerfinder.vision.StickerFaces
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.IOException
 
@@ -32,8 +34,33 @@ object FaceSettings {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean(ENABLED, enabled) }
 }
 
+/**
+ * Serializes every write of face data with deleting it. Turning People off cancels the face job,
+ * but a detection already running would otherwise save its faces after the delete. Writers take
+ * this lock and check People is still on; [deleteAll] takes it too, so once it returns no face
+ * data comes back.
+ */
+object FaceData {
+    private val lock = Mutex()
+
+    /** Runs [write] only if People is still on, never at the same time as [deleteAll]. */
+    suspend fun <T> writeIfEnabled(context: Context, write: suspend () -> T): T? =
+        withContext(NonCancellable) {
+            lock.withLock { if (FaceSettings.isEnabled(context)) write() else null }
+        }
+
+    /** Turns People off and deletes every face vector, group and name. */
+    suspend fun deleteAll(context: Context, dao: StickerDao) = withContext(NonCancellable) {
+        lock.withLock {
+            FaceSettings.setEnabled(context, false)
+            dao.deleteFaceData()
+        }
+    }
+}
+
 /** Looks for faces on stickers that haven't been scanned, and stores them. */
 class FaceScanner(
+    private val context: Context,
     private val resolver: ContentResolver,
     private val dao: StickerDao,
     private val faces: StickerFaces,
@@ -62,7 +89,9 @@ class FaceScanner(
                         vector = Vectors.encode(it.vector),
                     )
                 }
-                withContext(NonCancellable) { dao.saveFaces(sticker.id, rows) }
+                // People may have been turned off (and its data deleted) during the detection.
+                FaceData.writeIfEnabled(context) { dao.saveFaces(sticker.id, rows) }
+                    ?: return@withContext StickerIndexer.Progress(processed, finished = true)
                 processed++
                 onScanned(processed)
             }
@@ -127,7 +156,7 @@ object FaceGrouper {
     suspend fun regroup(context: Context, dao: StickerDao): Int = withContext(Dispatchers.Default) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (prefs.getInt("version", 1) < VERSION) {
-            withContext(NonCancellable) { dao.resetGroups() }
+            FaceData.writeIfEnabled(context) { dao.resetGroups() }
             prefs.edit { putInt("version", VERSION) }
         }
         val rows = dao.faceRows()
@@ -141,10 +170,10 @@ object FaceGrouper {
             return@withContext 0
         }
         val result = FaceGrouping.group(grouped, ungrouped)
-        withContext(NonCancellable) {
+        FaceData.writeIfEnabled(context) {
             result.joined.entries.groupBy({ it.value }, { it.key }).forEach { (person, faces) -> dao.assignFaces(faces, person) }
             for (faces in result.newGroups) dao.assignFaces(faces, dao.insertPerson(Person()))
             dao.syncPeopleNames()
-        }
+        } ?: 0
     }
 }

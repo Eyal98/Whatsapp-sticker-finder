@@ -17,8 +17,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -40,7 +45,23 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
     /** Bumped after edits (star, tags) so the current search runs again. */
     private val refresh = MutableStateFlow(0)
 
-    private val results = combine(_query.debounce(DEBOUNCE_MS), refresh) { q, _ -> q }
+    /**
+     * Background work finishing more stickers (printed text, picture tags, meaning vectors):
+     * the current search runs again so results found by that work show up, at most every few
+     * seconds while it runs.
+     */
+    private val indexChanges = combine(
+        repository.pendingCount,
+        repository.vectorCount,
+        app.database.stickerDao().observeImageTagPendingCount(),
+    ) { pending, vectors, untagged -> Triple(pending, vectors, untagged) }
+        .distinctUntilChanged()
+        .drop(1)
+        .sample(INDEX_CHANGE_SAMPLE_MS)
+        .map { }
+        .onStart { emit(Unit) }
+
+    private val results = combine(_query.debounce(DEBOUNCE_MS), refresh, indexChanges) { q, _, _ -> q }
         .flatMapLatest { q ->
             if (q.isBlank()) {
                 repository.browse()
@@ -87,6 +108,7 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
     companion object {
         private const val DEBOUNCE_MS = 150L
         private const val MEANING_PAUSE_MS = 350L
+        private const val INDEX_CHANGE_SAMPLE_MS = 3_000L
 
         val Factory = viewModelFactory {
             initializer { SearchViewModel(this[APPLICATION_KEY] as StickerFinderApp) }

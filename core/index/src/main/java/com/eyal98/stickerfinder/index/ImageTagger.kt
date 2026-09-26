@@ -26,19 +26,24 @@ class ImageTagger(
     private val modelId: String,
 ) {
 
-    /** Re-derives tags for stickers tagged with an older label list. Fast: no model needed. */
-    suspend fun retagOld(budget: WorkBudget): Boolean = withContext(Dispatchers.Default) {
+    /**
+     * Re-derives tags for stickers tagged with an older label list. Fast: no model needed. Their
+     * text changes, so the caller also brings meaning vectors up to date when [StickerIndexer.Progress.processed] > 0.
+     */
+    suspend fun retagOld(budget: WorkBudget): StickerIndexer.Progress = withContext(Dispatchers.Default) {
+        var retagged = 0
         var rows = dao.imageVectorsWithOldTags(modelId, labels.version, BATCH)
         while (rows.isNotEmpty()) {
             for (row in rows) {
                 ensureActive()
-                if (budget.exhausted) return@withContext false
+                if (budget.exhausted) return@withContext StickerIndexer.Progress(retagged, finished = false)
                 val tags = labels.tagsFor(Vectors.decode(row.vector)).takeIf { it.isNotEmpty() }
                 withContext(NonCancellable) { dao.saveImageTags(row.stickerId, tags, labels.version, vector = null) }
+                retagged++
             }
             rows = dao.imageVectorsWithOldTags(modelId, labels.version, BATCH)
         }
-        true
+        StickerIndexer.Progress(retagged, finished = true)
     }
 
     /** Tags pending stickers until done or [budget] runs out. */

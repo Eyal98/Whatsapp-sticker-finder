@@ -17,8 +17,12 @@ data class InstalledModel(val file: File, val model: ModelSpec?, val sha256: Str
     /** A LiteRT-LM bundle (tokenizer inside) rather than a bare .tflite. */
     val isLiteRtLm: Boolean get() = file.name.endsWith(".litertlm")
 
-    /** Catalog id, or a hash-based id for a model the catalog doesn't know by name. */
-    val id: String get() = model?.id ?: "custom-${sha256.take(12)}"
+    /**
+     * Catalog id when the file is that catalog model's exact pinned file; otherwise an id from
+     * its contents. Vectors are stored with this id, so two different files must never share one
+     * (a renamed or different build of a known model gets its own).
+     */
+    val id: String get() = model?.takeIf { it.sha256 == sha256 }?.id ?: "custom-${sha256.take(12)}"
     val displayName: String get() = model?.displayName ?: file.name
 }
 

@@ -9,6 +9,7 @@ import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.data.FaceOnSticker
 import com.eyal98.stickerfinder.data.PersonSummary
 import com.eyal98.stickerfinder.index.EmbedWorker
+import com.eyal98.stickerfinder.index.FaceData
 import com.eyal98.stickerfinder.index.FaceSettings
 import com.eyal98.stickerfinder.index.FaceWorker
 import com.eyal98.stickerfinder.vision.StickerFaces
@@ -82,12 +83,13 @@ class PeopleViewModel(private val app: StickerFinderApp) : ViewModel() {
 
     /** Turns People off and deletes every face vector, group and name. */
     fun turnOffAndDelete() {
-        FaceSettings.setEnabled(app, false)
         enabled.value = false
         selected.value = null
         FaceWorker.cancel(app)
         viewModelScope.launch {
-            dao.deleteFaceData()
+            // Waits for any face data being written right now, then deletes it all; nothing is
+            // written after this (see FaceData).
+            FaceData.deleteAll(app, dao)
             EmbedWorker.runForEdit(app)
         }
     }

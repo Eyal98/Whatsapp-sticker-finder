@@ -48,7 +48,10 @@ class ImageTagWorker(context: Context, params: WorkerParameters) : CoroutineWork
         val foreground = tryForeground(pendingCount())
         val budget = WorkBudget(if (foreground) FOREGROUND_BUDGET_MILLIS else WorkBudget.DEFAULT_MILLIS)
         // A new label list: re-derive tags from the stored vectors first. Doesn't need the model.
-        if (!tagger.retagOld(budget)) return Result.retry()
+        val retag = tagger.retagOld(budget)
+        // Changed tags change what stickers mean: update meaning vectors (on the charger).
+        if (retag.processed > 0) EmbedWorker.runNow(applicationContext)
+        if (!retag.finished) return Result.retry()
         if (pendingCount() == 0) return Result.success()
 
         // From here until the finally below, a crash in the model's native code turns it off.

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Only the one sticker being sent from the keyboard is ever shared from here. -->
+<!-- Only copies of stickers being sent from the keyboard are shared from here, each under its own
+     random name, removed after a few minutes. -->
 <paths>
     <cache-path name="send" path="send/" />
 </paths>

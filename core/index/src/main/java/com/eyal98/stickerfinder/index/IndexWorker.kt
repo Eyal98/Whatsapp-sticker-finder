@@ -45,10 +45,13 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         if (textReaders.isEmpty()) Log.w(TAG, "OCR unavailable")
         return try {
             // Listing a folder of 10,000+ files through the storage provider is expensive, so
-            // continuation runs (retries of the same request) skip it.
-            if (runAttemptCount == 0 && scanDue(treeUri.toString())) {
+            // continuation runs (retries of the same request) skip it, unless the last listing
+            // never finished: a retry after a failed first scan must not index an empty list.
+            val folder = treeUri.toString()
+            if (scanIncomplete() || (runAttemptCount == 0 && scanDue(folder))) {
+                scanStarted()
                 StickerScanner(resolver, dao).scan(treeUri)
-                scanDone(treeUri.toString())
+                scanDone(folder)
             }
 
             // Started from the app, indexing runs as a foreground job: Android then doesn't stop
@@ -115,9 +118,14 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         prefs().getString(LAST_SCAN_FOLDER, null) != folder ||
             System.currentTimeMillis() - prefs().getLong(LAST_SCAN, 0) !in 0 until SCAN_COOLDOWN_MILLIS
 
+    private fun scanIncomplete(): Boolean = prefs().getBoolean(SCAN_INCOMPLETE, false)
+
+    private fun scanStarted() = prefs().edit(commit = true) { putBoolean(SCAN_INCOMPLETE, true) }
+
     private fun scanDone(folder: String) = prefs().edit {
         putLong(LAST_SCAN, System.currentTimeMillis())
         putString(LAST_SCAN_FOLDER, folder)
+        putBoolean(SCAN_INCOMPLETE, false)
     }
 
     companion object {
@@ -161,6 +169,7 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         private const val PREFS = "index_worker"
         private const val LAST_SCAN = "last_scan"
         private const val LAST_SCAN_FOLDER = "last_scan_folder"
+        private const val SCAN_INCOMPLETE = "scan_incomplete"
 
         /**
          * Reopening the app within this long doesn't list the folder again: WhatsApp adds a few

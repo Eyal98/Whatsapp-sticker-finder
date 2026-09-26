@@ -61,6 +61,9 @@ class EvaluationViewModel(private val app: StickerFinderApp) : ViewModel() {
 
     private val finder = MutableStateFlow("")
 
+    /** The finder's latest stickers, kept while no editor is open so opening one isn't empty. */
+    private var latestCandidates: List<StickerEntity> = emptyList()
+
     init {
         viewModelScope.launch {
             val queries = withContext(Dispatchers.IO) { app.goldenSet.load() }
@@ -77,13 +80,20 @@ class EvaluationViewModel(private val app: StickerFinderApp) : ViewModel() {
                 }
             }
             .map { list -> StickerRepository.dedupe(list) }
-            .onEach { list -> _state.update { s -> s.copy(editing = s.editing?.copy(candidates = list)) } }
+            .onEach { list ->
+                latestCandidates = list
+                _state.update { s -> s.copy(editing = s.editing?.copy(candidates = list)) }
+            }
             .launchIn(viewModelScope)
     }
 
     fun startAdding() {
+        // Clearing a finder that's already empty emits nothing: start from its current list.
+        val unchanged = finder.value.isEmpty()
         finder.value = ""
-        _state.update { it.copy(editing = EditState(), message = null) }
+        _state.update {
+            it.copy(editing = EditState(candidates = if (unchanged) latestCandidates else emptyList()), message = null)
+        }
     }
 
     fun cancelEditing() = _state.update { it.copy(editing = null) }

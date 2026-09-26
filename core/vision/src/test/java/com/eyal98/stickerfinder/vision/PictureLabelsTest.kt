@@ -40,6 +40,14 @@ class PictureLabelsTest {
     }
 
     @Test
+    fun versionChangesWhenTagsChangeNotJustPrompts() {
+        val before = PictureLabels.parse(tsv, bin(prompts)).version
+        val fixedHebrew = PictureLabels.parse(tsv.replace("כלב", "כלבלב"), bin(prompts)).version
+        assertTrue(before != fixedHebrew)
+        assertEquals(before, PictureLabels.parse(tsv, bin(prompts)).version)
+    }
+
+    @Test
     fun rejectsVectorsForADifferentLabelList() {
         assertThrows(IllegalArgumentException::class.java) {
             PictureLabels.parse(tsv, bin(listOf("a cat", "a puppy", "a red heart")))
