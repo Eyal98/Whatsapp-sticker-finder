@@ -85,16 +85,15 @@ class ModelStore private constructor(
             return read == 8 && String(header, 4, 4, Charsets.US_ASCII) == "TFL3"
         }
 
+        // Only .litertlm is accepted now; the "embedding.tflite" name and the TFLite check stay so
+        // an EmbeddingGemma file installed by an older version is still found (and reported).
         val EMBEDDING = ModelStore(
-            "embedding", ModelCatalog.EMBEDDING_MODELS, "embedding.tflite", setOf("litertlm", "tflite"),
+            "embedding", ModelCatalog.EMBEDDING_MODELS, "embedding.tflite", setOf("litertlm"),
             ModelCrashGuard.EMBEDDING,
             formatExtension = { if (isTflite(it)) "tflite" else "litertlm" },
         )
         val IMAGE = ModelStore(
             "image", ModelCatalog.IMAGE_MODELS, "image.tflite", setOf("tflite"), ModelCrashGuard.IMAGE_TAGS,
-        )
-        val EMBEDDING_TOKENIZER = ModelStore(
-            "embedding_tokenizer", ModelCatalog.TOKENIZERS, "embedding.spm", setOf("model", "spm"), ModelCrashGuard.EMBEDDING,
         )
     }
 

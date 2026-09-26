@@ -19,8 +19,8 @@ describes each sticker in Hebrew and English with search keywords, while the pho
 and idle. The app can't download, so you import the model file yourself; its SHA-256 is shown
 for you to compare with the download page before it's used.
 
-**Search by meaning**: an on-device multilingual embedding model (EmbeddingGemma 300M, via the
-Google AI Edge RAG SDK) turns each sticker's description, printed text and tags into a vector.
+**Search by meaning**: an on-device multilingual embedding model (IBM Granite multilingual R2,
+via LiteRT-LM) turns each sticker's description, printed text and tags into a vector.
 Queries are embedded the same way, and results merge keyword and meaning matches with
 Reciprocal Rank Fusion, so "running late" can find a sticker described as "מאחר".
 
@@ -47,7 +47,7 @@ similarity cut-off, which can be applied with one tap.
 | `core/ocr` | Tesseract OCR (`heb+eng`), text cleanup, bundled language files |
 | `core/ml` | Model files: import into private storage, SHA-256 verification, catalog, RAM check |
 | `core/caption` | Caption prompt/parser and LiteRT-LM captioner |
-| `core/embed` | EmbeddingGemma text embedder (AI Edge RAG SDK), shared per process |
+| `core/embed` | Granite text embedder (LiteRT-LM), shared per process |
 
 ## Install on your phone (no computer needed)
 
@@ -97,6 +97,5 @@ CI runs all of these on every push.
   [`tessdata_fast`](https://github.com/tesseract-ocr/tessdata_fast) language models: Apache-2.0
 - [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) and [LiteRT](https://github.com/google-ai-edge/LiteRT): Apache-2.0
 - Gemma models (downloaded by the user, not bundled): [Gemma Terms of Use](https://ai.google.dev/gemma/terms)
-- [Google AI Edge RAG SDK](https://ai.google.dev/edge/mediapipe/solutions/genai/rag/android): Apache-2.0
 - [Tesseract4Android](https://github.com/adaptech-cz/Tesseract4Android): Apache-2.0. It is only
   published on JitPack, so the build allows JitPack for that one package group only.

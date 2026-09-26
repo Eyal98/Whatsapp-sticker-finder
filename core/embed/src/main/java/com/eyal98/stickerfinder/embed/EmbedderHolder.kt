@@ -30,14 +30,10 @@ class EmbedderHolder(context: Context) : EmbedderAccess {
         }
     }
 
-    /**
-     * True when the model (and, for a .tflite model, its tokenizer) is installed, it wasn't turned
-     * off after a crash, and memory suffices.
-     */
+    /** True when the model is installed, it wasn't turned off after a crash, and memory suffices. */
     fun isAvailable(): Boolean {
         if (ModelCrashGuard.isDisabled(appContext, ModelCrashGuard.EMBEDDING)) return false
         val model = ModelStore.EMBEDDING.installed(appContext) ?: return false
-        if (!model.isLiteRtLm) ModelStore.EMBEDDING_TOKENIZER.installed(appContext) ?: return false
         return DeviceCapability.canRun(appContext, model.model, ModelCatalog.GRANITE_EMBEDDING)
     }
 
@@ -50,21 +46,21 @@ class EmbedderHolder(context: Context) : EmbedderAccess {
     private fun current(): TextEmbedder? {
         if (!isAvailable()) return null
         val model = ModelStore.EMBEDDING.installed(appContext) ?: return null
-        // A .litertlm model carries its own tokenizer; a .tflite one (EmbeddingGemma) doesn't.
-        val tokenizer = if (model.isLiteRtLm) null else ModelStore.EMBEDDING_TOKENIZER.installed(appContext) ?: return null
-        val key = model.sha256 + tokenizer?.sha256.orEmpty()
+        if (!model.isLiteRtLm) {
+            // EmbeddingGemma (.tflite) ran on the RAG SDK, dropped to cut the app's size by more
+            // than half. One installed before then is reported, not opened.
+            return loadFailed(
+                IllegalStateException("EmbeddingGemma (.tflite) is no longer supported: remove it and import the Granite .litertlm file"),
+            )
+        }
+        val key = model.sha256
         loaded?.let { (k, embedder) -> if (k == key) return embedder }
         loaded?.second?.close()
         loaded = null
         // Busy while the model is loaded; a native crash meanwhile turns it off next start.
         ModelCrashGuard.markBusy(appContext, ModelCrashGuard.EMBEDDING)
         return try {
-            val embedder: TextEmbedder = if (tokenizer == null) {
-                LiteRtLmTextEmbedder.create(appContext, model)
-            } else {
-                GemmaTextEmbedder.create(model, tokenizer)
-            }
-            embedder.also { loaded = key to it }
+            LiteRtLmTextEmbedder.create(appContext, model).also { loaded = key to it }
         } catch (e: Exception) {
             loadFailed(e)
         } catch (e: LinkageError) {

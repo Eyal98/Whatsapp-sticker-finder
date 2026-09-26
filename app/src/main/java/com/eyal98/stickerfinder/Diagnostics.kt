@@ -54,7 +54,6 @@ object Diagnostics {
             section("Models") {
                 appendLine("captions: ${ModelStore.CAPTION.installed(app)?.displayName ?: "none"}")
                 appendLine("embedding: ${ModelStore.EMBEDDING.installed(app)?.displayName ?: "none"}")
-                appendLine("tokenizer: ${ModelStore.EMBEDDING_TOKENIZER.installed(app)?.displayName ?: "none"}")
                 appendLine("picture tags: ${ModelStore.IMAGE.installed(app)?.displayName ?: "none"}")
                 for (feature in ModelCrashGuard.FEATURES) {
                     appendLine(

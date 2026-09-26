@@ -166,15 +166,7 @@ fun SmartSearchScreen(
             if (!state.embeddingMemoryOk) ErrorText(stringResource(R.string.not_enough_memory))
             TurnedOffNotice(ModelCrashGuard.EMBEDDING, state, viewModel::turnOn)
             SlotSection(ModelSlot.EMBEDDING, state, onImport, viewModel::remove)
-            // Only a .tflite model (EmbeddingGemma) needs a separate tokenizer file.
-            val embedding = state.slot(ModelSlot.EMBEDDING).installed
-            val needsTokenizer = embedding != null && !embedding.isLiteRtLm
-            if (needsTokenizer || state.slot(ModelSlot.TOKENIZER).installed != null) {
-                SlotSection(ModelSlot.TOKENIZER, state, onImport, viewModel::remove)
-            }
-            val embeddingReady = embedding != null &&
-                (!needsTokenizer || state.slot(ModelSlot.TOKENIZER).installed != null)
-            if (embeddingReady) Text(stringResource(R.string.meaning_status, state.vectorCount, state.total))
+            if (state.slot(ModelSlot.EMBEDDING).installed != null) Text(stringResource(R.string.meaning_status, state.vectorCount, state.total))
 
             HorizontalDivider()
             Text(stringResource(R.string.eval_title), style = MaterialTheme.typography.titleLarge)

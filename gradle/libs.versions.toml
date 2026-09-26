@@ -18,7 +18,6 @@ tesseract4android = "4.7.0"
 litertlm = "0.17.1"
 # Classic LiteRT (TFLite) interpreter, for the SigLIP2 image model.
 litert = "1.4.2"
-localagentsRag = "0.3.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -36,7 +35,6 @@ room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 junit = { module = "junit:junit", version.ref = "junit" }
-localagents-rag = { module = "com.google.ai.edge.localagents:localagents-rag", version.ref = "localagentsRag" }
 litert = { module = "com.google.ai.edge.litert:litert", version.ref = "litert" }
 litertlm-android = { module = "com.google.ai.edge.litertlm:litertlm-android", version.ref = "litertlm" }
 tesseract4android = { module = "cz.adaptech.tesseract4android:tesseract4android", version.ref = "tesseract4android" }

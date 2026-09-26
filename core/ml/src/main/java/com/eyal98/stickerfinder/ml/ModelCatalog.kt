@@ -92,31 +92,6 @@ object ModelCatalog {
     )
 
     /**
-     * Multilingual (100+ languages, including Hebrew) text embedding model. The download page needs
-     * a login, and this format needs the tokenizer file too; kept so an installed copy still works.
-     */
-    val EMBEDDING_GEMMA = ModelSpec(
-        id = "embeddinggemma-300m-seq256",
-        displayName = "EmbeddingGemma 300M",
-        fileName = "embeddinggemma-300M_seq256_mixed-precision.tflite",
-        approxSize = "180 MB",
-        downloadPage = "https://huggingface.co/litert-community/embeddinggemma-300m",
-        minRamBytes = 3_000_000_000L,
-        sha256 = null,
-    )
-
-    /** The SentencePiece tokenizer that goes with [EMBEDDING_GEMMA], from the same page. */
-    val EMBEDDING_GEMMA_TOKENIZER = ModelSpec(
-        id = "embeddinggemma-sentencepiece",
-        displayName = "EmbeddingGemma tokenizer",
-        fileName = "sentencepiece.model",
-        approxSize = "5 MB",
-        downloadPage = "https://huggingface.co/litert-community/embeddinggemma-300m",
-        minRamBytes = 0L,
-        sha256 = null,
-    )
-
-    /**
      * SigLIP 2 image tower (ViT-B/16, 224 px) for picture tags. The app's label vectors were made
      * with the matching text tower, so only this exact file works: its hash is pinned.
      */
@@ -131,7 +106,6 @@ object ModelCatalog {
     )
 
     val CAPTION_MODELS = listOf(GEMMA_4_E2B, GEMMA_4_E4B, GEMMA_3N_E2B, GEMMA_3N_E4B)
-    val EMBEDDING_MODELS = listOf(GRANITE_EMBEDDING, EMBEDDING_GEMMA)
-    val TOKENIZERS = listOf(EMBEDDING_GEMMA_TOKENIZER)
+    val EMBEDDING_MODELS = listOf(GRANITE_EMBEDDING)
     val IMAGE_MODELS = listOf(SIGLIP2_B16)
 }

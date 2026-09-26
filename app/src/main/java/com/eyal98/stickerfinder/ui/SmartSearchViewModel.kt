@@ -34,7 +34,6 @@ enum class ModelSlot(val store: ModelStore, val recommended: ModelSpec) {
     IMAGE(ModelStore.IMAGE, ModelCatalog.SIGLIP2_B16),
     CAPTION(ModelStore.CAPTION, ModelCatalog.GEMMA_4_E2B),
     EMBEDDING(ModelStore.EMBEDDING, ModelCatalog.GRANITE_EMBEDDING),
-    TOKENIZER(ModelStore.EMBEDDING_TOKENIZER, ModelCatalog.EMBEDDING_GEMMA_TOKENIZER),
 }
 
 sealed interface ImportProblem {
@@ -162,7 +161,7 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
             when (slot) {
                 ModelSlot.IMAGE -> ImageTagWorker.cancel(app)
                 ModelSlot.CAPTION -> CaptionWorker.cancel(app)
-                ModelSlot.EMBEDDING, ModelSlot.TOKENIZER -> app.embedders.release()
+                ModelSlot.EMBEDDING -> app.embedders.release()
             }
             withContext(Dispatchers.IO) { slot.store.remove(app) }
             update(slot) { it.copy(installed = null) }
@@ -196,7 +195,7 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
                 CaptionWorker.schedulePeriodic(app)
                 CaptionWorker.runNow(app)
             }
-            ModelSlot.EMBEDDING, ModelSlot.TOKENIZER -> viewModelScope.launch {
+            ModelSlot.EMBEDDING -> viewModelScope.launch {
                 // Drop any model loaded from the previous files, then embed with the new ones.
                 app.embedders.release()
                 EmbedWorker.runForEdit(app)
