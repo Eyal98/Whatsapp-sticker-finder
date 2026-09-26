@@ -69,12 +69,14 @@ jobs:
           disk-size: 8G
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: ./gradlew --no-daemon connectedMinifiedAndroidTest
+          script: scripts/smoke-run.sh
 
       - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: smoke-reports
-          path: app/build/reports/androidTests/
+          path: |
+            app/build/reports/androidTests/
+            ${{ runner.temp }}/logcat.txt
           retention-days: 14

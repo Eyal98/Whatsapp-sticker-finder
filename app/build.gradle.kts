@@ -60,10 +60,13 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         // A release-like build for installing on your own phone from CI: not debuggable (so
-        // app data can't be read over USB), signed with one stable key so updates keep data, and
-        // minified like release. CI keeps R8's mapping.txt with each build to read crash reports.
+        // app data can't be read over USB), signed with one stable key so updates keep data.
+        // Not minified yet: R8 is turned on here once the minified smoke test passes (see the
+        // "minified" build type below).
         create("sideload") {
             initWith(getByName("release"))
+            isMinifyEnabled = false
+            isShrinkResources = false
             matchingFallbacks += listOf("release")
             signingConfigs.findByName("sideload")?.let { signingConfig = it }
         }
