@@ -17,7 +17,7 @@ tesseract4android = "4.7.0"
 # Built with Kotlin 2.4, like this project. 0.17 adds EmbeddingEngine (single-file embedding models).
 litertlm = "0.17.1"
 # Classic LiteRT (TFLite) interpreter, for the SigLIP2 image model.
-litert = "1.4.2"
+litert = "2.2.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
