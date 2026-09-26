@@ -63,9 +63,10 @@ class PictureLabels private constructor(
 
         /**
          * Names need a closer match than other labels: a wrong name is worse than none. Above the
-         * best name match on the non-character test images (build_labels.py prints it).
+         * best name match on the 12 non-character test images (build_labels.py prints it): 0.128,
+         * Garfield for a plain cat emoji.
          */
-        const val NAME_MIN_SIMILARITY = 0.12f
+        const val NAME_MIN_SIMILARITY = 0.135f
 
         /**
          * The labels to tag a sticker with: recognized names first, then the usual labels. Names

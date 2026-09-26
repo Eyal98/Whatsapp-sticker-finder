@@ -58,7 +58,7 @@ class PictureLabelsTest {
         // A name close to the image comes first, and the best other label still follows it.
         assertEquals(listOf(0, 1), PictureLabels.pick(floatArrayOf(0.20f, 0.15f, 0.12f, 0.10f), isName))
         // A weak name match is left out even though an ordinary label that weak would be kept.
-        assertEquals(listOf(1), PictureLabels.pick(floatArrayOf(0.11f, 0.11f, 0.05f, 0.05f), isName))
+        assertEquals(listOf(1), PictureLabels.pick(floatArrayOf(0.13f, 0.13f, 0.05f, 0.05f), isName))
     }
 
     @Test
