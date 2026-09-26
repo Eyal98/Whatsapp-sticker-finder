@@ -12,11 +12,6 @@
     <string name="star_description">סימון כמועדפת</string>
     <string name="tags_title">תגיות</string>
     <string name="tags_hint">למשל: חתול עצוב cat sad</string>
-    <string name="tags_whole_pack">להוסיף את התגיות החדשות גם לכל %1$d המדבקות מהחבילה „%2$s”</string>
-    <string name="look_alikes_title">לתייג גם מדבקות דומות?</string>
-    <string name="look_alikes_body">המדבקות האלה נראות כמו זו שתייגתם. הקישו כדי לבחור אילו יקבלו גם: %1$s</string>
-    <string name="look_alikes_apply">תיוג %1$d</string>
-    <string name="look_alikes_skip">דילוג</string>
     <string name="save">שמירה</string>
     <string name="cancel">ביטול</string>
     <string name="smart_search">חיפוש חכם</string>
@@ -32,7 +27,6 @@
     <string name="model_installed">מודל: %1$s</string>
     <string name="remove_model">הסרת המודל</string>
     <string name="back">חזרה</string>
-    <string name="description_label">תיאור</string>
     <string name="smart_search_intro">תגיות התמונה מובנות באפליקציה ופועלות מעצמן. חיפוש לפי משמעות הוא אופציונלי: מייבאים קובץ מודל אחד. שניהם פועלים רק על הטלפון הזה.</string>
     <string name="meaning_title">חיפוש לפי משמעות</string>
     <string name="meaning_body">מודל רב־לשוני קטן מוצא מדבקות שמשמעותן תואמת את מה שהקלדתם, גם במילים אחרות או בשפה השנייה: \"מאחר\" מוצא מדבקה עם התגית \"running late\". קובץ אחד, והוא עובד הכי טוב אחרי שלמדבקות יש תיאורים או תגיות תמונה.</string>
@@ -129,4 +123,25 @@
     <string name="people_delete">כיבוי ומחיקת נתוני הפנים</string>
     <string name="people_delete_confirm">למחוק את כל טביעות הפנים ושמות הקבוצות? המדבקות נשארות, רק לא יימצאו יותר לפי השמות האלה.</string>
     <string name="people_delete_yes">מחיקה</string>
+    <string name="details_save_share">שמירה ושיתוף עם %1$d</string>
+    <string name="details_pack">חבילת מדבקות</string>
+    <string name="details_printed_text">טקסט על המדבקה</string>
+    <string name="details_description">תיאור</string>
+    <string name="details_description_hint">הבדיחה, על מי זה, מתי שולחים…</string>
+    <string name="details_picture_tags">תגיות תמונה</string>
+    <string name="details_picture_tags_hint">הקישו על תגית שגויה כדי להסתיר אותה מהחיפוש. הקשה נוספת מחזירה אותה.</string>
+    <string name="details_people">אנשים במדבקה</string>
+    <string name="details_face_ungrouped">עדיין לא בקבוצה</string>
+    <string name="details_not_them">זה לא הם</string>
+    <string name="details_share_title">לשתף את העריכה עם</string>
+    <string name="details_share_body">תגיות חדשות, התיאור ותגיות תמונה שהוסתרו מועתקים למדבקות שתבחרו. שמות של אנשים חלים ממילא על כל המדבקות של אותו אדם.</string>
+    <string name="details_share_looks">נראות דומה (%1$d)</string>
+    <string name="details_share_context">אותו הקשר (%1$d)</string>
+    <string name="details_share_person">אותו אדם: %1$d מדבקות</string>
+    <string name="details_share_pack">אותה חבילה: %1$d מדבקות</string>
+    <string name="details_looks_title">מדבקות שנראות דומה</string>
+    <string name="details_context_title">מדבקות באותו הקשר</string>
+    <string name="details_loading">מחפש מדבקות…</string>
+    <string name="details_no_candidates">לא נמצאו. ייתכן שתגיות התמונה או החיפוש לפי משמעות עוד לא הגיעו למדבקה הזו.</string>
+    <string name="details_done">סיום (%1$d נבחרו)</string>
 </resources>

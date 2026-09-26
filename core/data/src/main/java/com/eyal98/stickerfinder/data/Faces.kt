@@ -40,6 +40,21 @@ class FaceRow(val id: Long, val personId: Long?, val locked: Boolean, val vector
 /** One group for the People screen. */
 data class PersonSummary(val id: Long, val name: String?, val stickers: Int, val faces: Int)
 
+/** A face on one sticker with its group, for the sticker's details. */
+data class StickerFaceInfo(
+    val id: Long,
+    val stickerId: Long,
+    val documentUri: String,
+    val x0: Float,
+    val y0: Float,
+    val x1: Float,
+    val y1: Float,
+    val personId: Long?,
+    val name: String?,
+) {
+    fun asFace() = FaceOnSticker(id, stickerId, documentUri, x0, y0, x1, y1)
+}
+
 /** A face with the sticker it's on, to show a crop of it. */
 data class FaceOnSticker(
     val id: Long,

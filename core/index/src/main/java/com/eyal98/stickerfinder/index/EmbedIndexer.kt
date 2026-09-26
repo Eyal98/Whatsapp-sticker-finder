@@ -37,8 +37,8 @@ class EmbedIndexer(
             currentCoroutineContext().ensureActive()
             if (budget.exhausted) return StickerIndexer.Progress(written, finished = false)
             val text = EmbeddingText.document(
-                sticker.captionEn, sticker.captionHe, sticker.captionTags, sticker.ocrText, sticker.userTags, sticker.imageTags,
-                sticker.packName, sticker.emojiWords, sticker.peopleNames,
+                sticker.captionEn, sticker.captionHe, sticker.captionTags, sticker.ocrText, sticker.userTags, sticker.visibleImageTags,
+                sticker.packName, sticker.emojiWords, sticker.peopleNames, sticker.userDescription,
             )
             if (text == null) {
                 if (sticker.id in states) stale += sticker.id

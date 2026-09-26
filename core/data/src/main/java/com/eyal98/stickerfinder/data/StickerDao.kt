@@ -149,8 +149,8 @@ abstract class StickerDao {
     open suspend fun refreshFts(id: Long) {
         val s = byId(id) ?: return
         val terms = IndexTerms.build(
-            s.ocrText, s.captionHe, s.captionEn, s.captionTags, s.imageTags, s.userTags,
-            s.packName, s.packPublisher, s.emojiWords, s.peopleNames,
+            s.ocrText, s.captionHe, s.captionEn, s.captionTags, s.visibleImageTags, s.userTags,
+            s.packName, s.packPublisher, s.emojiWords, s.peopleNames, s.userDescription,
         )
         replaceFts(StickerFts(s.id, terms))
     }
@@ -207,6 +207,40 @@ abstract class StickerDao {
 
     @Query("SELECT COUNT(*) FROM stickers WHERE packName = :pack")
     abstract suspend fun countInPack(pack: String): Int
+
+    @Query("UPDATE stickers SET userDescription = :description WHERE id = :id")
+    abstract suspend fun setUserDescription(id: Long, description: String?)
+
+    @Query("UPDATE stickers SET removedImageTags = :removed WHERE id = :id")
+    abstract suspend fun setRemovedImageTags(id: Long, removed: String?)
+
+    @Query("SELECT * FROM sticker_vectors WHERE stickerId = :id")
+    abstract suspend fun meaningVector(id: Long): StickerVector?
+
+    /** Meaning vectors in id order, a page at a time. */
+    @Query(
+        "SELECT stickerId, vector FROM sticker_vectors WHERE model = :model AND stickerId > :after " +
+            "ORDER BY stickerId LIMIT :limit",
+    )
+    abstract suspend fun meaningVectorPage(model: String, after: Long, limit: Int): List<StickerVectorRow>
+
+    /** Other stickers with a face from the same group as a face on sticker [id]. */
+    @Query(
+        "SELECT DISTINCT f2.stickerId FROM sticker_faces f1 JOIN sticker_faces f2 ON f2.personId = f1.personId " +
+            "WHERE f1.stickerId = :id AND f1.personId IS NOT NULL AND f2.stickerId != :id",
+    )
+    abstract suspend fun samePersonStickers(id: Long): List<Long>
+
+    @Query(
+        "SELECT f.id AS id, f.stickerId AS stickerId, s.documentUri AS documentUri, f.x0 AS x0, f.y0 AS y0, " +
+            "f.x1 AS x1, f.y1 AS y1, f.personId AS personId, p.name AS name " +
+            "FROM sticker_faces f JOIN stickers s ON s.id = f.stickerId LEFT JOIN people p ON p.id = f.personId " +
+            "WHERE f.stickerId = :id ORDER BY f.x0",
+    )
+    abstract fun observeFacesOnSticker(id: Long): Flow<List<StickerFaceInfo>>
+
+    @Query("SELECT * FROM stickers WHERE id = :id")
+    abstract fun observeSticker(id: Long): Flow<StickerEntity?>
 
     @Query("UPDATE stickers SET userTags = :tags WHERE id = :id")
     abstract suspend fun setTags(id: Long, tags: String)

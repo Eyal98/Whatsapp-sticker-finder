@@ -18,6 +18,7 @@ import com.eyal98.stickerfinder.ui.OnboardingScreen
 import com.eyal98.stickerfinder.ui.PeopleScreen
 import com.eyal98.stickerfinder.ui.SearchScreen
 import com.eyal98.stickerfinder.ui.SmartSearchScreen
+import com.eyal98.stickerfinder.ui.StickerDetailsScreen
 import com.eyal98.stickerfinder.ui.StickerFinderTheme
 import kotlinx.coroutines.launch
 
@@ -34,11 +35,17 @@ class MainActivity : ComponentActivity() {
             StickerFinderTheme {
                 var hasFolder by rememberSaveable { mutableStateOf(hadFolder) }
                 var screen by rememberSaveable { mutableStateOf(Screen.SEARCH) }
-                if (hasFolder) {
+                // A sticker's details, opened from search with a long press.
+                var details by rememberSaveable { mutableStateOf<Long?>(null) }
+                val openDetails = details
+                if (hasFolder && openDetails != null) {
+                    StickerDetailsScreen(openDetails, onBack = { details = null })
+                } else if (hasFolder) {
                     when (screen) {
                         Screen.SEARCH -> SearchScreen(
                             onOpenSmartSearch = { screen = Screen.SMART_SEARCH },
                             onOpenKeyboard = { screen = Screen.KEYBOARD },
+                            onOpenDetails = { details = it },
                         )
                         Screen.SMART_SEARCH -> SmartSearchScreen(
                             onBack = { screen = Screen.SEARCH },

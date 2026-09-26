@@ -68,7 +68,24 @@ data class StickerEntity(
     val facesScannedAt: Long? = null,
     /** The same as [indexAttempts], for face scanning. */
     @ColumnInfo(defaultValue = "0") val faceScanAttempts: Int = 0,
-)
+    /** The user's own description (the joke, the context), searchable. */
+    val userDescription: String? = null,
+    /** Picture tags the user removed as wrong, comma-separated; they stay hidden after retagging. */
+    val removedImageTags: String? = null,
+) {
+    /** [imageTags] without the ones the user removed. */
+    val visibleImageTags: String? get() = ImageTagFilter.visible(imageTags, removedImageTags)
+}
+
+/** Picture tags minus the ones the user removed (both comma-separated). */
+object ImageTagFilter {
+    fun split(tags: String?): List<String> = tags.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
+
+    fun visible(tags: String?, removed: String?): String? {
+        val hidden = split(removed).map { it.lowercase() }.toSet()
+        return split(tags).filter { it.lowercase() !in hidden }.joinToString(", ").ifEmpty { null }
+    }
+}
 
 /** What the indexer extracts. Bump [CURRENT] when it learns something new, to re-index old rows. */
 object IndexVersion {

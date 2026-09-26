@@ -78,15 +78,33 @@ class StickerRepository(
      * model's vectors (empty until that sticker is picture-tagged). Copies of one image appear
      * once. Used to spread a tag the models can't know, like a local TV show, to its look-alikes.
      */
-    suspend fun lookAlikes(id: Long, limit: Int = LOOK_ALIKE_LIMIT): List<LookAlike> = withContext(Dispatchers.Default) {
-        val target = dao.imageVector(id) ?: return@withContext emptyList()
-        val query = Vectors.decode(target.vector)
+    suspend fun lookAlikes(id: Long, limit: Int = LOOK_ALIKE_LIMIT): List<LookAlike> {
+        val target = dao.imageVector(id) ?: return emptyList()
+        return nearest(id, target.vector, limit) { after -> dao.imageVectorPage(target.model, after, VECTOR_PAGE) }
+    }
+
+    /**
+     * The stickers whose meaning is closest to sticker [id]'s (its printed text, tags,
+     * description, pack...), by the meaning-search model's vectors. Empty without that model.
+     */
+    suspend fun contextAlikes(id: Long, limit: Int = LOOK_ALIKE_LIMIT): List<LookAlike> {
+        val target = dao.meaningVector(id) ?: return emptyList()
+        return nearest(id, target.vector, limit) { after -> dao.meaningVectorPage(target.model, after, VECTOR_PAGE) }
+    }
+
+    private suspend fun nearest(
+        id: Long,
+        vector: ByteArray,
+        limit: Int,
+        page: suspend (after: Long) -> List<StickerVectorRow>,
+    ): List<LookAlike> = withContext(Dispatchers.Default) {
+        val query = Vectors.decode(vector)
         val best = PriorityQueue<Pair<Long, Float>>(compareBy { it.second })
         var after = -1L
         while (true) {
-            val page = dao.imageVectorPage(target.model, after, VECTOR_PAGE)
-            if (page.isEmpty()) break
-            for (row in page) {
+            val rows = page(after)
+            if (rows.isEmpty()) break
+            for (row in rows) {
                 if (row.stickerId == id) continue
                 val v = Vectors.decode(row.vector)
                 if (v.size != query.size) continue
@@ -94,7 +112,7 @@ class StickerRepository(
                 // Room for copies of the same image, which are dropped below.
                 if (best.size > limit * 2) best.poll()
             }
-            after = page.last().stickerId
+            after = rows.last().stickerId
         }
         val scores = best.associate { it }
         val self = dao.byId(id)?.let(::imageKey)
@@ -104,6 +122,34 @@ class StickerRepository(
             .filter { imageKey(it) != self }
             .take(limit)
             .map { LookAlike(it, scores.getValue(it.id)) }
+    }
+
+    suspend fun samePersonStickers(id: Long): List<Long> = dao.samePersonStickers(id)
+
+    suspend fun packStickers(pack: String): List<Long> = dao.idsInPack(pack)
+
+    /** Sets the user's description on each sticker (null clears it). */
+    suspend fun setDescription(ids: Collection<Long>, description: String?) {
+        for (id in ids) {
+            dao.setUserDescription(id, description)
+            refreshSearchTerms(id)
+        }
+    }
+
+    /** Hides [tags] from each sticker's picture tags (they stay hidden after retagging). */
+    suspend fun removeImageTags(ids: Collection<Long>, tags: Collection<String>) {
+        if (tags.isEmpty()) return
+        for (sticker in dao.byIds(ids.toList())) {
+            val merged = (ImageTagFilter.split(sticker.removedImageTags) + tags).distinctBy { it.lowercase() }
+            dao.setRemovedImageTags(sticker.id, merged.joinToString(", ").ifEmpty { null })
+            refreshSearchTerms(sticker.id)
+        }
+    }
+
+    /** Replaces sticker [id]'s hidden picture tags (lets the user bring one back). */
+    suspend fun setRemovedImageTags(id: Long, tags: Collection<String>) {
+        dao.setRemovedImageTags(id, tags.joinToString(", ").ifEmpty { null })
+        refreshSearchTerms(id)
     }
 
     /** Rebuilds the full-text entry of one sticker from its current text fields. */

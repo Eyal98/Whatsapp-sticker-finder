@@ -12,11 +12,6 @@
     <string name="star_description">Mark as favorite</string>
     <string name="tags_title">Tags</string>
     <string name="tags_hint">e.g. cat sad חתול עצוב</string>
-    <string name="tags_whole_pack">Also add the new tags to all %1$d stickers from the pack “%2$s”</string>
-    <string name="look_alikes_title">Tag look-alikes too?</string>
-    <string name="look_alikes_body">These stickers look like the one you tagged. Tap to pick the ones that should also get: %1$s</string>
-    <string name="look_alikes_apply">Tag %1$d</string>
-    <string name="look_alikes_skip">Skip</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="smart_search">Smart search</string>
@@ -32,7 +27,6 @@
     <string name="model_installed">Model: %1$s</string>
     <string name="remove_model">Remove model</string>
     <string name="back">Back</string>
-    <string name="description_label">Description</string>
     <string name="smart_search_intro">Picture tags are built in and work on their own. Search by meaning is optional: import one model file. Both run only on this phone.</string>
     <string name="meaning_title">Search by meaning</string>
     <string name="meaning_body">A small multilingual model finds stickers that mean what you typed, even with different words or in the other language: \"running late\" finds a sticker tagged \"מאחר\". One file, and it works best once stickers have descriptions or picture tags.</string>
@@ -129,4 +123,25 @@
     <string name="people_delete">Turn off and delete face data</string>
     <string name="people_delete_confirm">Delete all face fingerprints and group names? Your stickers stay; they just won\'t be searchable by these names anymore.</string>
     <string name="people_delete_yes">Delete</string>
+    <string name="details_save_share">Save and share with %1$d</string>
+    <string name="details_pack">Sticker pack</string>
+    <string name="details_printed_text">Printed text</string>
+    <string name="details_description">Description</string>
+    <string name="details_description_hint">The joke, who it\'s about, when you send it…</string>
+    <string name="details_picture_tags">Picture tags</string>
+    <string name="details_picture_tags_hint">Tap a wrong tag to hide it from search. Tap again to bring it back.</string>
+    <string name="details_people">People on this sticker</string>
+    <string name="details_face_ungrouped">Not in a group yet</string>
+    <string name="details_not_them">Not them</string>
+    <string name="details_share_title">Share this edit with</string>
+    <string name="details_share_body">New tags, the description and hidden picture tags are copied to the stickers you pick. People names apply to every sticker of that person already.</string>
+    <string name="details_share_looks">Looks similar (%1$d)</string>
+    <string name="details_share_context">Same context (%1$d)</string>
+    <string name="details_share_person">Same person: %1$d stickers</string>
+    <string name="details_share_pack">Same pack: %1$d stickers</string>
+    <string name="details_looks_title">Stickers that look similar</string>
+    <string name="details_context_title">Stickers with the same context</string>
+    <string name="details_loading">Finding stickers…</string>
+    <string name="details_no_candidates">None found. Picture tags or search by meaning may not have reached this sticker yet.</string>
+    <string name="details_done">Done (%1$d picked)</string>
 </resources>

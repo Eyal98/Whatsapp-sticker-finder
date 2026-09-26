@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StickerEntity::class, StickerFts::class, StickerVector::class, StickerImageVector::class,
         StickerFace::class, Person::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true,
 )
 abstract class StickerDatabase : RoomDatabase() {
@@ -25,7 +25,7 @@ abstract class StickerDatabase : RoomDatabase() {
         // TODO(Phase 4): encrypt at rest with SQLCipher, key wrapped by Android Keystore.
         fun create(context: Context): StickerDatabase =
             Room.databaseBuilder(context.applicationContext, StickerDatabase::class.java, NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9)
                 .build()
 
         /** Adds [StickerEntity.indexVersion]; existing rows start at 0 so they get OCR'd. */
@@ -103,6 +103,14 @@ abstract class StickerDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `people` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT)",
                 )
+            }
+        }
+
+        /** Adds the user's description and the picture tags they removed. */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stickers ADD COLUMN userDescription TEXT")
+                db.execSQL("ALTER TABLE stickers ADD COLUMN removedImageTags TEXT")
             }
         }
     }
