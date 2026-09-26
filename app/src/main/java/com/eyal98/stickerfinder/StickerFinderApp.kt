@@ -9,11 +9,12 @@ import com.eyal98.stickerfinder.data.SemanticSearch
 import com.eyal98.stickerfinder.data.StickerDatabase
 import com.eyal98.stickerfinder.data.StickerRepository
 import com.eyal98.stickerfinder.embed.EmbedderHolder
+import com.eyal98.stickerfinder.index.EmbedWorker
 import com.eyal98.stickerfinder.index.FaceSettings
 import com.eyal98.stickerfinder.index.RetiredFeatures
 import com.eyal98.stickerfinder.index.StickerIndexHost
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
-import com.eyal98.stickerfinder.ml.ModelStore
+import com.eyal98.stickerfinder.ml.BundledEmbedding
 import com.eyal98.stickerfinder.vision.SiglipModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,12 +43,26 @@ class StickerFinderApp : Application(), StickerIndexHost {
         ModelCrashGuard.onProcessStart(
             this,
             installedFeatures = buildSet {
-                if (ModelStore.EMBEDDING.installed(this@StickerFinderApp) != null) add(ModelCrashGuard.EMBEDDING)
+                if (BundledEmbedding.active(this@StickerFinderApp) != null) add(ModelCrashGuard.EMBEDDING)
                 if (SiglipModel.isBundled(this@StickerFinderApp)) add(ModelCrashGuard.IMAGE_TAGS)
                 if (FaceSettings.isEnabled(this@StickerFinderApp)) add(ModelCrashGuard.FACES)
             },
         )
-        appScope.launch(Dispatchers.IO) { RetiredFeatures.cleanUp(this@StickerFinderApp) }
+        appScope.launch(Dispatchers.IO) {
+            RetiredFeatures.cleanUp(this@StickerFinderApp)
+            installBundledEmbedding()
+        }
+    }
+
+    /**
+     * Copies the bundled meaning-search model into place the first time (a few seconds), then
+     * embeds the stickers the next time the phone charges, like the other background work.
+     */
+    private suspend fun installBundledEmbedding() {
+        val wasReady = BundledEmbedding.installed(this) != null
+        if (BundledEmbedding.install(this) == BundledEmbedding.Status.READY && !wasReady) {
+            EmbedWorker.runNow(this)
+        }
     }
 
     override fun onTrimMemory(level: Int) {

@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -55,6 +56,7 @@ fun SearchScreen(
     onOpenSmartSearch: () -> Unit,
     onOpenKeyboard: () -> Unit,
     onOpenDetails: (Long) -> Unit,
+    onOpenAbout: () -> Unit,
     viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory),
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
@@ -65,7 +67,7 @@ fun SearchScreen(
 
     Scaffold { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            // Header: logo, name, sticker count, and the two other places to go.
+            // Header: logo, name, sticker count, and the other places to go.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 12.dp),
@@ -79,6 +81,9 @@ fun SearchScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+                IconButton(onClick = onOpenAbout) {
+                    Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.about_open))
                 }
                 IconButton(onClick = onOpenKeyboard) {
                     Icon(painterResource(R.drawable.ic_keyboard), contentDescription = stringResource(R.string.keyboard_open))

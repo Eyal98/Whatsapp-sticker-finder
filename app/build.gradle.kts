@@ -1,3 +1,8 @@
+import javax.xml.parsers.DocumentBuilderFactory
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.result.ResolvedArtifactResult
+import org.gradle.maven.MavenModule
+import org.gradle.maven.MavenPomArtifact
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -16,7 +21,8 @@ android {
         targetSdk = 35
         // CI passes its run number so each sideload build installs over the previous one.
         versionCode = (findProperty("versionCode") as String?)?.toInt() ?: 1
-        versionName = "0.1.0"
+        // CI passes the tag's version for alpha releases (v0.1.0-alpha.1 -> 0.1.0-alpha.1).
+        versionName = (findProperty("versionName") as String?) ?: "0.1.0-dev"
 
         // 64-bit ARM only: every phone that can run the on-device models (Android 11+, 6 GB+
         // RAM) is arm64. The ML runtimes ship native code for 4 CPU types, and the other three
@@ -74,6 +80,9 @@ android {
         // The bundled SigLIP model is memory-mapped straight from the APK, which needs it stored
         // uncompressed (it barely compresses anyway).
         noCompress += "tflite"
+        // The bundled Granite model is copied out once on first start; it barely compresses, and
+        // stored as is its size is known up front for the free-space check.
+        noCompress += "litertlm"
     }
 
     packaging {
@@ -114,4 +123,75 @@ dependencies {
     implementation(libs.compose.material.icons.core)
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
+}
+
+/**
+ * The open-source notices the app shows (About screen): every library in the release build with
+ * the license its Maven POM declares (or its parent POM's), one per line as
+ * "group:name:version<TAB>license<TAB>url", in the asset licenses/dependencies.tsv.
+ */
+abstract class DependencyNotices : DefaultTask() {
+    @get:Input abstract val lines: ListProperty<String>
+    @get:OutputDirectory abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun write() {
+        val dir = outputDir.get().asFile.resolve("licenses")
+        dir.deleteRecursively()
+        dir.mkdirs()
+        dir.resolve("dependencies.tsv").writeText(lines.get().joinToString("\n", postfix = "\n"))
+    }
+}
+
+fun pomFile(group: String, name: String, version: String): File? =
+    dependencies.createArtifactResolutionQuery()
+        .forModule(group, name, version)
+        .withArtifacts(MavenModule::class.java, MavenPomArtifact::class.java)
+        .execute()
+        .resolvedComponents
+        .flatMap { it.getArtifacts(MavenPomArtifact::class.java) }
+        .filterIsInstance<ResolvedArtifactResult>()
+        .firstOrNull()
+        ?.file
+
+/** (name, url) of each license the POM declares, following parent POMs that declare none. */
+fun pomLicenses(group: String, name: String, version: String, depth: Int = 0): List<Pair<String, String>> {
+    val pom = pomFile(group, name, version) ?: return emptyList()
+    val root = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(pom).documentElement
+    fun org.w3c.dom.Element.child(tag: String): org.w3c.dom.Element? =
+        (0 until childNodes.length).map { childNodes.item(it) }
+            .firstOrNull { it is org.w3c.dom.Element && it.tagName == tag } as org.w3c.dom.Element?
+    fun org.w3c.dom.Element.text(tag: String) = child(tag)?.textContent?.trim().orEmpty()
+    val licenses = root.child("licenses")?.let { list ->
+        (0 until list.childNodes.length).map { list.childNodes.item(it) }
+            .filterIsInstance<org.w3c.dom.Element>()
+            .map { it.text("name") to it.text("url") }
+    }.orEmpty()
+    if (licenses.isNotEmpty() || depth >= 4) return licenses
+    val parent = root.child("parent") ?: return emptyList()
+    return pomLicenses(parent.text("groupId"), parent.text("artifactId"), parent.text("version"), depth + 1)
+}
+
+val dependencyNotices = tasks.register<DependencyNotices>("dependencyNotices") {
+    lines.set(
+        provider {
+            configurations.getByName("releaseRuntimeClasspath").incoming.resolutionResult.allComponents
+                .mapNotNull { it.id as? ModuleComponentIdentifier }
+                .sortedBy { "${it.group}:${it.module}" }
+                .map { id ->
+                    val licenses = pomLicenses(id.group, id.module, id.version)
+                    val license = licenses.joinToString(" / ") { it.first }.ifEmpty { "See the library's project page" }
+                    val url = licenses.firstOrNull()?.second.orEmpty()
+                    listOf("${id.group}:${id.module}:${id.version}", license, url)
+                        .joinToString("\t") { it.replace('\t', ' ').replace('\n', ' ') }
+                }
+        },
+    )
+    outputDir.set(layout.buildDirectory.dir("generated/notices"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(dependencyNotices, DependencyNotices::outputDir)
+    }
 }

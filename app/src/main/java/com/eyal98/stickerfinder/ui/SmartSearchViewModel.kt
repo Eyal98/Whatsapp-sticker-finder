@@ -9,6 +9,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.index.EmbedWorker
 import com.eyal98.stickerfinder.index.ImageTagWorker
+import com.eyal98.stickerfinder.ml.BundledEmbedding
 import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ml.InstalledModel
 import com.eyal98.stickerfinder.ml.ModelCatalog
@@ -19,6 +20,7 @@ import com.eyal98.stickerfinder.ml.PendingModel
 import com.eyal98.stickerfinder.vision.SiglipModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +32,8 @@ import kotlinx.coroutines.withContext
 
 /**
  * The model files the user can install, each with the catalog entry to recommend. The picture
- * model is bundled in the app, so only the meaning-search model is imported.
+ * model is bundled in the app; the meaning-search model is too in release builds, and importing
+ * one is only needed in a build made without it (or to try a different file).
  */
 enum class ModelSlot(val store: ModelStore, val recommended: ModelSpec) {
     EMBEDDING(ModelStore.EMBEDDING, ModelCatalog.GRANITE_EMBEDDING),
@@ -44,6 +47,10 @@ sealed interface ImportProblem {
 
 data class SlotUiState(
     val installed: InstalledModel? = null,
+    /** The installed model is the one bundled in the app: nothing to import or remove. */
+    val builtIn: Boolean = false,
+    /** The app bundles a model for this slot (it may still be setting it up). */
+    val bundled: Boolean = false,
     val pending: PendingModel? = null,
     /** 0..1 while copying a file into this slot, null otherwise. */
     val importProgress: Float? = null,
@@ -76,13 +83,46 @@ private data class Background(
 
 class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
 
-    private val slotState = MutableStateFlow(
-        ModelSlot.entries.associateWith { SlotUiState(it.store.installed(app), it.store.pending(app)) },
-    )
+    private val slotState = MutableStateFlow(ModelSlot.entries.associateWith { currentSlot(it) })
     private var importJob: Job? = null
     private val pictureTagsAvailable =
         SiglipModel.isBundled(app) && app.assets.list("siglip")?.contains("labels.bin") == true
     private val turnedOff = MutableStateFlow(currentTurnedOff())
+
+    private fun currentSlot(slot: ModelSlot): SlotUiState {
+        val imported = slot.store.installed(app)
+        return when (slot) {
+            ModelSlot.EMBEDDING -> {
+                val bundled = if (imported == null) BundledEmbedding.installed(app) else null
+                SlotUiState(
+                    installed = imported ?: bundled,
+                    builtIn = bundled != null,
+                    bundled = BundledEmbedding.isBundled(app),
+                    pending = slot.store.pending(app),
+                )
+            }
+        }
+    }
+
+    /**
+     * Picks up the bundled model once the app has finished copying it into place (a few seconds
+     * after the first start), checking every couple of seconds while it's still missing.
+     */
+    fun refresh() {
+        viewModelScope.launch {
+            repeat(REFRESH_TRIES) {
+                val fresh = withContext(Dispatchers.IO) { ModelSlot.entries.associateWith { currentSlot(it) } }
+                slotState.update { old ->
+                    fresh.mapValues { (slot, s) ->
+                        val o = old[slot] ?: SlotUiState()
+                        s.copy(pending = o.pending, importProgress = o.importProgress, problem = o.problem)
+                    }
+                }
+                if (fresh.values.none { it.bundled && it.installed == null }) return@launch
+                delay(2_000)
+            }
+        }
+    }
 
     private fun currentTurnedOff() = ModelCrashGuard.FEATURES.filterTo(HashSet()) { ModelCrashGuard.isDisabled(app, it) }
 
@@ -154,7 +194,9 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
                 ModelSlot.EMBEDDING -> app.embedders.release()
             }
             withContext(Dispatchers.IO) { slot.store.remove(app) }
-            update(slot) { it.copy(installed = null) }
+            // Falls back to the bundled model, if the app has one.
+            val now = withContext(Dispatchers.IO) { currentSlot(slot) }
+            update(slot) { it.copy(installed = now.installed, builtIn = now.builtIn) }
             turnedOff.value = currentTurnedOff()
         }
     }
@@ -174,7 +216,7 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
     }
 
     private fun onInstalled(slot: ModelSlot, model: InstalledModel) {
-        update(slot) { it.copy(installed = model, pending = null, problem = null) }
+        update(slot) { it.copy(installed = model, builtIn = false, pending = null, problem = null) }
         turnedOff.value = currentTurnedOff()
         when (slot) {
             ModelSlot.EMBEDDING -> viewModelScope.launch {
@@ -186,6 +228,8 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
     }
 
     companion object {
+        private const val REFRESH_TRIES = 60
+
         val Factory = viewModelFactory {
             initializer { SmartSearchViewModel(this[APPLICATION_KEY] as StickerFinderApp) }
         }

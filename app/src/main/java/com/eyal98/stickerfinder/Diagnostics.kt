@@ -17,6 +17,7 @@ import com.eyal98.stickerfinder.index.IndexStats
 import com.eyal98.stickerfinder.index.IndexWorker
 import com.eyal98.stickerfinder.index.StickerFolder
 import com.eyal98.stickerfinder.keyboard.StickerKeyboardService
+import com.eyal98.stickerfinder.ml.BundledEmbedding
 import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.ml.ModelStore
@@ -41,6 +42,7 @@ object Diagnostics {
 
     private const val LOG_LINES = 150
     private const val MAX_CRASH_CHARS = 12_000
+    private const val ANR_LINES = 40
 
     suspend fun build(app: StickerFinderApp): String = withContext(Dispatchers.IO) {
         buildString {
@@ -56,7 +58,11 @@ object Diagnostics {
                 appendLine("similarity cut-off: ${app.searchSettings.minSimilarity}")
             }
             section("Models") {
-                appendLine("embedding: ${ModelStore.EMBEDDING.installed(app)?.displayName ?: "none"}")
+                appendLine("embedding: ${BundledEmbedding.active(app)?.displayName ?: "none"}")
+                appendLine(
+                    "embedding bundled: ${BundledEmbedding.isBundled(app)}, set up: ${BundledEmbedding.installed(app) != null}, " +
+                        "imported: ${ModelStore.EMBEDDING.installed(app) != null}",
+                )
                 appendLine("picture model bundled: ${SiglipModel.isBundled(app)}")
                 appendLine("face models bundled: ${StickerFaces.isBundled(app)}, People on: ${FaceSettings.isEnabled(app)}")
                 for (feature in ModelCrashGuard.FEATURES) {
@@ -106,6 +112,13 @@ object Diagnostics {
                             "pss ${e.pss / 1024} MB)${e.description?.let { d -> ": " + redact(d) } ?: ""}",
                     )
                 }
+                // Where the app froze: the main thread of the latest ANR (Android keeps its trace).
+                exits.firstOrNull { it.reason == ApplicationExitInfo.REASON_ANR }?.let { anr ->
+                    anrMainThread(anr)?.let {
+                        appendLine("latest ANR, main thread:")
+                        appendLine(it)
+                    }
+                }
             }
             section("Last crash") {
                 appendLine(CrashLog.read(app) ?: "none recorded")
@@ -139,6 +152,18 @@ object Diagnostics {
         val lines = process.inputStream.bufferedReader().use { it.readLines() }
         process.waitFor()
         return lines.takeLast(LOG_LINES).joinToString("\n") { redact(it) }.ifEmpty { "(empty)" }
+    }
+
+    /** The "main" thread's stack from an ANR trace, redacted and cut short. */
+    private fun anrMainThread(exit: ApplicationExitInfo): String? {
+        val lines = try {
+            exit.traceInputStream?.bufferedReader()?.use { it.readLines() }
+        } catch (e: Exception) {
+            null
+        } ?: return null
+        val start = lines.indexOfFirst { it.startsWith("\"main\"") }
+        if (start < 0) return null
+        return lines.drop(start).takeWhile { it.isNotBlank() }.take(ANR_LINES).joinToString("\n") { redact(it) }
     }
 
     private fun keyboardEnabled(context: Context): Boolean {

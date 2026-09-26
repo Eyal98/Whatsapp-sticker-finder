@@ -2,6 +2,9 @@ name: Android CI
 
 on:
   push:
+    branches: ["**"]
+    # A v* tag (e.g. v0.1.0-alpha.1) also publishes a versioned alpha release.
+    tags: ["v*"]
   pull_request:
 
 permissions:
@@ -10,7 +13,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       # Set up the two SIGNING_* repository secrets to get installable builds (see README).
       HAS_SIGNING_KEY: ${{ secrets.SIGNING_KEYSTORE_BASE64 != '' && secrets.SIGNING_KEYSTORE_PASSWORD != '' }}
@@ -27,10 +30,22 @@ jobs:
       # Also verifies the checksum of gradle-wrapper.jar.
       - uses: gradle/actions/setup-gradle@v4
 
-      # Downloads the Tesseract language files and checks them against the SHA-256 hashes
-      # pinned in core/ocr/tessdata.properties.
-      - name: Fetch OCR language files
-        run: ./gradlew --no-daemon :core:ocr:fetchTessdata :core:vision:fetchSiglipLabels :core:vision:fetchFaceModel
+      # The bundled models are about 550 MB: keep them between runs. The fetch tasks still check
+      # every file against its pinned SHA-256 and download again on any mismatch.
+      - name: Cache bundled models
+        uses: actions/cache@v4
+        with:
+          path: |
+            core/ocr/build/generated/tessdata
+            core/vision/build/generated/siglip
+            core/vision/build/generated/faces
+            core/embed/build/generated/granite
+          key: models-${{ hashFiles('core/ocr/tessdata.properties', 'core/vision/*.properties', 'core/embed/granite.properties', 'tools/siglip/labels.tsv') }}
+
+      # Downloads the bundled models and language files and checks them against the SHA-256
+      # hashes pinned in the *.properties files.
+      - name: Fetch bundled models
+        run: ./gradlew --no-daemon :core:ocr:fetchTessdata :core:vision:fetchSiglipLabels :core:vision:fetchFaceModel :core:embed:fetchGranite
 
       - name: Unit tests
         run: ./gradlew --no-daemon :core:search:test testDebugUnitTest
@@ -51,31 +66,46 @@ jobs:
           SIGNING_KEYSTORE_BASE64: ${{ secrets.SIGNING_KEYSTORE_BASE64 }}
           SIGNING_KEYSTORE_PASSWORD: ${{ secrets.SIGNING_KEYSTORE_PASSWORD }}
         run: |
+          # A v* tag names the version (v0.1.0-alpha.1 -> 0.1.0-alpha.1); other builds are dev builds.
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+            name="sticker-finder-$version"
+          else
+            version="0.1.0-dev.${{ github.run_number }}"
+            name="sticker-finder-${{ github.run_number }}"
+          fi
           store="$RUNNER_TEMP/signing.p12"
           printf '%s' "$SIGNING_KEYSTORE_BASE64" | tr -d ' \r\n' | base64 -d > "$store"
-          ./gradlew --no-daemon assembleSideload -PsigningStoreFile="$store" -PversionCode=${{ github.run_number }}
+          ./gradlew --no-daemon assembleSideload -PsigningStoreFile="$store" -PversionCode=${{ github.run_number }} -PversionName="$version"
           rm -f "$store"
           # An unsigned build would be named app-sideload-unsigned.apk, so this also checks signing.
           apk=app/build/outputs/apk/sideload/app-sideload.apk
           test -f "$apk"
           scripts/check-apk-permissions.sh "$apk"
           # The certificate digest must stay the same from build to build.
-          "$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)apksigner" verify --print-certs "$apk" | grep -i 'SHA-256'
-          # Sideloaded over a phone connection: keep it small (see abiFilters in app/build.gradle.kts).
-          # Most of it is the bundled 185 MB picture model (core/vision/siglip.properties).
+          "$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)apksigner" verify --print-certs "$apk" \
+            | grep -i 'SHA-256' | tee "$RUNNER_TEMP/certificate.txt"
+          # Libraries that can't load on phones with 16 KB memory pages (a warning for now).
+          python3 scripts/check-16kb-pages.py "$apk"
+          # Sideloaded over a phone connection: keep it in check (see abiFilters in
+          # app/build.gradle.kts). Most of it is the bundled models: Granite 330 MB
+          # (core/embed/granite.properties) and SigLIP 185 MB (core/vision/siglip.properties).
           size=$(stat -c %s "$apk")
           echo "APK size: $((size / 1024 / 1024)) MB"
           echo "Largest entries (bytes, name):"
           unzip -lv "$apk" | awk 'NR>3 && $1 ~ /^[0-9]+$/ {print $3, $8}' | sort -rn | head -n 15
-          test "$size" -lt $((260 * 1024 * 1024)) || { echo "APK is over 260 MB"; exit 1; }
-          cp "$apk" "$RUNNER_TEMP/sticker-finder-${{ github.run_number }}.apk"
+          test "$size" -lt $((620 * 1024 * 1024)) || { echo "APK is over 620 MB"; exit 1; }
+          mkdir -p "$RUNNER_TEMP/out"
+          cp "$apk" "$RUNNER_TEMP/out/$name.apk"
+          (cd "$RUNNER_TEMP/out" && sha256sum "$name.apk" > "$name.apk.sha256")
+          cp "$RUNNER_TEMP/certificate.txt" "$RUNNER_TEMP/out/certificate.txt"
 
       - name: Keep sideload APK
         if: steps.sideload.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: sideload-apk
-          path: ${{ runner.temp }}/sticker-finder-*.apk
+          path: ${{ runner.temp }}/out/
           retention-days: 14
 
       - name: Upload lint and test reports
@@ -117,5 +147,43 @@ jobs:
           gh release view sideload --json assets --jq '.assets[].name' | while read -r old; do
             gh release delete-asset sideload "$old" --yes
           done
-          gh release upload sideload "$apk"
+          gh release upload sideload "$apk" "$apk.sha256"
           gh release edit sideload --notes "$notes"
+
+  # A v* tag publishes a versioned alpha: its own pre-release with the APK, its SHA-256 and the
+  # signing certificate's fingerprint, so testers can check what they install. Runs no project code.
+  publish-alpha:
+    needs: build
+    if: needs.build.outputs.sideload == 'true' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: sideload-apk
+          path: apk
+
+      - name: Publish the alpha release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          apk=$(ls apk/*.apk)
+          sha=$(cut -d' ' -f1 "$apk.sha256")
+          cert=$(sed -n 's/.*SHA-256 digest: *//p' apk/certificate.txt | head -n 1)
+          cat > notes.md <<EOF
+          **Sticker Finder ${GITHUB_REF_NAME}** (alpha), built from ${GITHUB_SHA::7}. Android 11 or newer, 64-bit phones.
+
+          **Install:** open this page on your phone, tap \`$(basename "$apk")\` to download it, then open it and allow installing from your browser when asked. It installs over earlier builds and keeps your data. It needs about 1.3 GB of free space: the download, and the app setting up its built-in models.
+
+          **Check the file (optional):**
+          - APK SHA-256: \`$sha\`
+          - Signing certificate SHA-256: \`$cert\` (also shown in the app under About)
+
+          The app has no internet access; nothing leaves the phone. See PRIVACY.md and THIRD_PARTY_NOTICES.md in the repository.
+
+          **Found a problem?** In the app: About → Report a problem, then send the report with a line about what happened.
+          EOF
+          gh release create "$GITHUB_REF_NAME" --prerelease --verify-tag --title "Sticker Finder $GITHUB_REF_NAME" \
+            --notes-file notes.md "$apk" "$apk.sha256"

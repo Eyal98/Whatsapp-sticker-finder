@@ -3,10 +3,10 @@ package com.eyal98.stickerfinder.embed
 import android.content.Context
 import android.util.Log
 import com.eyal98.stickerfinder.data.EmbedderAccess
+import com.eyal98.stickerfinder.ml.BundledEmbedding
 import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ml.ModelCatalog
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
-import com.eyal98.stickerfinder.ml.ModelStore
 import com.eyal98.stickerfinder.search.TextEmbedder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -15,7 +15,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * One embedding model per process, shared by search and the background indexer. Loaded on first
- * use (about a second), reloaded if the user installs different files, and released with
+ * use (about a second), reloaded if the user installs a different file, and released with
  * [release] when the app goes to the background.
  */
 class EmbedderHolder(context: Context) : EmbedderAccess {
@@ -33,7 +33,7 @@ class EmbedderHolder(context: Context) : EmbedderAccess {
     /** True when the model is installed, it wasn't turned off after a crash, and memory suffices. */
     fun isAvailable(): Boolean {
         if (ModelCrashGuard.isDisabled(appContext, ModelCrashGuard.EMBEDDING)) return false
-        val model = ModelStore.EMBEDDING.installed(appContext) ?: return false
+        val model = BundledEmbedding.active(appContext) ?: return false
         return DeviceCapability.canRun(appContext, model.model, ModelCatalog.GRANITE_EMBEDDING)
     }
 
@@ -45,7 +45,7 @@ class EmbedderHolder(context: Context) : EmbedderAccess {
 
     private fun current(): TextEmbedder? {
         if (!isAvailable()) return null
-        val model = ModelStore.EMBEDDING.installed(appContext) ?: return null
+        val model = BundledEmbedding.active(appContext) ?: return null
         if (!model.isLiteRtLm) {
             // EmbeddingGemma (.tflite) ran on the RAG SDK, dropped to cut the app's size by more
             // than half. One installed before then is reported, not opened.

@@ -20,8 +20,9 @@ label list, with no setup. Stickers' own pack names and emojis are searchable to
 descriptions were tried and dropped: slow, and too often generic or wrong.)
 
 **Search by meaning**: an on-device multilingual embedding model (IBM Granite multilingual R2,
-via LiteRT-LM) turns each sticker's printed text, tags and pack name into a vector. It's the one optional
-file: the app can't download, so you import it yourself; its SHA-256 is pinned.
+via LiteRT-LM) turns each sticker's printed text, tags and pack name into a vector. It's bundled
+too: the app copies it into place on first start (a few seconds), so there's nothing to import.
+A different model file can still be imported; its SHA-256 is checked.
 Queries are embedded the same way, and results merge keyword and meaning matches with
 Reciprocal Rank Fusion, so "running late" can find a sticker described as "מאחר".
 
@@ -50,6 +51,21 @@ similarity cut-off, which can be applied with one tap.
 | `core/vision` | Bundled SigLIP 2 image model and picture-tag labels |
 | `core/embed` | Granite text embedder (LiteRT-LM), shared per process |
 
+## Alpha releases
+
+Pushing a tag like `v0.1.0-alpha.1` builds a signed APK and publishes it as its own pre-release,
+with the APK's SHA-256 and the signing certificate's fingerprint in the notes (the app shows the
+same fingerprint under **About**). Send testers the release page link.
+
+```sh
+git tag v0.1.0-alpha.1 && git push origin v0.1.0-alpha.1
+```
+
+Testers report problems from **About → Report a problem**: a redacted text report (counts,
+versions, crashes and freezes, error messages; no stickers, text, tags, names or searches) that
+they see in full before sharing. See [PRIVACY.md](PRIVACY.md) and
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ## Install on your phone (no computer needed)
 
 Every push to this branch (or `main`) builds an APK signed with one stable key and publishes it
@@ -66,7 +82,9 @@ This needs two repository secrets (Settings → Secrets and variables → Action
 
 Without them CI still builds and tests everything, but doesn't publish an APK. Keep the key: an
 APK signed with a different key can't be installed over the current one without uninstalling
-(which deletes the app's data). To make one yourself:
+(which deletes the app's data). **Keep an offline copy of `signing.p12` and its password** (a
+password manager, or an encrypted USB stick): GitHub secrets can't be read back, so if they're
+lost every tester has to uninstall and start over. To make one yourself:
 
 ```sh
 keytool -genkeypair -storetype PKCS12 -keystore signing.p12 -alias stickerfinder \
@@ -85,19 +103,27 @@ Requires JDK 17 and the Android SDK (API 35).
 scripts/check-apk-permissions.sh app/build/outputs/apk/debug/app-debug.apk
 ```
 
-The build downloads the Tesseract language files once and fails unless each matches the
-SHA-256 pinned in `core/ocr/tessdata.properties`. The app gets them from its own APK and never
-downloads anything itself.
+The build downloads the bundled models and Tesseract language files once and fails unless each
+matches the SHA-256 pinned in its `*.properties` file (`core/ocr`, `core/vision`, `core/embed`).
+The app gets them from its own APK and never downloads anything itself. The APK is about 560 MB,
+most of it models (Granite 330 MB, SigLIP 2 185 MB).
+
+`scripts/check-16kb-pages.py` lists native libraries that wouldn't load on phones with 16 KB
+memory pages (CI prints it as a warning).
 
 The last command fails if the APK asks for `INTERNET` or any permission not on its allowlist.
 CI runs all of these on every push.
 
 ## Third-party components
 
+Full list, with the in-app notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 - [Tesseract](https://github.com/tesseract-ocr/tesseract) and its
   [`tessdata_fast`](https://github.com/tesseract-ocr/tessdata_fast) language models: Apache-2.0
 - [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM) and [LiteRT](https://github.com/google-ai-edge/LiteRT): Apache-2.0
 - [SigLIP 2](https://huggingface.co/google/siglip2-base-patch16-224) (bundled, LiteRT build from litert-community): Apache-2.0
-- [Granite embedding multilingual R2](https://huggingface.co/ibm-granite) (imported by the user): Apache-2.0
+- [Granite embedding multilingual R2](https://huggingface.co/ibm-granite) (bundled, LiteRT-LM build from litert-community): Apache-2.0
+- [SFace](https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface) (bundled, converted to LiteRT in CI): Apache-2.0
+- [ML Kit face detection](https://developers.google.com/ml-kit/vision/face-detection) (bundled model): ML Kit Terms of Service
 - [Tesseract4Android](https://github.com/adaptech-cz/Tesseract4Android): Apache-2.0. It is only
   published on JitPack, so the build allows JitPack for that one package group only.

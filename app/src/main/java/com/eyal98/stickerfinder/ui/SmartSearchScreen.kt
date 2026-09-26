@@ -32,6 +32,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -77,6 +78,7 @@ fun SmartSearchScreen(
     }
 
     BackHandler(onBack = onBack)
+    LaunchedEffect(Unit) { viewModel.refresh() }
     Scaffold { padding ->
         Column(
             modifier = Modifier
@@ -189,9 +191,17 @@ private fun SlotSection(
     val installed = s.installed
     val progress = s.importProgress
     when {
+        installed != null && s.builtIn -> {
+            Text(stringResource(R.string.model_built_in, installed.displayName), style = MaterialTheme.typography.titleMedium)
+        }
         installed != null -> {
             Text(stringResource(R.string.model_installed, installed.displayName), style = MaterialTheme.typography.titleMedium)
             OutlinedButton(onClick = { onRemove(slot) }) { Text(stringResource(R.string.remove_model)) }
+        }
+        s.bundled -> {
+            // The app copies its bundled model into place on start; it's missing only while that
+            // runs or when the phone is out of space.
+            Text(stringResource(R.string.model_setting_up))
         }
         progress != null -> {
             Text(stringResource(R.string.importing, (progress * 100).toInt()))
@@ -248,7 +258,7 @@ private fun ErrorText(text: String) {
 
 /** Shows the full report first, so the user sees exactly what they'd share. */
 @Composable
-private fun DiagnosticsDialog(report: String, onDismiss: () -> Unit) {
+fun DiagnosticsDialog(report: String, onDismiss: () -> Unit) {
     val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onDismiss,
