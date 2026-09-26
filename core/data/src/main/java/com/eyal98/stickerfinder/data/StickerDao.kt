@@ -192,6 +192,12 @@ abstract class StickerDao {
     )
     abstract suspend fun imageVectorPage(model: String, after: Long, limit: Int): List<StickerVectorRow>
 
+    @Query("SELECT id FROM stickers WHERE packName = :pack")
+    abstract suspend fun idsInPack(pack: String): List<Long>
+
+    @Query("SELECT COUNT(*) FROM stickers WHERE packName = :pack")
+    abstract suspend fun countInPack(pack: String): Int
+
     @Query("UPDATE stickers SET userTags = :tags WHERE id = :id")
     abstract suspend fun setTags(id: Long, tags: String)
 

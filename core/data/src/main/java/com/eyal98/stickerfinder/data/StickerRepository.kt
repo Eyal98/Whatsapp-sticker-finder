@@ -59,6 +59,11 @@ class StickerRepository(
         refreshSearchTerms(id)
     }
 
+    suspend fun packSize(pack: String): Int = dao.countInPack(pack)
+
+    /** Adds [tags] to every sticker from sticker pack [pack]. */
+    suspend fun tagPack(pack: String, tags: List<String>) = addTags(dao.idsInPack(pack), tags)
+
     /** Adds [tags] to each sticker's own tags, keeping the ones it has. */
     suspend fun addTags(ids: Collection<Long>, tags: List<String>) {
         for (sticker in dao.byIds(ids.toList())) {

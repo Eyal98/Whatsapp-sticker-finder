@@ -83,13 +83,22 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
     private val _lookAlikes = MutableStateFlow<LookAlikeOffer?>(null)
     val lookAlikes: StateFlow<LookAlikeOffer?> = _lookAlikes.asStateFlow()
 
-    fun setTags(sticker: StickerEntity, tags: String) = edit {
+    suspend fun packSize(pack: String): Int = repository.packSize(pack)
+
+    /**
+     * Saves [sticker]'s tags. With [wholePack], the new words also go on every sticker from its
+     * pack (friends' sticker packs are often all of one person or one joke); otherwise look-alike
+     * stickers are offered.
+     */
+    fun setTags(sticker: StickerEntity, tags: String, wholePack: Boolean = false) = edit {
         repository.setTags(sticker.id, tags)
-        EmbedWorker.runForEdit(app)
         // New words only: re-saving existing tags shouldn't ask again.
         val old = sticker.userTags.split(' ').filter { it.isNotBlank() }.toSet()
         val added = tags.split(' ').map { it.trim() }.filter { it.isNotEmpty() && it !in old }.distinct()
-        if (added.isEmpty()) return@edit
+        val pack = sticker.packName
+        if (wholePack && pack != null && added.isNotEmpty()) repository.tagPack(pack, added)
+        EmbedWorker.runForEdit(app)
+        if (added.isEmpty() || wholePack) return@edit
         val candidates = repository.lookAlikes(sticker.id)
         if (candidates.isEmpty()) return@edit
         _lookAlikes.value = LookAlikeOffer(

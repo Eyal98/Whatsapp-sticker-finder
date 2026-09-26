@@ -12,6 +12,7 @@
     <string name="star_description">סימון כמועדפת</string>
     <string name="tags_title">תגיות</string>
     <string name="tags_hint">למשל: חתול עצוב cat sad</string>
+    <string name="tags_whole_pack">להוסיף את התגיות החדשות גם לכל %1$d המדבקות מהחבילה „%2$s”</string>
     <string name="look_alikes_title">לתייג גם מדבקות דומות?</string>
     <string name="look_alikes_body">המדבקות האלה נראות כמו זו שתייגתם. הקישו כדי לבחור אילו יקבלו גם: %1$s</string>
     <string name="look_alikes_apply">תיוג %1$d</string>

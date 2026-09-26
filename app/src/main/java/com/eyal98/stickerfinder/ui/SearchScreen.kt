@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -27,6 +28,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -112,12 +114,15 @@ fun SearchScreen(
     }
 
     editing?.let { sticker ->
+        val packSize by produceState(0, sticker.id) { value = sticker.packName?.let { viewModel.packSize(it) } ?: 0 }
         TagsDialog(
             initial = sticker.userTags,
             description = listOfNotNull(sticker.captionHe, sticker.captionEn).joinToString("\n").ifBlank { null },
+            packName = sticker.packName.takeIf { packSize > 1 },
+            packSize = packSize,
             onDismiss = { editing = null },
-            onSave = {
-                viewModel.setTags(sticker, it)
+            onSave = { tags, wholePack ->
+                viewModel.setTags(sticker, tags, wholePack)
                 editing = null
             },
         )
@@ -172,8 +177,17 @@ private fun StickerGrid(
 }
 
 @Composable
-private fun TagsDialog(initial: String, description: String?, onDismiss: () -> Unit, onSave: (String) -> Unit) {
+private fun TagsDialog(
+    initial: String,
+    description: String?,
+    /** Set when other stickers share this one's pack: offers to tag them all. */
+    packName: String?,
+    packSize: Int,
+    onDismiss: () -> Unit,
+    onSave: (tags: String, wholePack: Boolean) -> Unit,
+) {
     var text by remember { mutableStateOf(initial) }
+    var wholePack by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.tags_title)) },
@@ -188,9 +202,18 @@ private fun TagsDialog(initial: String, description: String?, onDismiss: () -> U
                     onValueChange = { text = it },
                     placeholder = { Text(stringResource(R.string.tags_hint)) },
                 )
+                if (packName != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(top = 8.dp).clickable { wholePack = !wholePack },
+                    ) {
+                        Checkbox(checked = wholePack, onCheckedChange = { wholePack = it })
+                        Text(stringResource(R.string.tags_whole_pack, packSize, packName), style = MaterialTheme.typography.bodyMedium)
+                    }
+                }
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(text) }) { Text(stringResource(R.string.save)) } },
+        confirmButton = { TextButton(onClick = { onSave(text, wholePack) }) { Text(stringResource(R.string.save)) } },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }
