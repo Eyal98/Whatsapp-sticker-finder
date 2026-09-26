@@ -45,15 +45,18 @@ def main() -> None:
     onnx_path = work / "sface.onnx"
     download(onnx_path)
 
-    # onnx2tf checks its conversion on a sample-image file it downloads, saved with pickled
-    # numpy data, which numpy refuses to load by default; that file comes from onnx2tf's own
-    # release, so allow it for this conversion.
-    _load = np.load
-    np.load = lambda *args, **kwargs: _load(*args, **{**kwargs, "allow_pickle": True})
+    # onnx2tf checks its conversion on sample images it downloads from its own release; that
+    # download is broken (not a numpy file), so hand it random images of the same shape.
     import onnx2tf
+    import onnx2tf.onnx2tf as onnx2tf_main
+    import onnx2tf.utils.common_functions as onnx2tf_common
 
+    def sample_images():
+        return np.random.default_rng(2).uniform(0, 1, (20, 128, 128, 3)).astype(np.float32)
+
+    onnx2tf_common.download_test_image_data = sample_images
+    onnx2tf_main.download_test_image_data = sample_images
     onnx2tf.convert(input_onnx_file_path=str(onnx_path), output_folder_path=str(work / "tf"), non_verbose=True)
-    np.load = _load
     fp32 = work / "tf" / "sface_float32.tflite"
     fp16 = work / "tf" / "sface_float16.tflite"
     for p in (fp32, fp16):
