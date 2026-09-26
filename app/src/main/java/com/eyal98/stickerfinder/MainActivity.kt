@@ -14,6 +14,7 @@ import com.eyal98.stickerfinder.index.ImageTagWorker
 import com.eyal98.stickerfinder.index.Power
 import com.eyal98.stickerfinder.index.IndexWorker
 import com.eyal98.stickerfinder.index.StickerFolder
+import com.eyal98.stickerfinder.ui.DescriptionReviewScreen
 import com.eyal98.stickerfinder.ui.EvaluationScreen
 import com.eyal98.stickerfinder.ui.KeyboardSetupScreen
 import com.eyal98.stickerfinder.ui.OnboardingScreen
@@ -22,7 +23,7 @@ import com.eyal98.stickerfinder.ui.SmartSearchScreen
 import com.eyal98.stickerfinder.ui.StickerFinderTheme
 import kotlinx.coroutines.launch
 
-private enum class Screen { SEARCH, SMART_SEARCH, QUALITY_TEST, KEYBOARD }
+private enum class Screen { SEARCH, SMART_SEARCH, QUALITY_TEST, DESCRIPTION_REVIEW, KEYBOARD }
 
 class MainActivity : ComponentActivity() {
 
@@ -44,7 +45,9 @@ class MainActivity : ComponentActivity() {
                         Screen.SMART_SEARCH -> SmartSearchScreen(
                             onBack = { screen = Screen.SEARCH },
                             onOpenQualityTest = { screen = Screen.QUALITY_TEST },
+                            onOpenDescriptionReview = { screen = Screen.DESCRIPTION_REVIEW },
                         )
+                        Screen.DESCRIPTION_REVIEW -> DescriptionReviewScreen(onBack = { screen = Screen.SMART_SEARCH })
                         Screen.QUALITY_TEST -> EvaluationScreen(onBack = { screen = Screen.SMART_SEARCH })
                         Screen.KEYBOARD -> KeyboardSetupScreen(onBack = { screen = Screen.SEARCH })
                     }

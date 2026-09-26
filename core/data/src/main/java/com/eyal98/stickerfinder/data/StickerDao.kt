@@ -133,6 +133,17 @@ abstract class StickerDao {
     )
     abstract suspend fun saveCaption(id: Long, en: String?, he: String?, tags: String?, at: Long, model: String)
 
+    /**
+     * A random sample of described stickers for the user to check, those written with the
+     * model/prompt ending in [modelSuffix] first. Copies of one image count once.
+     */
+    @Query(
+        "SELECT * FROM stickers WHERE captionedAt IS NOT NULL AND id IN " +
+            "(SELECT MIN(id) FROM stickers GROUP BY COALESCE(perceptualHash, id)) " +
+            "ORDER BY (captionModel LIKE '%' || :modelSuffix) DESC, RANDOM() LIMIT :limit",
+    )
+    abstract suspend fun describedSample(modelSuffix: String, limit: Int): List<StickerEntity>
+
     /** Gives up on a sticker that keeps failing, keeping any description it already has. */
     @Query("UPDATE stickers SET captionedAt = :at WHERE id = :id")
     abstract suspend fun skipCaption(id: Long, at: Long)

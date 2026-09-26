@@ -59,6 +59,7 @@ import com.eyal98.stickerfinder.ml.PendingModel
 fun SmartSearchScreen(
     onBack: () -> Unit,
     onOpenQualityTest: () -> Unit,
+    onOpenDescriptionReview: () -> Unit,
     viewModel: SmartSearchViewModel = viewModel(factory = SmartSearchViewModel.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -156,6 +157,9 @@ fun SmartSearchScreen(
                     },
                     enabled = state.captionMemoryOk && state.captionPending > 0,
                 ) { Text(stringResource(R.string.start_now)) }
+            }
+            if (state.slot(ModelSlot.CAPTION).installed != null) {
+                OutlinedButton(onClick = onOpenDescriptionReview) { Text(stringResource(R.string.review_open)) }
             }
 
             HorizontalDivider()

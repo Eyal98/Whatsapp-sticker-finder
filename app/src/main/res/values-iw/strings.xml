@@ -114,4 +114,23 @@
     <string name="image_tags_running">פועל עכשיו. ממשיך גם אם יוצאים מהאפליקציה.</string>
     <string name="image_tags_start">התחלה עכשיו</string>
     <string name="model_turned_off_reason">פרטים: %1$s</string>
+    <string name="review_open">בדיקת תיאורים</string>
+    <string name="review_title">בדיקת תיאורים</string>
+    <string name="review_loading">בוחר מדבקות…</string>
+    <string name="review_none">עדיין אין מדבקות עם תיאור. חברו את הטלפון למטען ותנו לתיאורים לרוץ קודם.</string>
+    <string name="review_intro">האם התיאור הזה יעזור לכם למצוא את המדבקה? טוב: מדויק וספציפי. כללי מדי: נכון אבל מעורפל ("דמות מצוירת"). שגוי: לא מתאים למדבקה.</string>
+    <string name="review_progress">מדבקה %1$d מתוך %2$d</string>
+    <string name="review_good">טוב</string>
+    <string name="review_generic">כללי מדי</string>
+    <string name="review_wrong">שגוי</string>
+    <string name="review_skip">דילוג</string>
+    <string name="review_empty">(אין תיאור: המודל לא החזיר משהו שימושי.)</string>
+    <string name="review_keywords">מילות מפתח</string>
+    <string name="review_picture_tags">תגיות תמונה</string>
+    <string name="review_pack">חבילת מדבקות</string>
+    <string name="review_summary">נבדקו %1$d: %2$d טובים, %3$d כלליים מדי, %4$d שגויים.</string>
+    <string name="review_percent">%1$d%% טובים</string>
+    <string name="review_share_body">שתפו את הדוח כדי להראות אילו תיאורים פספסו. יש בו את הטקסט שהמודל כתב עבור המדבקות שסימנתם, לא את המדבקות עצמן.</string>
+    <string name="review_share">שיתוף הדוח</string>
+    <string name="review_again">לבדוק עוד</string>
 </resources>

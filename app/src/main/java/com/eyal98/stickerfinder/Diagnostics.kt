@@ -27,6 +27,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.eyal98.stickerfinder.ui.DescriptionReviewStore
 
 /**
  * A plain-text report for troubleshooting, shown to the user in full before they share it. It
@@ -74,6 +75,7 @@ object Diagnostics {
                 appendLine("picture-tagged ${c.imageTagged} (with tags ${c.withImageTags}, retried ${c.imageTagRetried})")
                 IndexStats.describe(app)?.let(::appendLine)
                 CaptionStats.describe(app)?.let(::appendLine)
+                DescriptionReviewStore.describe(app)?.let(::appendLine)
             }
             section("Background work") {
                 val workManager = WorkManager.getInstance(app)

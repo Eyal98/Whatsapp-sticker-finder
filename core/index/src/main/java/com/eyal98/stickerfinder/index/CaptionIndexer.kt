@@ -3,6 +3,7 @@ package com.eyal98.stickerfinder.index
 import android.content.ContentResolver
 import android.net.Uri
 import android.util.Log
+import com.eyal98.stickerfinder.caption.CaptionPrompt
 import com.eyal98.stickerfinder.caption.StickerCaptioner
 import com.eyal98.stickerfinder.data.StickerDao
 import com.eyal98.stickerfinder.data.StickerEntity
@@ -109,7 +110,8 @@ class CaptionIndexer(
             he = result?.hebrew,
             tags = result?.tags?.takeIf { it.isNotEmpty() }?.joinToString(", "),
             at = System.currentTimeMillis(),
-            model = captioner.modelId,
+            // Model and prompt version, so the description check can look at the newest ones.
+            model = "${captioner.modelId}+p${CaptionPrompt.VERSION}",
         )
         repository.refreshSearchTerms(sticker.id)
         return true
