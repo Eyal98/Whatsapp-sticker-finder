@@ -54,8 +54,8 @@ class StickerRepository(
 
     suspend fun recordUse(id: Long) = dao.recordUse(id, System.currentTimeMillis())
 
-    suspend fun setTags(id: Long, tags: String) {
-        dao.setTags(id, tags.trim())
+    suspend fun setTags(id: Long, tags: List<String>) {
+        dao.setTags(id, UserTags.format(tags))
         refreshSearchTerms(id)
     }
 
@@ -65,10 +65,21 @@ class StickerRepository(
     suspend fun tagPack(pack: String, tags: List<String>) = addTags(dao.idsInPack(pack), tags)
 
     /** Adds [tags] to each sticker's own tags, keeping the ones it has. */
-    suspend fun addTags(ids: Collection<Long>, tags: List<String>) {
+    suspend fun addTags(ids: Collection<Long>, tags: List<String>) = editTags(ids, add = tags, remove = emptyList())
+
+    /**
+     * Applies one edit to each sticker's own tags: adds [add] and removes [remove] (ignoring
+     * case), leaving every other tag as it was.
+     */
+    suspend fun editTags(ids: Collection<Long>, add: Collection<String>, remove: Collection<String>) {
+        if (add.isEmpty() && remove.isEmpty()) return
+        val removed = remove.map { it.lowercase() }.toSet()
         for (sticker in dao.byIds(ids.toList())) {
-            val merged = (sticker.userTags.split(' ') + tags).map { it.trim() }.filter { it.isNotEmpty() }.distinct()
-            dao.setTags(sticker.id, merged.joinToString(" "))
+            val current = UserTags.parse(sticker.userTags)
+            val updated = current.filter { it.lowercase() !in removed } + add
+            val formatted = UserTags.format(updated)
+            if (formatted == UserTags.format(current)) continue
+            dao.setTags(sticker.id, formatted)
             refreshSearchTerms(sticker.id)
         }
     }
@@ -136,13 +147,28 @@ class StickerRepository(
         }
     }
 
-    /** Hides [tags] from each sticker's picture tags (they stay hidden after retagging). */
-    suspend fun removeImageTags(ids: Collection<Long>, tags: Collection<String>) {
-        if (tags.isEmpty()) return
+    /**
+     * Hides [hide] from each sticker's picture tags (they stay hidden after retagging) and brings
+     * back [show], leaving the rest as it was.
+     */
+    suspend fun editHiddenImageTags(ids: Collection<Long>, hide: Collection<String>, show: Collection<String>) {
+        if (hide.isEmpty() && show.isEmpty()) return
+        val shown = show.map { it.lowercase() }.toSet()
         for (sticker in dao.byIds(ids.toList())) {
-            val merged = (ImageTagFilter.split(sticker.removedImageTags) + tags).distinctBy { it.lowercase() }
+            val merged = (ImageTagFilter.split(sticker.removedImageTags).filter { it.lowercase() !in shown } + hide)
+                .distinctBy { it.lowercase() }
             dao.setRemovedImageTags(sticker.id, merged.joinToString(", ").ifEmpty { null })
             refreshSearchTerms(sticker.id)
+        }
+    }
+
+    /** Clears the description of each sticker whose description is exactly [description]. */
+    suspend fun clearDescription(ids: Collection<Long>, description: String) {
+        for (sticker in dao.byIds(ids.toList())) {
+            if (sticker.userDescription == description) {
+                dao.setUserDescription(sticker.id, null)
+                refreshSearchTerms(sticker.id)
+            }
         }
     }
 

@@ -77,6 +77,21 @@ data class StickerEntity(
     val visibleImageTags: String? get() = ImageTagFilter.visible(imageTags, removedImageTags)
 }
 
+/**
+ * The user's own tags. Stored comma-separated so a tag can be several words ("Kermit the Frog");
+ * older rows were space-separated, one word per tag, and are read that way.
+ */
+object UserTags {
+    fun parse(stored: String?): List<String> {
+        val s = stored.orEmpty()
+        val parts = if (',' in s) s.split(',') else s.split(' ')
+        return parts.map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() }
+    }
+
+    fun format(tags: List<String>): String =
+        tags.map { it.trim() }.filter { it.isNotEmpty() }.distinctBy { it.lowercase() }.joinToString(", ")
+}
+
 /** Picture tags minus the ones the user removed (both comma-separated). */
 object ImageTagFilter {
     fun split(tags: String?): List<String> = tags.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }

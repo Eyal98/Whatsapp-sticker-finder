@@ -3,6 +3,8 @@ package com.eyal98.stickerfinder.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -92,13 +95,39 @@ fun StickerDetailsScreen(
             s.packName?.let { Labeled(stringResource(R.string.details_pack), it) }
             s.ocrText?.takeIf { it.isNotBlank() }?.let { Labeled(stringResource(R.string.details_printed_text), it) }
 
-            OutlinedTextField(
-                value = state.tags,
-                onValueChange = viewModel::setTags,
-                label = { Text(stringResource(R.string.tags_title)) },
-                placeholder = { Text(stringResource(R.string.tags_hint)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
+            // Your tags, as removable chips like the picture tags, plus a field to add one.
+            Text(stringResource(R.string.tags_title), style = MaterialTheme.typography.titleSmall)
+            if (state.tags.isNotEmpty()) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    for (tag in state.tags) {
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            modifier = Modifier.clickable { viewModel.removeTag(tag) },
+                        ) {
+                            Text(
+                                "$tag ✕",
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            )
+                        }
+                    }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = state.newTag,
+                    onValueChange = viewModel::setNewTag,
+                    placeholder = { Text(stringResource(R.string.details_add_tag_hint)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { viewModel.addTag() }),
+                    modifier = Modifier.weight(1f),
+                )
+                OutlinedButton(onClick = viewModel::addTag, enabled = state.newTag.isNotBlank()) {
+                    Text(stringResource(R.string.details_add_tag))
+                }
+            }
             OutlinedTextField(
                 value = state.description,
                 onValueChange = viewModel::setDescription,
@@ -118,7 +147,7 @@ fun StickerDetailsScreen(
                         val hidden = state.removedPictureTags.any { it.equals(tag, ignoreCase = true) }
                         Surface(
                             shape = RoundedCornerShape(16.dp),
-                            tonalElevation = if (hidden) 0.dp else 3.dp,
+                            color = if (hidden) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.primaryContainer,
                             modifier = Modifier.clickable {
                                 if (hidden) state.removedPictureTags.filter { it.equals(tag, true) }.forEach(viewModel::showPictureTag)
                                 else viewModel.hidePictureTag(tag)

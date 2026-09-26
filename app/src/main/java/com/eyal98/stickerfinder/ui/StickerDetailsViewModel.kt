@@ -9,6 +9,7 @@ import com.eyal98.stickerfinder.data.ImageTagFilter
 import com.eyal98.stickerfinder.data.LookAlike
 import com.eyal98.stickerfinder.data.StickerEntity
 import com.eyal98.stickerfinder.data.StickerFaceInfo
+import com.eyal98.stickerfinder.data.UserTags
 import com.eyal98.stickerfinder.index.EmbedWorker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,7 +27,9 @@ data class ShareSet(
 
 data class StickerDetailsState(
     val loaded: Boolean = false,
-    val tags: String = "",
+    val tags: List<String> = emptyList(),
+    /** What's typed in the "add a tag" field. */
+    val newTag: String = "",
     val description: String = "",
     /** Picture tags the user hid, including ones hidden in this edit. */
     val removedPictureTags: Set<String> = emptySet(),
@@ -69,7 +72,7 @@ class StickerDetailsViewModel(private val app: StickerFinderApp, private val id:
             original = s
             _state.value = StickerDetailsState(
                 loaded = true,
-                tags = s.userTags,
+                tags = UserTags.parse(s.userTags),
                 description = s.userDescription.orEmpty(),
                 removedPictureTags = ImageTagFilter.split(s.removedImageTags).toSet(),
                 samePerson = repository.samePersonStickers(id),
@@ -78,7 +81,15 @@ class StickerDetailsViewModel(private val app: StickerFinderApp, private val id:
         }
     }
 
-    fun setTags(value: String) = _state.update { it.copy(tags = value) }
+    fun setNewTag(value: String) = _state.update { it.copy(newTag = value) }
+
+    /** Adds what's typed as a tag (commas separate several). */
+    fun addTag() = _state.update { s ->
+        val added = s.newTag.split(',').map { it.trim() }.filter { it.isNotEmpty() }
+        s.copy(tags = UserTags.parse(UserTags.format(s.tags + added)), newTag = "")
+    }
+
+    fun removeTag(tag: String) = _state.update { it.copy(tags = it.tags - tag) }
     fun setDescription(value: String) = _state.update { it.copy(description = value) }
     fun hidePictureTag(tag: String) = _state.update { it.copy(removedPictureTags = it.removedPictureTags + tag) }
     fun showPictureTag(tag: String) = _state.update { it.copy(removedPictureTags = it.removedPictureTags - tag) }
@@ -125,8 +136,14 @@ class StickerDetailsViewModel(private val app: StickerFinderApp, private val id:
         if (dao.syncPeopleNames() > 0) EmbedWorker.runForEdit(app)
     }
 
-    /** Saves this sticker's fields and shares what changed with the chosen stickers. */
+    /**
+     * Saves this sticker's fields, and applies to the chosen stickers only what this edit
+     * changed: tags added and removed, picture tags hidden and brought back, and the description
+     * if it changed. Everything else on those stickers stays as it was.
+     */
     fun save(onDone: () -> Unit) {
+        // A tag still in the field counts, as if Add was tapped.
+        if (_state.value.newTag.isNotBlank()) addTag()
         val s = _state.value
         val before = original ?: return
         _state.update { it.copy(saving = true) }
@@ -144,12 +161,23 @@ class StickerDetailsViewModel(private val app: StickerFinderApp, private val id:
                 remove(id)
             }
             if (targets.isNotEmpty()) {
-                val oldWords = before.userTags.split(' ').filter { it.isNotBlank() }.toSet()
-                val added = s.tags.split(' ').map { it.trim() }.filter { it.isNotEmpty() && it !in oldWords }.distinct()
-                if (added.isNotEmpty()) repository.addTags(targets, added)
-                if (description != null && description != before.userDescription) repository.setDescription(targets, description)
-                val newlyHidden = s.removedPictureTags - ImageTagFilter.split(before.removedImageTags).toSet()
-                repository.removeImageTags(targets, newlyHidden)
+                val oldTags = UserTags.parse(before.userTags)
+                val added = s.tags.filter { t -> oldTags.none { it.equals(t, ignoreCase = true) } }
+                val removed = oldTags.filter { t -> s.tags.none { it.equals(t, ignoreCase = true) } }
+                repository.editTags(targets, add = added, remove = removed)
+
+                val oldHidden = ImageTagFilter.split(before.removedImageTags)
+                val hidden = s.removedPictureTags.filter { t -> oldHidden.none { it.equals(t, ignoreCase = true) } }
+                val shown = oldHidden.filter { t -> s.removedPictureTags.none { it.equals(t, ignoreCase = true) } }
+                repository.editHiddenImageTags(targets, hide = hidden, show = shown)
+
+                val oldDescription = before.userDescription
+                when {
+                    description == oldDescription -> Unit
+                    description != null -> repository.setDescription(targets, description)
+                    // Cleared: clear it where it's the same text, keep other stickers' own.
+                    oldDescription != null -> repository.clearDescription(targets, oldDescription)
+                }
             }
             EmbedWorker.runForEdit(app)
             onDone()

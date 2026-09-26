@@ -126,6 +126,8 @@
     <string name="people_delete_yes">מחיקה</string>
     <string name="details_save_share">שמירה ושיתוף עם %1$d</string>
     <string name="details_title">מדבקה</string>
+    <string name="details_add_tag">הוספה</string>
+    <string name="details_add_tag_hint">הוספת תגית</string>
     <string name="details_pack">חבילת מדבקות</string>
     <string name="details_printed_text">טקסט על המדבקה</string>
     <string name="details_description">תיאור</string>
@@ -136,7 +138,7 @@
     <string name="details_face_ungrouped">עדיין לא בקבוצה</string>
     <string name="details_not_them">זה לא הם</string>
     <string name="details_share_title">לשתף את העריכה עם</string>
-    <string name="details_share_body">תגיות חדשות, התיאור ותגיות תמונה שהוסתרו מועתקים למדבקות שתבחרו. שמות של אנשים חלים ממילא על כל המדבקות של אותו אדם.</string>
+    <string name="details_share_body">רק העריכה הזו חלה על המדבקות שתבחרו: תגיות שהוספתם נוספות ותגיות שהסרתם מוסרות, תגיות תמונה שהסתרתם או החזרתם משתנות באותו אופן, ותיאור ששיניתם מועתק. שום דבר אחר בהן לא משתנה. שמות של אנשים חלים ממילא על כל המדבקות של אותו אדם.</string>
     <string name="details_share_looks">נראות דומה (%1$d)</string>
     <string name="details_share_context">אותו הקשר (%1$d)</string>
     <string name="details_share_person">אותו אדם: %1$d מדבקות</string>

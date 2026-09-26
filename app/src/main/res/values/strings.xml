@@ -126,6 +126,8 @@
     <string name="people_delete_yes">Delete</string>
     <string name="details_save_share">Save and share with %1$d</string>
     <string name="details_title">Sticker</string>
+    <string name="details_add_tag">Add</string>
+    <string name="details_add_tag_hint">Add a tag</string>
     <string name="details_pack">Sticker pack</string>
     <string name="details_printed_text">Printed text</string>
     <string name="details_description">Description</string>
@@ -136,7 +138,7 @@
     <string name="details_face_ungrouped">Not in a group yet</string>
     <string name="details_not_them">Not them</string>
     <string name="details_share_title">Share this edit with</string>
-    <string name="details_share_body">New tags, the description and hidden picture tags are copied to the stickers you pick. People names apply to every sticker of that person already.</string>
+    <string name="details_share_body">Only this edit is applied to the stickers you pick: tags you added are added and tags you removed are removed, picture tags you hid or brought back change the same way, and a changed description is copied. Nothing else on them changes. People names already apply to every sticker of that person.</string>
     <string name="details_share_looks">Looks similar (%1$d)</string>
     <string name="details_share_context">Same context (%1$d)</string>
     <string name="details_share_person">Same person: %1$d stickers</string>
