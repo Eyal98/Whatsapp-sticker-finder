@@ -387,3 +387,95 @@ a character tired	tired	עייף
 a character sick	sick	חולה
 a character cold	cold	קר
 a character hot	hot	חם
+# Characters, shows and memes. The 4th column marks names: they are picked on their own and
+# need a closer match (PictureLabels.NAME_MIN_SIMILARITY). No real people.
+SpongeBob SquarePants	spongebob	בובספוג	name
+Patrick Star from SpongeBob	patrick, spongebob	פטריק, בובספוג	name
+Squidward from SpongeBob	squidward, spongebob	סקווידוויד, בובספוג	name
+Mr. Krabs from SpongeBob	mr krabs, spongebob	מר קראבס, בובספוג	name
+Homer Simpson	homer, simpsons	הומר, הסימפסונים	name
+Bart Simpson	bart, simpsons	בארט, הסימפסונים	name
+Lisa Simpson	lisa, simpsons	ליסה, הסימפסונים	name
+Marge Simpson	marge, simpsons	מארג', הסימפסונים	name
+Peter Griffin from Family Guy	peter griffin, family guy	פיטר גריפין, איש משפחה	name
+Rick and Morty	rick and morty	ריק ומורטי	name
+South Park characters	south park	סאות' פארק	name
+Mickey Mouse	mickey mouse, disney	מיקי מאוס, דיסני	name
+Minnie Mouse	minnie mouse, disney	מיני מאוס, דיסני	name
+Donald Duck	donald duck, disney	דונלד דאק, דיסני	name
+Goofy	goofy, disney	גופי, דיסני	name
+Winnie the Pooh	winnie the pooh, pooh	פו הדוב	name
+Tom and Jerry	tom and jerry	טום וג'רי	name
+Bugs Bunny	bugs bunny	באגס באני	name
+Tweety bird	tweety	טוויטי	name
+Scooby-Doo	scooby doo	סקובי דו	name
+Garfield the cat	garfield	גארפילד	name
+Snoopy	snoopy	סנופי	name
+Hello Kitty	hello kitty	הלו קיטי	name
+Pikachu	pikachu, pokemon	פיקאצ'ו, פוקימון	name
+a Pokémon	pokemon	פוקימון	name
+Shrek	shrek	שרק	name
+Donkey from Shrek	donkey, shrek	חמור, שרק	name
+Puss in Boots	puss in boots, shrek	החתול במגפיים, שרק	name
+a Minion from Despicable Me	minions, despicable me	מיניונים, גנוב על הירח	name
+Gru from Despicable Me	gru, despicable me	גרו, גנוב על הירח	name
+Peppa Pig	peppa pig	פפה פיג	name
+Mr. Bean	mr bean	מיסטר בין	name
+Kermit the Frog	kermit, muppets	קרמיט, החבובות	name
+Elmo from Sesame Street	elmo, sesame street	אלמו, רחוב סומסום	name
+Cookie Monster	cookie monster, sesame street	עוגיפלצת, רחוב סומסום	name
+Baby Yoda Grogu	baby yoda, grogu, star wars	בייבי יודה, מלחמת הכוכבים	name
+Darth Vader	darth vader, star wars	דארת' ויידר, מלחמת הכוכבים	name
+Harry Potter	harry potter	הארי פוטר	name
+Spider-Man	spiderman, marvel	ספיידרמן, מארוול	name
+Batman	batman	באטמן	name
+the Joker	joker	ג'וקר	name
+Iron Man	iron man, marvel	איירון מן, מארוול	name
+the Hulk	hulk, marvel	האלק, מארוול	name
+Thanos	thanos, marvel	תאנוס, מארוול	name
+Groot	groot, marvel	גרוט, מארוול	name
+Deadpool	deadpool, marvel	דדפול, מארוול	name
+Superman	superman	סופרמן	name
+Elsa from Frozen	elsa, frozen	אלזה, לשבור את הקרח	name
+Olaf the snowman from Frozen	olaf, frozen	אולף, לשבור את הקרח	name
+Woody from Toy Story	woody, toy story	וודי, צעצוע של סיפור	name
+Buzz Lightyear	buzz lightyear, toy story	באז שנות אור, צעצוע של סיפור	name
+Stitch from Lilo and Stitch	stitch	סטיץ'	name
+Simba from The Lion King	simba, lion king	סימבה, מלך האריות	name
+Nemo the clownfish	nemo	נמו	name
+Mike Wazowski from Monsters Inc	mike wazowski, monsters inc	מייק וזובסקי, מפלצות בעמ	name
+Lightning McQueen from Cars	mcqueen, cars	מקווין, מכוניות	name
+Moana	moana	מואנה	name
+Po from Kung Fu Panda	kung fu panda, po	קונג פו פנדה	name
+Scrat the squirrel from Ice Age	scrat, ice age	סקראט, עידן הקרח	name
+WALL-E robot	wall e	וול-אי	name
+Sonic the Hedgehog	sonic	סוניק	name
+Super Mario	mario, nintendo	מריו, נינטנדו	name
+Luigi	luigi, mario	לואיג'י, מריו	name
+Yoshi	yoshi, mario	יושי, מריו	name
+Kirby	kirby	קירבי	name
+an Among Us crewmate	among us	אמונג אס	name
+Minecraft	minecraft	מיינקראפט	name
+Angry Birds	angry birds	אנגרי בירדס	name
+Bluey the cartoon dog	bluey	בלואי	name
+Paw Patrol	paw patrol	מפרץ ההרפתקאות	name
+Dora the Explorer	dora	דורה	name
+the Teletubbies	teletubbies	טלטביז	name
+the Smurfs	smurfs	דרדסים	name
+the Pink Panther	pink panther	הפנתר הורוד	name
+Popeye the sailor	popeye	פופאי	name
+Barbie	barbie	ברבי	name
+Goku from Dragon Ball	goku, dragon ball, anime	גוקו, דרגון בול, אנימה	name
+Naruto	naruto, anime	נארוטו, אנימה	name
+Luffy from One Piece	luffy, one piece, anime	לופי, וואן פיס, אנימה	name
+Totoro	totoro, ghibli	טוטורו	name
+Sailor Moon	sailor moon, anime	סיילור מון, אנימה	name
+Doraemon	doraemon, anime	דוראמון, אנימה	name
+Crayon Shin-chan	shin chan, anime	שין צ'אן, אנימה	name
+Squid Game	squid game	משחק הדיונון	name
+Pepe the Frog meme	pepe, meme	פפה הצפרדע, מם	name
+the Doge Shiba Inu meme	doge, meme	דוג', מם	name
+a Wojak meme face	wojak, meme	וואג'ק, מם	name
+the trollface meme	trollface, troll, meme	טרול, מם	name
+Grumpy Cat meme	grumpy cat, meme	חתול עצבני, מם	name
+Nyan Cat	nyan cat, meme	ניאן קאט, מם	name

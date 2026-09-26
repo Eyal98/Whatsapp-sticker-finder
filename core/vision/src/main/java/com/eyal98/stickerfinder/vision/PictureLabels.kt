@@ -16,6 +16,8 @@ class PictureLabels private constructor(
     /** [count] rows of [dim] floats, each L2-normalized. */
     private val vectors: FloatArray,
     private val tags: List<List<String>>,
+    /** Which labels name a character or show (a 4th column "name" in labels.tsv). */
+    private val isName: BooleanArray,
     /** Identifies this label list; stored with each sticker's tags. */
     val version: String,
 ) {
@@ -35,7 +37,7 @@ class PictureLabels private constructor(
 
     /** Comma-separated English and Hebrew tags for [image], or "" when no label fits. */
     fun tagsFor(image: FloatArray): String =
-        pick(similarities(image)).flatMap { tags[it] }.distinct().joinToString(", ")
+        pick(similarities(image), isName).flatMap { tags[it] }.distinct().joinToString(", ")
 
     companion object {
         private const val ASSET_TSV = "siglip/labels.tsv"
@@ -56,13 +58,30 @@ class PictureLabels private constructor(
         /** Labels further behind the best match than this are dropped. */
         const val MAX_GAP = 0.015f
 
-        /** The labels to tag a sticker with, best first. Pure, for tests. */
-        fun pick(similarities: FloatArray): List<Int> {
-            val order = similarities.indices.sortedByDescending { similarities[it] }
+        /** At most this many character/show names per sticker. */
+        const val MAX_NAMES = 2
+
+        /**
+         * Names need a closer match than other labels: a wrong name is worse than none. Above the
+         * best name match on the non-character test images (build_labels.py prints it).
+         */
+        const val NAME_MIN_SIMILARITY = 0.12f
+
+        /**
+         * The labels to tag a sticker with: recognized names first, then the usual labels. Names
+         * are picked on their own so a character doesn't crowd out what it's doing. Pure, for tests.
+         */
+        fun pick(similarities: FloatArray, isName: BooleanArray = BooleanArray(similarities.size)): List<Int> {
+            val names = best(similarities, MAX_NAMES, NAME_MIN_SIMILARITY) { isName[it] }
+            return names + best(similarities, MAX_LABELS, MIN_SIMILARITY) { !isName[it] }
+        }
+
+        private fun best(similarities: FloatArray, max: Int, min: Float, include: (Int) -> Boolean): List<Int> {
+            val order = similarities.indices.filter(include).sortedByDescending { similarities[it] }
             val best = order.firstOrNull()?.let { similarities[it] } ?: return emptyList()
             return order.asSequence()
-                .take(MAX_LABELS)
-                .filter { similarities[it] >= MIN_SIMILARITY && similarities[it] >= best - MAX_GAP }
+                .take(max)
+                .filter { similarities[it] >= min && similarities[it] >= best - MAX_GAP }
                 .toList()
         }
 
@@ -78,12 +97,13 @@ class PictureLabels private constructor(
                 .filter { it.isNotBlank() && !it.startsWith("#") }
                 .map { line ->
                     val cols = line.split('\t')
-                    require(cols.size == 3) { "Bad labels.tsv line: $line" }
+                    require(cols.size == 3 || (cols.size == 4 && cols[3].trim() == "name")) { "Bad labels.tsv line: $line" }
                     cols
                 }
                 .toList()
             val prompts = rows.map { it[0].trim() }
             val tags = rows.map { cols -> (splitTags(cols[1]) + splitTags(cols[2])).distinct() }
+            val isName = BooleanArray(rows.size) { rows[it].size == 4 }
 
             val buffer = ByteBuffer.wrap(bin).order(ByteOrder.LITTLE_ENDIAN)
             require(bin.size >= HEADER_BYTES) { "Label vector file is too short" }
@@ -101,7 +121,7 @@ class PictureLabels private constructor(
             require(bin.size == HEADER_BYTES + count * dim * 2) { "Label vector file has the wrong size" }
 
             val vectors = FloatArray(count * dim) { halfToFloat(buffer.short) }
-            return PictureLabels(count, dim, vectors, tags, promptHash.toHex().take(16))
+            return PictureLabels(count, dim, vectors, tags, isName, promptHash.toHex().take(16))
         }
 
         private fun splitTags(column: String) = column.split(',').map { it.trim() }.filter { it.isNotEmpty() }

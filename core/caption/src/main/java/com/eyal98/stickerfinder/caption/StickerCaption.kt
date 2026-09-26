@@ -21,7 +21,8 @@ interface StickerCaptioner : Closeable {
 
     /**
      * @param printedText text OCR found on the sticker, given to the model as a hint.
+     * @param packName the sticker pack's name from the file's metadata, also a hint.
      * @return the caption, or null if the model's reply couldn't be understood.
      */
-    fun caption(sticker: Bitmap, printedText: String?): StickerCaption?
+    fun caption(sticker: Bitmap, printedText: String?, packName: String?): StickerCaption?
 }

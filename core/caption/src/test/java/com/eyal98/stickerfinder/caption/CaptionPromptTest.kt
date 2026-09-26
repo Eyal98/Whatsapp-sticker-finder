@@ -55,6 +55,19 @@ class CaptionPromptTest {
     }
 
     @Test
+    fun `recognized names come first in the tags and none is dropped`() {
+        val caption = CaptionPrompt.parse("EN: SpongeBob laughing\nNAMES: SpongeBob, Patrick Star\nTAGS: laughing, בובספוג, none")
+        assertEquals(listOf("SpongeBob", "Patrick Star", "laughing", "בובספוג"), caption?.tags)
+        assertEquals(emptyList<String>(), CaptionPrompt.parse("EN: a cat\nNAMES: none")?.tags)
+    }
+
+    @Test
+    fun `prompt includes the pack name when known`() {
+        assertFalse(CaptionPrompt.build(null, null).contains("sticker pack named"))
+        assertTrue(CaptionPrompt.build(null, "Friends \"TV\"").contains("\"Friends 'TV'\""))
+    }
+
+    @Test
     fun `reply without any known label is rejected`() {
         assertNull(CaptionPrompt.parse("I can't see the image."))
         assertNull(CaptionPrompt.parse(""))

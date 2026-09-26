@@ -27,7 +27,7 @@ class LiteRtLmCaptioner private constructor(
     private var onFirstCaption: (() -> Unit)?,
 ) : StickerCaptioner {
 
-    override fun caption(sticker: Bitmap, printedText: String?): StickerCaption? {
+    override fun caption(sticker: Bitmap, printedText: String?, packName: String?): StickerCaption? {
         val image = StickerImage.flatten(sticker)
         val png = try {
             ByteArrayOutputStream().use { out ->
@@ -40,7 +40,7 @@ class LiteRtLmCaptioner private constructor(
         // A fresh conversation per sticker, so one sticker's description can't leak into the next.
         val text = engine.createConversation(conversationConfig).use { conversation ->
             val reply = conversation.sendMessage(
-                Contents.of(Content.ImageBytes(png), Content.Text(CaptionPrompt.build(printedText))),
+                Contents.of(Content.ImageBytes(png), Content.Text(CaptionPrompt.build(printedText, packName))),
             )
             reply.contents.contents.filterIsInstance<Content.Text>().joinToString("") { it.text }
         }
@@ -58,7 +58,8 @@ class LiteRtLmCaptioner private constructor(
 
     companion object {
         private const val TAG = "LiteRtLmCaptioner"
-        private const val MAX_TOKENS = 1024
+        // Image, prompt and reply together; the reply asks for up to 20 keywords in two languages.
+        private const val MAX_TOKENS = 2048
         private const val PREFS = "litertlm_caption"
 
         /**

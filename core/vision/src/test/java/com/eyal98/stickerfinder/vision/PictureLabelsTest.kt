@@ -53,6 +53,26 @@ class PictureLabelsTest {
     }
 
     @Test
+    fun namesArePickedSeparatelyAndNeedACloserMatch() {
+        val isName = booleanArrayOf(true, false, false, true)
+        // A name close to the image comes first, and the best other label still follows it.
+        assertEquals(listOf(0, 1), PictureLabels.pick(floatArrayOf(0.20f, 0.15f, 0.12f, 0.10f), isName))
+        // A weak name match is left out even though an ordinary label that weak would be kept.
+        assertEquals(listOf(1), PictureLabels.pick(floatArrayOf(0.11f, 0.11f, 0.05f, 0.05f), isName))
+    }
+
+    @Test
+    fun parsesTheNameColumn() {
+        val labels = PictureLabels.parse("a cat\tcat\tחתול\nPikachu\tpikachu\tפיקאצ'ו\tname", bin(listOf("a cat", "Pikachu")))
+        assertEquals("pikachu, פיקאצ'ו, cat, חתול", labels.tagsFor(floatArrayOf(0.5f, 0.5f, 0f, 0f).normalized()))
+    }
+
+    private fun FloatArray.normalized(): FloatArray {
+        val n = kotlin.math.sqrt(sumOf { (it * it).toDouble() }).toFloat()
+        return FloatArray(size) { this[it] / n }
+    }
+
+    @Test
     fun picksNothingWhenNothingFits() {
         assertTrue(PictureLabels.pick(floatArrayOf(0.02f, 0.01f)).isEmpty())
     }

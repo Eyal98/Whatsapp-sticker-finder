@@ -19,13 +19,13 @@ class MediaPipeCaptioner private constructor(
 
     override val setupName: String = "mediapipe"
 
-    override fun caption(sticker: Bitmap, printedText: String?): StickerCaption? {
+    override fun caption(sticker: Bitmap, printedText: String?, packName: String?): StickerCaption? {
         val image = StickerImage.flatten(sticker)
         try {
             // A fresh session per sticker, so one sticker's description can't leak into the next.
             val session = LlmInferenceSession.createFromOptions(llm, sessionOptions)
             try {
-                session.addQueryChunk(CaptionPrompt.build(printedText))
+                session.addQueryChunk(CaptionPrompt.build(printedText, packName))
                 session.addImage(BitmapImageBuilder(image).build())
                 return CaptionPrompt.parse(session.generateResponse())
             } finally {

@@ -18,12 +18,16 @@ object EmbeddingText {
         userTags: String?,
         /** Picture tags from the image model; added last so older fingerprints stay valid without them. */
         imageTags: String? = null,
+        /** The sticker pack's name, and words for its emojis; also optional, for the same reason. */
+        packName: String? = null,
+        emojiWords: String? = null,
     ): String? {
         val parts = buildList {
             captionEn?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
             captionHe?.takeIf { it.isNotBlank() }?.let { add(it.trim()) }
             ocrText?.takeIf { it.isNotBlank() }?.let { add("Text: ${it.trim()}") }
-            val tags = listOfNotNull(captionTags, userTags, imageTags).filter { it.isNotBlank() }
+            packName?.takeIf { it.isNotBlank() }?.let { add("Sticker pack: ${it.trim()}") }
+            val tags = listOfNotNull(captionTags, userTags, imageTags, emojiWords).filter { it.isNotBlank() }
                 .joinToString(", ") { it.trim() }.trim(',', ' ')
             if (tags.isNotEmpty()) add("Tags: $tags")
         }

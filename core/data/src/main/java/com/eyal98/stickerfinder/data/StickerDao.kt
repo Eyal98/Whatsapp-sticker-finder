@@ -87,6 +87,8 @@ abstract class StickerDao {
             "COALESCE(SUM(CASE WHEN imageTaggedAt IS NOT NULL THEN 1 ELSE 0 END), 0) AS imageTagged, " +
             "COALESCE(SUM(CASE WHEN imageTags IS NOT NULL AND imageTags != '' THEN 1 ELSE 0 END), 0) AS withImageTags, " +
             "COALESCE(SUM(CASE WHEN imageTagAttempts > 1 THEN 1 ELSE 0 END), 0) AS imageTagRetried, " +
+            "COALESCE(SUM(CASE WHEN packName IS NOT NULL THEN 1 ELSE 0 END), 0) AS withPackName, " +
+            "COALESCE(SUM(CASE WHEN emojiWords IS NOT NULL AND emojiWords != '' THEN 1 ELSE 0 END), 0) AS withEmojis, " +
             "(SELECT COUNT(*) FROM sticker_vectors) AS vectors " +
             "FROM stickers",
     )
@@ -103,13 +105,17 @@ abstract class StickerDao {
 
     @Query(
         "UPDATE stickers SET isAnimated = :isAnimated, perceptualHash = :perceptualHash, " +
-            "ocrText = :ocrText, indexedAt = :indexedAt, indexVersion = :indexVersion, indexAttempts = 0 WHERE id = :id",
+            "ocrText = :ocrText, packName = :packName, packPublisher = :packPublisher, emojiWords = :emojiWords, " +
+            "indexedAt = :indexedAt, indexVersion = :indexVersion, indexAttempts = 0 WHERE id = :id",
     )
     abstract suspend fun saveIndexResult(
         id: Long,
         isAnimated: Boolean,
         perceptualHash: Long?,
         ocrText: String?,
+        packName: String?,
+        packPublisher: String?,
+        emojiWords: String?,
         indexedAt: Long,
         indexVersion: Int,
     )
@@ -123,19 +129,26 @@ abstract class StickerDao {
 
     @Query(
         "UPDATE stickers SET captionEn = :en, captionHe = :he, captionTags = :tags, " +
-            "captionedAt = :at, captionModel = :model WHERE id = :id",
+            "captionedAt = :at, captionModel = :model, captionAttempts = 0 WHERE id = :id",
     )
     abstract suspend fun saveCaption(id: Long, en: String?, he: String?, tags: String?, at: Long, model: String)
 
+    /** Gives up on a sticker that keeps failing, keeping any description it already has. */
+    @Query("UPDATE stickers SET captionedAt = :at WHERE id = :id")
+    abstract suspend fun skipCaption(id: Long, at: Long)
+
     /**
-     * Marks stickers whose description came back empty as not captioned, keeping at most
-     * [maxAttempts] recorded attempts so each gets at least one more try. Returns how many.
+     * Queues every described sticker to be described again (their current text stays until
+     * then). Stickers that got a description clearly don't crash the model, so their attempts
+     * restart; the rest keep at most [maxAttempts], so each gets at least one more try. Returns
+     * how many.
      */
     @Query(
-        "UPDATE stickers SET captionedAt = NULL, captionAttempts = MIN(captionAttempts, :maxAttempts) " +
-            "WHERE captionedAt IS NOT NULL AND captionEn IS NULL AND captionHe IS NULL AND captionTags IS NULL",
+        "UPDATE stickers SET captionedAt = NULL, captionAttempts = CASE " +
+            "WHEN captionEn IS NOT NULL OR captionHe IS NOT NULL OR captionTags IS NOT NULL THEN 0 " +
+            "ELSE MIN(captionAttempts, :maxAttempts) END WHERE captionedAt IS NOT NULL",
     )
-    abstract suspend fun requeueEmptyCaptions(maxAttempts: Int): Int
+    abstract suspend fun requeueCaptions(maxAttempts: Int): Int
 
     @Query("SELECT COUNT(*) FROM stickers WHERE captionedAt IS NULL")
     abstract fun observeCaptionPendingCount(): Flow<Int>
@@ -147,7 +160,10 @@ abstract class StickerDao {
     @Transaction
     open suspend fun saveIndexResults(results: List<IndexResult>) {
         for (r in results) {
-            saveIndexResult(r.id, r.isAnimated, r.perceptualHash, r.ocrText, r.indexedAt, r.indexVersion)
+            saveIndexResult(
+                r.id, r.isAnimated, r.perceptualHash, r.ocrText, r.packName, r.packPublisher, r.emojiWords,
+                r.indexedAt, r.indexVersion,
+            )
             refreshFts(r.id)
         }
     }
@@ -155,7 +171,11 @@ abstract class StickerDao {
     /** Rebuilds the full-text entry of one sticker from its current text fields. */
     open suspend fun refreshFts(id: Long) {
         val s = byId(id) ?: return
-        replaceFts(StickerFts(s.id, IndexTerms.build(s.ocrText, s.captionHe, s.captionEn, s.captionTags, s.imageTags, s.userTags)))
+        val terms = IndexTerms.build(
+            s.ocrText, s.captionHe, s.captionEn, s.captionTags, s.imageTags, s.userTags,
+            s.packName, s.packPublisher, s.emojiWords,
+        )
+        replaceFts(StickerFts(s.id, terms))
     }
 
     /** Indexed stickers the image model hasn't seen yet; favorites first. */
@@ -244,6 +264,9 @@ data class IndexResult(
     val isAnimated: Boolean,
     val perceptualHash: Long?,
     val ocrText: String?,
+    val packName: String?,
+    val packPublisher: String?,
+    val emojiWords: String?,
     val indexedAt: Long,
     val indexVersion: Int,
 )

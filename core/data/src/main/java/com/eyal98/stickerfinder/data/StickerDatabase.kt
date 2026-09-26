@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [StickerEntity::class, StickerFts::class, StickerVector::class, StickerImageVector::class],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class StickerDatabase : RoomDatabase() {
@@ -22,7 +22,7 @@ abstract class StickerDatabase : RoomDatabase() {
         // TODO(Phase 4): encrypt at rest with SQLCipher, key wrapped by Android Keystore.
         fun create(context: Context): StickerDatabase =
             Room.databaseBuilder(context.applicationContext, StickerDatabase::class.java, NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .build()
 
         /** Adds [StickerEntity.indexVersion]; existing rows start at 0 so they get OCR'd. */
@@ -71,6 +71,15 @@ abstract class StickerDatabase : RoomDatabase() {
                     "CREATE TABLE IF NOT EXISTS `sticker_image_vectors` (`stickerId` INTEGER NOT NULL, " +
                         "`model` TEXT NOT NULL, `vector` BLOB NOT NULL, PRIMARY KEY(`stickerId`))",
                 )
+            }
+        }
+
+        /** Adds the sticker-pack metadata; indexVersion < PACK makes the indexer fill it in. */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE stickers ADD COLUMN packName TEXT")
+                db.execSQL("ALTER TABLE stickers ADD COLUMN packPublisher TEXT")
+                db.execSQL("ALTER TABLE stickers ADD COLUMN emojiWords TEXT")
             }
         }
     }

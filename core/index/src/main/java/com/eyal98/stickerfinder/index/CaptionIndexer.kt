@@ -64,13 +64,16 @@ class CaptionIndexer(
         // The attempt is recorded first, so a sticker that crashes the model's native code (or
         // keeps failing) is given up on after MAX_ATTEMPTS instead of blocking the others.
         dao.markCaptionAttempt(sticker.id)
-        val result = if (sticker.captionAttempts >= WorkBudget.MAX_ATTEMPTS) {
+        if (sticker.captionAttempts >= WorkBudget.MAX_ATTEMPTS) {
+            // Keeps whatever description it had from an earlier model or prompt.
             Log.w(TAG, "Sticker ${sticker.id} failed captioning ${sticker.captionAttempts} times; skipping")
-            null
-        } else try {
+            dao.skipCaption(sticker.id, System.currentTimeMillis())
+            return true
+        }
+        val result = try {
             val bitmap = StickerBitmaps.decode(resolver, Uri.parse(sticker.documentUri))
             try {
-                captioner.caption(bitmap, sticker.ocrText).also {
+                captioner.caption(bitmap, sticker.ocrText, sticker.packName).also {
                     if (it == null) outcomes.empty++ else outcomes.described++
                 }
             } finally {
@@ -94,7 +97,12 @@ class CaptionIndexer(
             return false
         }
         // Every other outcome is saved, even "nothing", so it isn't asked again; it's tried again
-        // if the file changes.
+        // if the file changes. "Nothing" doesn't replace an earlier description, though.
+        val hadCaption = sticker.captionEn != null || sticker.captionHe != null || sticker.captionTags != null
+        if (result == null && hadCaption) {
+            dao.skipCaption(sticker.id, System.currentTimeMillis())
+            return true
+        }
         dao.saveCaption(
             id = sticker.id,
             en = result?.english,

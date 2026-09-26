@@ -57,6 +57,11 @@ data class StickerEntity(
     val imageTagsVersion: String? = null,
     /** The same as [indexAttempts], for the image model. */
     @ColumnInfo(defaultValue = "0") val imageTagAttempts: Int = 0,
+    /** The sticker pack's name and publisher, from the file's own metadata. */
+    val packName: String? = null,
+    val packPublisher: String? = null,
+    /** Words for the emojis the pack filed this sticker under, in both languages. */
+    val emojiWords: String? = null,
 )
 
 /** What the indexer extracts. Bump [CURRENT] when it learns something new, to re-index old rows. */
@@ -67,7 +72,10 @@ object IndexVersion {
     /** Adds text read from the sticker (OCR). */
     const val OCR = 2
 
-    const val CURRENT = OCR
+    /** Adds the sticker-pack name, publisher and emojis from the file's metadata. */
+    const val PACK = 3
+
+    const val CURRENT = PACK
 }
 
 /** The subset of columns the folder scanner needs to detect new, changed and removed files. */

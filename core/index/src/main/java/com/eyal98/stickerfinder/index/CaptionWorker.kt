@@ -14,6 +14,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.eyal98.stickerfinder.index.WorkBudget.Companion.continueSoon
+import com.eyal98.stickerfinder.caption.CaptionPrompt
 import com.eyal98.stickerfinder.caption.StickerCaptioners
 import com.eyal98.stickerfinder.data.StickerDao
 import com.eyal98.stickerfinder.ml.DeviceCapability
@@ -48,7 +49,7 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         HeavyWork.captioning = true
         try {
             val dao = host.database.stickerDao()
-            requeueEmptyOnce(dao)
+            requeueForNewPrompt(dao)
             // From here until the finally below, a crash in the model's native code turns it off.
             ModelCrashGuard.markBusy(applicationContext, ModelCrashGuard.CAPTION)
             report(done = null, left = dao.observeCaptionPendingCount().first())
@@ -83,15 +84,15 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
     }
 
     /**
-     * Before this version, a model error was saved as an empty description and never retried.
-     * Gives those stickers one more try, once.
+     * Describes stickers again when [CaptionPrompt.VERSION] changes. This also retries the
+     * descriptions older versions saved empty after a model error.
      */
-    private suspend fun requeueEmptyOnce(dao: StickerDao) {
+    private suspend fun requeueForNewPrompt(dao: StickerDao) {
         val prefs = applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        if (prefs.getBoolean(REQUEUED_EMPTY, false)) return
-        val count = dao.requeueEmptyCaptions(WorkBudget.MAX_ATTEMPTS - 1)
-        Log.i(TAG, "Requeued $count empty descriptions")
-        prefs.edit { putBoolean(REQUEUED_EMPTY, true) }
+        if (prefs.getInt(PROMPT_VERSION, 1) >= CaptionPrompt.VERSION) return
+        val count = dao.requeueCaptions(WorkBudget.MAX_ATTEMPTS - 1)
+        Log.i(TAG, "Requeued $count descriptions for prompt ${CaptionPrompt.VERSION}")
+        prefs.edit { putInt(PROMPT_VERSION, CaptionPrompt.VERSION) }
     }
 
     /** Not a usable model for this runtime: turn it off rather than retry forever, and say why. */
@@ -118,7 +119,7 @@ class CaptionWorker(context: Context, params: WorkerParameters) : CoroutineWorke
 
         private const val KEY_DONE = "done"
         private const val PREFS = "caption_worker"
-        private const val REQUEUED_EMPTY = "requeued_empty_v1"
+        private const val PROMPT_VERSION = "prompt_version"
 
         fun observeStatus(context: Context): Flow<CaptionStatus> {
             val workManager = WorkManager.getInstance(context)

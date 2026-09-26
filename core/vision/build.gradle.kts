@@ -52,7 +52,29 @@ abstract class FetchSiglipLabels : DefaultTask() {
         dir.mkdirs()
         labelsTsv.get().asFile.copyTo(dir.resolve("labels.tsv"), overwrite = true)
         val target = dir.resolve("labels.bin")
-        if (target.isFile && sha256(target) == sha256.get()) return
+        if (!(target.isFile && sha256(target) == sha256.get())) download(dir, target)
+        checkMatchesTsv(target)
+    }
+
+    /**
+     * The vectors carry a hash of the prompt list they were built from; a labels.tsv edited
+     * without re-pinning new vectors would turn picture tags off on the phone, so fail here.
+     */
+    private fun checkMatchesTsv(bin: File) {
+        val prompts = labelsTsv.get().asFile.readLines()
+            .filter { it.isNotBlank() && !it.startsWith("#") }
+            .map { it.split('\t').first().trim() }
+        val expected = MessageDigest.getInstance("SHA-256").digest(prompts.joinToString("\n").toByteArray())
+        val header = bin.readBytes().copyOfRange(20, 52)
+        if (!header.contentEquals(expected)) {
+            throw GradleException(
+                "tools/siglip/labels.tsv changed but core/vision/siglip.properties still pins vectors for the " +
+                    "old list: run the SigLIP labels workflow and pin the file it publishes",
+            )
+        }
+    }
+
+    private fun download(dir: File, target: File) {
         val part = dir.resolve("labels.bin.part")
         URI(url.get()).toURL().openStream().use { input -> part.outputStream().use { input.copyTo(it) } }
         val actual = sha256(part)

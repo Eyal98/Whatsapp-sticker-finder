@@ -94,6 +94,23 @@ class StickerIndexer(
 
     private suspend fun index(sticker: StickerEntity, textReader: StickerTextReader?): IndexResult {
         val uri = Uri.parse(sticker.documentUri)
+        // Unchanged since an OCR-level pass (a changed file has indexedAt cleared): only the
+        // pack metadata is new, so keep the rest instead of running OCR again.
+        if (textReader != null && sticker.indexedAt != null && sticker.indexVersion >= IndexVersion.OCR) {
+            dao.markIndexAttempt(sticker.id)
+            val metadata = runCatchingIo { readAll(uri) }?.let(::metadataOf)
+            return IndexResult(
+                id = sticker.id,
+                isAnimated = sticker.isAnimated,
+                perceptualHash = sticker.perceptualHash,
+                ocrText = sticker.ocrText,
+                packName = metadata?.packName,
+                packPublisher = metadata?.publisher,
+                emojiWords = metadata?.emojiWords?.joinToString(" "),
+                indexedAt = System.currentTimeMillis(),
+                indexVersion = version,
+            )
+        }
         // Recorded before the risky native work: if decoding or OCR crashes the process or hangs
         // until the job is stopped, the next run sees the attempt, moves this sticker to the back
         // of the queue, and after MAX_ATTEMPTS skips OCR (and then decoding) for it.
@@ -121,15 +138,28 @@ class StickerIndexer(
                 }
             }
         }
+        val metadata = if (decode) bytes?.let(::metadataOf) else null
         return IndexResult(
             id = sticker.id,
             isAnimated = isAnimated,
             perceptualHash = hash,
             ocrText = if (textReader != null) text else sticker.ocrText,
+            packName = metadata?.packName,
+            packPublisher = metadata?.publisher,
+            emojiWords = metadata?.emojiWords?.joinToString(" "),
             indexedAt = System.currentTimeMillis(),
             indexVersion = version,
         )
     }
+
+    /** Odd metadata must not fail the sticker. */
+    private fun metadataOf(bytes: ByteArray): StickerMetadata? =
+        try {
+            StickerMetadata.read(bytes)
+        } catch (e: RuntimeException) {
+            Log.w(TAG, "Unreadable sticker metadata", e)
+            null
+        }
 
     private fun readAll(uri: Uri): ByteArray {
         val stream = resolver.openInputStream(uri) ?: throw IOException("Cannot open $uri")

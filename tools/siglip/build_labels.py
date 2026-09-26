@@ -56,18 +56,20 @@ def fetch_emoji(code):
 
 
 def read_prompts(path):
-    prompts = []
+    """Prompt phrases in file order, and which of them are names (a 4th column "name")."""
+    prompts, names = [], []
     for line in open(path, encoding="utf-8"):
         line = line.rstrip("\n")
         if not line.strip() or line.startswith("#"):
             continue
         cols = line.split("\t")
-        if len(cols) != 3:
-            sys.exit(f"bad line (need 3 tab-separated columns): {line!r}")
+        if len(cols) not in (3, 4) or (len(cols) == 4 and cols[3].strip() != "name"):
+            sys.exit(f"bad line (need 3 tab-separated columns, plus an optional 'name'): {line!r}")
         prompts.append(cols[0].strip())
+        names.append(len(cols) == 4)
     if len(set(prompts)) != len(prompts):
         sys.exit("duplicate prompt phrases in labels.tsv")
-    return prompts
+    return prompts, names
 
 
 def flatten(image):
@@ -91,7 +93,8 @@ def main():
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
 
-    prompts = read_prompts(args.labels)
+    prompts, names = read_prompts(args.labels)
+    name_rows = np.array([i for i, n in enumerate(names) if n], dtype=np.int64)
     prompt_hash = hashlib.sha256("\n".join(prompts).encode("utf-8")).digest()
     print(f"{len(prompts)} labels, prompt hash {prompt_hash.hex()}")
 
@@ -136,6 +139,7 @@ def main():
     print(f"label embeddings {labels.shape}")
 
     worst = 1.0
+    worst_name = -1.0
     checked = 0
     for name, code in TEST_EMOJI.items():
         raw = fetch_emoji(code)
@@ -153,7 +157,14 @@ def main():
         print(f"\n{name}: tflite/torch cosine {agreement:.4f}")
         for j in top:
             print(f"  {cos[j]:.3f}  p={prob[j]:.4f}  {prompts[j]}")
-    print(f"\nworst tflite/torch agreement {worst:.4f} over {checked} images")
+        if len(name_rows):
+            # None of the test images is a known character: this is the false-positive level
+            # the app's name threshold (PictureLabels.NAME_MIN_SIMILARITY) must stay above.
+            j = name_rows[np.argmax(cos[name_rows])]
+            worst_name = max(worst_name, float(cos[j]))
+            print(f"  best name label {cos[j]:.3f}  {prompts[j]}")
+    print(f"\nhighest name-label similarity on non-character images {worst_name:.4f}")
+    print(f"worst tflite/torch agreement {worst:.4f} over {checked} images")
     if checked < 6:
         sys.exit("Too few test images could be downloaded to check the model.")
     if worst < 0.98:

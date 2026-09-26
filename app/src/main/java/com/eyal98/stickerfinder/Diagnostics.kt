@@ -70,6 +70,7 @@ object Diagnostics {
                 appendLine("stickers ${c.total}, indexed ${c.indexedCount}, pending ${c.total - c.indexedCount}")
                 appendLine("failing now ${c.failingNow}, needed retries ${c.retried}, most attempts ${c.maxAttempts}, undecodable ${c.undecodable}")
                 appendLine("with printed text ${c.withText}, animated ${c.animated}, starred ${c.starred}")
+                appendLine("with pack name ${c.withPackName}, with pack emojis ${c.withEmojis}")
                 appendLine("captioned ${c.captioned} (with text ${c.withCaption}, retried ${c.captionRetried}), vectors ${c.vectors}")
                 appendLine("picture-tagged ${c.imageTagged} (with tags ${c.withImageTags}, retried ${c.imageTagRetried})")
                 IndexStats.describe(app)?.let(::appendLine)
