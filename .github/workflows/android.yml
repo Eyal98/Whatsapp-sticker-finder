@@ -64,6 +64,8 @@ jobs:
           # Sideloaded over a phone connection: keep it small (see abiFilters in app/build.gradle.kts).
           size=$(stat -c %s "$apk")
           echo "APK size: $((size / 1024 / 1024)) MB"
+          echo "Largest entries (bytes, name):"
+          unzip -lv "$apk" | awk 'NR>3 && $1 ~ /^[0-9]+$/ {print $3, $8}' | sort -rn | head -n 15
           test "$size" -lt $((150 * 1024 * 1024)) || { echo "APK is over 150 MB"; exit 1; }
           cp "$apk" "$RUNNER_TEMP/sticker-finder-${{ github.run_number }}.apk"
 
