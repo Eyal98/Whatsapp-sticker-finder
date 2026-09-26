@@ -70,6 +70,12 @@ android {
         compose = true
     }
 
+    packaging {
+        // Compress native libraries in the APK (they're extracted once at install). Stored
+        // uncompressed, they made the sideload download about 2.5x bigger.
+        jniLibs.useLegacyPackaging = true
+    }
+
     lint {
         abortOnError = true
         checkDependencies = true
