@@ -5,9 +5,11 @@ import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.eyal98.stickerfinder.index.WorkBudget.Companion.continueSoon
+import kotlinx.coroutines.flow.first
 
 /**
  * Brings meaning vectors up to date after stickers' text changes (new captions, OCR, tags).
@@ -31,18 +33,27 @@ class EmbedWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
         val UNIQUE_NAMES = listOf(NAME, NOW)
 
         /**
-         * Picks up background changes (captions, picture tags, new stickers) the next time the
-         * phone is charging, or now if it already is. Runs after the current pass, if any.
+         * Picks up background changes (picture tags, new stickers) the next time the phone is
+         * charging, or now if it already is.
          */
-        fun runNow(context: Context) = enqueue(context, NAME, Constraints.Builder().setRequiresCharging(true).build())
+        suspend fun runNow(context: Context) = enqueue(context, NAME, Constraints.Builder().setRequiresCharging(true).build())
 
         /** For the user's own edits, like tags: a few stickers, so it doesn't wait for the charger. */
-        fun runForEdit(context: Context) = enqueue(context, NOW, Constraints.Builder().setRequiresBatteryNotLow(true).build())
+        suspend fun runForEdit(context: Context) = enqueue(context, NOW, Constraints.Builder().setRequiresBatteryNotLow(true).build())
 
-        private fun enqueue(context: Context, name: String, constraints: Constraints) {
-            WorkManager.getInstance(context).enqueueUniqueWork(
+        /**
+         * At most one pass waits at a time: each pass checks every sticker, so a waiting one
+         * already covers any later change. Appending every request instead built chains of ~70
+         * passes (diagnostics, build 119). A change made while a pass runs gets one pass after it,
+         * since the running one may have read that sticker already.
+         */
+        private suspend fun enqueue(context: Context, name: String, constraints: Constraints) {
+            val workManager = WorkManager.getInstance(context)
+            val states = workManager.getWorkInfosForUniqueWorkFlow(name).first().map { it.state }
+            if (states.any { it == WorkInfo.State.ENQUEUED || it == WorkInfo.State.BLOCKED }) return
+            workManager.enqueueUniqueWork(
                 name,
-                ExistingWorkPolicy.APPEND_OR_REPLACE,
+                if (WorkInfo.State.RUNNING in states) ExistingWorkPolicy.APPEND_OR_REPLACE else ExistingWorkPolicy.REPLACE,
                 OneTimeWorkRequestBuilder<EmbedWorker>().setConstraints(constraints).continueSoon().build(),
             )
         }

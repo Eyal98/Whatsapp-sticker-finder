@@ -168,7 +168,7 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
         ModelCrashGuard.enable(app, feature)
         turnedOff.value = currentTurnedOff()
         when (feature) {
-            ModelCrashGuard.EMBEDDING -> EmbedWorker.runForEdit(app)
+            ModelCrashGuard.EMBEDDING -> viewModelScope.launch { EmbedWorker.runForEdit(app) }
             ModelCrashGuard.IMAGE_TAGS -> startImageTags()
         }
     }
