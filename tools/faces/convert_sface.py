@@ -9,7 +9,6 @@ app's interpreter) runs it. Writes out/sface_fp16.tflite.
 """
 
 import hashlib
-import subprocess
 import sys
 import urllib.request
 from pathlib import Path
@@ -46,20 +45,15 @@ def main() -> None:
     onnx_path = work / "sface.onnx"
     download(onnx_path)
 
-    # onnx2tf downloads sample images to check the conversion unless it's given its own data
-    # (-cind); that download failed in CI, so give it face-sized images in SFace's 0-255 range.
-    import onnx
+    # onnx2tf checks its conversion on a sample-image file it downloads, saved with pickled
+    # numpy data, which numpy refuses to load by default; that file comes from onnx2tf's own
+    # release, so allow it for this conversion.
+    _load = np.load
+    np.load = lambda *args, **kwargs: _load(*args, **{**kwargs, "allow_pickle": True})
+    import onnx2tf
 
-    input_name = onnx.load(str(onnx_path)).graph.input[0].name
-    calib = work / "calib.npy"
-    np.save(calib, np.random.default_rng(1).uniform(0, 255, (8, 112, 112, 3)).astype(np.float32))
-    subprocess.run(
-        [
-            "onnx2tf", "-i", str(onnx_path), "-o", str(work / "tf"), "-n",
-            "-cind", input_name, str(calib), "[[[[0,0,0]]]]", "[[[[1,1,1]]]]",
-        ],
-        check=True,
-    )
+    onnx2tf.convert(input_onnx_file_path=str(onnx_path), output_folder_path=str(work / "tf"), non_verbose=True)
+    np.load = _load
     fp32 = work / "tf" / "sface_float32.tflite"
     fp16 = work / "tf" / "sface_float16.tflite"
     for p in (fp32, fp16):
