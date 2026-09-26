@@ -118,13 +118,13 @@
     <string name="review_title">Check descriptions</string>
     <string name="review_loading">Picking stickers…</string>
     <string name="review_none">No stickers have descriptions yet. Put the phone on the charger and let descriptions run first.</string>
-    <string name="review_intro">Would this description help you find this sticker? Good: accurate and specific. Too generic: right but vague ("a cartoon character"). Wrong: doesn't match the sticker.</string>
+    <string name="review_intro">Would this description help you find this sticker? Good: accurate and specific. Too generic: right but vague (\"a cartoon character\"). Wrong: doesn\'t match the sticker.</string>
     <string name="review_progress">Sticker %1$d of %2$d</string>
     <string name="review_good">Good</string>
     <string name="review_generic">Too generic</string>
     <string name="review_wrong">Wrong</string>
     <string name="review_skip">Skip</string>
-    <string name="review_empty">(No description: the model didn't say anything useful.)</string>
+    <string name="review_empty">(No description: the model didn\'t say anything useful.)</string>
     <string name="review_keywords">Keywords</string>
     <string name="review_picture_tags">Picture tags</string>
     <string name="review_pack">Sticker pack</string>

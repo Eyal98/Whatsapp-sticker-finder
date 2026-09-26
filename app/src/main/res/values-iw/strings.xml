@@ -118,7 +118,7 @@
     <string name="review_title">בדיקת תיאורים</string>
     <string name="review_loading">בוחר מדבקות…</string>
     <string name="review_none">עדיין אין מדבקות עם תיאור. חברו את הטלפון למטען ותנו לתיאורים לרוץ קודם.</string>
-    <string name="review_intro">האם התיאור הזה יעזור לכם למצוא את המדבקה? טוב: מדויק וספציפי. כללי מדי: נכון אבל מעורפל ("דמות מצוירת"). שגוי: לא מתאים למדבקה.</string>
+    <string name="review_intro">האם התיאור הזה יעזור לכם למצוא את המדבקה? טוב: מדויק וספציפי. כללי מדי: נכון אבל מעורפל (\"דמות מצוירת\"). שגוי: לא מתאים למדבקה.</string>
     <string name="review_progress">מדבקה %1$d מתוך %2$d</string>
     <string name="review_good">טוב</string>
     <string name="review_generic">כללי מדי</string>
