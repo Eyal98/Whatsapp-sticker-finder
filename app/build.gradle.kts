@@ -70,6 +70,12 @@ android {
         compose = true
     }
 
+    androidResources {
+        // The bundled SigLIP model is memory-mapped straight from the APK, which needs it stored
+        // uncompressed (it barely compresses anyway).
+        noCompress += "tflite"
+    }
+
     packaging {
         // Compress native libraries in the APK (they're extracted once at install). Stored
         // uncompressed, they made the sideload download about 2.5x bigger.
@@ -91,9 +97,9 @@ kotlin {
 dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:index"))
-    implementation(project(":core:caption"))
     implementation(project(":core:ml"))
     implementation(project(":core:embed"))
+    implementation(project(":core:vision"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)

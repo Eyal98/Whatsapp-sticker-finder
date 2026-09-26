@@ -30,13 +30,16 @@ kotlin {
 }
 
 /**
- * Packages the picture-tag labels as assets under `siglip/`: labels.tsv from tools/siglip, and
- * the matching label vectors, downloaded from the release and checked against a pinned SHA-256
- * (siglip.properties). The app itself never needs network access.
+ * Packages picture tagging as assets under `siglip/`: the SigLIP 2 image model, labels.tsv from
+ * tools/siglip, and the matching label vectors. The model and vectors are downloaded at build
+ * time and checked against pinned SHA-256s (siglip.properties); the app itself never needs
+ * network access.
  */
 abstract class FetchSiglipLabels : DefaultTask() {
     @get:Input abstract val url: Property<String>
     @get:Input abstract val sha256: Property<String>
+    @get:Input abstract val modelUrl: Property<String>
+    @get:Input abstract val modelSha256: Property<String>
     @get:InputFile abstract val labelsTsv: RegularFileProperty
     @get:OutputDirectory abstract val outputDir: DirectoryProperty
 
@@ -52,8 +55,11 @@ abstract class FetchSiglipLabels : DefaultTask() {
         dir.mkdirs()
         labelsTsv.get().asFile.copyTo(dir.resolve("labels.tsv"), overwrite = true)
         val target = dir.resolve("labels.bin")
-        if (!(target.isFile && sha256(target) == sha256.get())) download(dir, target)
+        if (!(target.isFile && sha256(target) == sha256.get())) download(url.get(), sha256.get(), target)
         checkMatchesTsv(target)
+        // Bundled so picture tags work right after install, with nothing to import.
+        val model = dir.resolve(MODEL_ASSET)
+        if (!(model.isFile && sha256(model) == modelSha256.get())) download(modelUrl.get(), modelSha256.get(), model)
     }
 
     /**
@@ -74,19 +80,24 @@ abstract class FetchSiglipLabels : DefaultTask() {
         }
     }
 
-    private fun download(dir: File, target: File) {
-        val part = dir.resolve("labels.bin.part")
-        URI(url.get()).toURL().openStream().use { input -> part.outputStream().use { input.copyTo(it) } }
+    private fun download(url: String, expectedSha: String, target: File) {
+        val part = File(target.path + ".part")
+        URI(url).toURL().openStream().use { input -> part.outputStream().use { input.copyTo(it) } }
         val actual = sha256(part)
-        if (actual != sha256.get()) {
+        if (actual != expectedSha) {
             part.delete()
             throw GradleException(
-                "SigLIP label vectors checksum mismatch (see core/vision/siglip.properties): " +
-                    "expected ${sha256.get()}, downloaded file has $actual",
+                "Checksum mismatch for ${target.name} (see core/vision/siglip.properties): " +
+                    "expected $expectedSha, downloaded file has $actual",
             )
         }
         target.delete()
         check(part.renameTo(target)) { "Could not move $part to $target" }
+    }
+
+    private companion object {
+        /** Keep in step with SiglipModel.ASSET. */
+        const val MODEL_ASSET = "siglip2_base_224_fp16.tflite"
     }
 
     private fun sha256(file: File): String {
@@ -110,6 +121,8 @@ val siglipConfig = Properties().apply {
 val fetchSiglipLabels = tasks.register<FetchSiglipLabels>("fetchSiglipLabels") {
     url.set(siglipConfig.getProperty("labels.url").trim())
     sha256.set(siglipConfig.getProperty("labels.sha256").trim())
+    modelUrl.set(siglipConfig.getProperty("model.url").trim())
+    modelSha256.set(siglipConfig.getProperty("model.sha256").trim())
     labelsTsv.set(rootProject.layout.projectDirectory.file("tools/siglip/labels.tsv"))
     outputDir.set(layout.buildDirectory.dir("generated/siglip"))
 }

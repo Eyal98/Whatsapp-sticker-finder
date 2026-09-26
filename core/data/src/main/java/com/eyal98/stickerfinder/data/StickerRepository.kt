@@ -17,7 +17,6 @@ class StickerRepository(
 
     val stickerCount: Flow<Int> = dao.observeCount()
     val pendingCount: Flow<Int> = dao.observePendingCount(IndexVersion.CURRENT)
-    val captionPendingCount: Flow<Int> = dao.observeCaptionPendingCount()
     val vectorCount: Flow<Int> = dao.observeVectorCount()
 
     fun browse(limit: Int = BROWSE_LIMIT): Flow<List<StickerEntity>> = dao.observeBrowse(limit)

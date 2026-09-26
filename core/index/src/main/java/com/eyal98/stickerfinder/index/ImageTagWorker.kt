@@ -12,9 +12,9 @@ import androidx.work.WorkerParameters
 import com.eyal98.stickerfinder.index.WorkBudget.Companion.continueSoon
 import com.eyal98.stickerfinder.ml.ModelCatalog
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
-import com.eyal98.stickerfinder.ml.ModelStore
 import com.eyal98.stickerfinder.vision.PictureLabels
 import com.eyal98.stickerfinder.vision.SiglipImageEncoder
+import com.eyal98.stickerfinder.vision.SiglipModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -30,13 +30,9 @@ class ImageTagWorker(context: Context, params: WorkerParameters) : CoroutineWork
 
     override suspend fun doWork(): Result {
         val host = applicationContext as StickerIndexHost
-        val model = ModelStore.IMAGE.installed(applicationContext) ?: return Result.success()
+        // Bundled in the app; only a build made without it (e.g. offline) lacks it.
+        if (!SiglipModel.isBundled(applicationContext)) return Result.success()
         if (ModelCrashGuard.isDisabled(applicationContext, ModelCrashGuard.IMAGE_TAGS)) return Result.success()
-        if (model.sha256 != ModelCatalog.SIGLIP2_B16.sha256) {
-            // The label vectors only fit the exact file they were made for.
-            Log.w(TAG, "Installed image model isn't the pinned SigLIP2 file")
-            return Result.failure()
-        }
         val labels = try {
             PictureLabels.load(applicationContext)
         } catch (e: IOException) {
@@ -47,27 +43,25 @@ class ImageTagWorker(context: Context, params: WorkerParameters) : CoroutineWork
             return Result.failure()
         }
         val dao = host.database.stickerDao()
-        val tagger = ImageTagger(applicationContext.contentResolver, dao, labels, model.id)
+        val tagger = ImageTagger(applicationContext.contentResolver, dao, labels, ModelCatalog.SIGLIP2_B16.id)
 
         val foreground = tryForeground(pendingCount())
         val budget = WorkBudget(if (foreground) FOREGROUND_BUDGET_MILLIS else WorkBudget.DEFAULT_MILLIS)
         // A new label list: re-derive tags from the stored vectors first. Doesn't need the model.
         if (!tagger.retagOld(budget)) return Result.retry()
         if (pendingCount() == 0) return Result.success()
-        // Captioning is running: wait; it starts this work again when it ends (see CaptionWorker).
-        if (HeavyWork.captioning) return Result.retry()
 
         // From here until the finally below, a crash in the model's native code turns it off.
         ModelCrashGuard.markBusy(applicationContext, ModelCrashGuard.IMAGE_TAGS)
         val encoder = try {
-            SiglipImageEncoder(model.file)
+            SiglipImageEncoder(SiglipModel.map(applicationContext))
         } catch (e: Exception) {
-            Log.w(TAG, "Could not load ${model.displayName}", e)
+            Log.w(TAG, "Could not load the SigLIP 2 model", e)
             ModelCrashGuard.disable(applicationContext, ModelCrashGuard.IMAGE_TAGS, ModelCrashGuard.describe(e))
             return Result.failure()
         }
         return try {
-            val progress = tagger.tagPending(encoder, budget, shouldPause = { HeavyWork.captioning }) { done ->
+            val progress = tagger.tagPending(encoder, budget) { done ->
                 if (foreground && done % NOTIFY_EVERY == 0) tryForeground(pendingCount())
             }
             // New tags change what stickers mean for semantic search.
@@ -118,7 +112,7 @@ class ImageTagWorker(context: Context, params: WorkerParameters) : CoroutineWork
          * or while charging. A run waiting out its retry delay is replaced; a running one is kept.
          */
         suspend fun startNow(context: Context) {
-            if (ModelStore.IMAGE.installed(context) == null) return
+            if (!SiglipModel.isBundled(context)) return
             val workManager = WorkManager.getInstance(context)
             val running = workManager.getWorkInfosForUniqueWorkFlow(NAME).first()
                 .any { it.state == WorkInfo.State.RUNNING }
@@ -134,7 +128,7 @@ class ImageTagWorker(context: Context, params: WorkerParameters) : CoroutineWork
          * already queued or running.
          */
         fun runNow(context: Context) {
-            if (ModelStore.IMAGE.installed(context) == null) return
+            if (!SiglipModel.isBundled(context)) return
             WorkManager.getInstance(context).enqueueUniqueWork(NAME, ExistingWorkPolicy.KEEP, request(whileCharging = true))
         }
 

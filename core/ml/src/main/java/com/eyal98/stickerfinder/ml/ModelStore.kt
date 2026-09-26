@@ -55,25 +55,6 @@ class ModelStore private constructor(
         /** Space to leave free on top of the model itself. */
         private const val FREE_SPACE_MARGIN = 500_000_000L
 
-        // Only .litertlm is accepted now. The "caption.task" name and the zip check stay so a
-        // file installed by an older version is still found (and renamed, or reported).
-        val CAPTION = ModelStore(
-            "caption", ModelCatalog.CAPTION_MODELS, "caption.task", setOf("litertlm"), ModelCrashGuard.CAPTION,
-            formatExtension = { if (isZip(it)) "task" else "litertlm" },
-        )
-
-        /** A zip archive, like MediaPipe .task bundles (no longer supported); .litertlm files aren't. */
-        fun isZip(file: File): Boolean {
-            val header = ByteArray(4)
-            val read = try {
-                file.inputStream().use { it.read(header) }
-            } catch (e: IOException) {
-                return false
-            }
-            return read == 4 && header[0] == 'P'.code.toByte() && header[1] == 'K'.code.toByte() &&
-                header[2] == 3.toByte() && header[3] == 4.toByte()
-        }
-
         /** A TFLite flatbuffer (identifier "TFL3" at offset 4); .litertlm bundles aren't. */
         fun isTflite(file: File): Boolean {
             val header = ByteArray(8)
@@ -92,9 +73,27 @@ class ModelStore private constructor(
             ModelCrashGuard.EMBEDDING,
             formatExtension = { if (isTflite(it)) "tflite" else "litertlm" },
         )
-        val IMAGE = ModelStore(
-            "image", ModelCatalog.IMAGE_MODELS, "image.tflite", setOf("tflite"), ModelCrashGuard.IMAGE_TAGS,
+
+        /**
+         * Slots of earlier versions: the caption model (Gemma, up to 3.7 GB), the picture model
+         * (now bundled in the app) and EmbeddingGemma's tokenizer. [removeRetired] deletes what
+         * they left behind.
+         */
+        private val RETIRED = listOf(
+            ModelStore("caption", emptyList(), "caption.task", setOf("litertlm"), "caption"),
+            ModelStore("image", emptyList(), "image.tflite", setOf("tflite"), ModelCrashGuard.IMAGE_TAGS),
+            ModelStore("embedding_tokenizer", emptyList(), "embedding.spm", setOf("model", "spm"), ModelCrashGuard.EMBEDDING),
         )
+
+        /** Frees the space models of retired slots still take. Cheap when there are none. */
+        fun removeRetired(context: Context) {
+            for (store in RETIRED) {
+                if (store.installed(context) == null && store.pending(context) == null) continue
+                store.discardPending(context)
+                store.candidates(context).forEach { it.delete() }
+                store.prefs(context).edit { clear() }
+            }
+        }
     }
 
     sealed interface ImportResult {

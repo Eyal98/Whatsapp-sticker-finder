@@ -9,8 +9,6 @@ import android.os.Build
 import android.view.inputmethod.InputMethodManager
 import androidx.work.WorkManager
 import com.eyal98.stickerfinder.data.IndexVersion
-import com.eyal98.stickerfinder.index.CaptionStats
-import com.eyal98.stickerfinder.index.CaptionWorker
 import com.eyal98.stickerfinder.index.EmbedWorker
 import com.eyal98.stickerfinder.index.ImageTagWorker
 import com.eyal98.stickerfinder.index.IndexStats
@@ -27,7 +25,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import com.eyal98.stickerfinder.ui.DescriptionReviewStore
+import com.eyal98.stickerfinder.vision.SiglipModel
 
 /**
  * A plain-text report for troubleshooting, shown to the user in full before they share it. It
@@ -53,9 +51,8 @@ object Diagnostics {
                 appendLine("similarity cut-off: ${app.searchSettings.minSimilarity}")
             }
             section("Models") {
-                appendLine("captions: ${ModelStore.CAPTION.installed(app)?.displayName ?: "none"}")
                 appendLine("embedding: ${ModelStore.EMBEDDING.installed(app)?.displayName ?: "none"}")
-                appendLine("picture tags: ${ModelStore.IMAGE.installed(app)?.displayName ?: "none"}")
+                appendLine("picture model bundled: ${SiglipModel.isBundled(app)}")
                 for (feature in ModelCrashGuard.FEATURES) {
                     appendLine(
                         "$feature: turned off after crash ${ModelCrashGuard.isDisabled(app, feature)}, " +
@@ -71,15 +68,13 @@ object Diagnostics {
                 appendLine("failing now ${c.failingNow}, needed retries ${c.retried}, most attempts ${c.maxAttempts}, undecodable ${c.undecodable}")
                 appendLine("with printed text ${c.withText}, animated ${c.animated}, starred ${c.starred}")
                 appendLine("with pack name ${c.withPackName}, with pack emojis ${c.withEmojis}")
-                appendLine("captioned ${c.captioned} (with text ${c.withCaption}, retried ${c.captionRetried}), vectors ${c.vectors}")
+                appendLine("old Gemma descriptions ${c.withCaption}, vectors ${c.vectors}")
                 appendLine("picture-tagged ${c.imageTagged} (with tags ${c.withImageTags}, retried ${c.imageTagRetried})")
                 IndexStats.describe(app)?.let(::appendLine)
-                CaptionStats.describe(app)?.let(::appendLine)
-                DescriptionReviewStore.describe(app)?.let(::appendLine)
             }
             section("Background work") {
                 val workManager = WorkManager.getInstance(app)
-                for (name in IndexWorker.UNIQUE_NAMES + ImageTagWorker.UNIQUE_NAMES + CaptionWorker.UNIQUE_NAMES + EmbedWorker.UNIQUE_NAMES) {
+                for (name in IndexWorker.UNIQUE_NAMES + ImageTagWorker.UNIQUE_NAMES + EmbedWorker.UNIQUE_NAMES) {
                     val infos = workManager.getWorkInfosForUniqueWorkFlow(name).first()
                     if (infos.isEmpty()) {
                         appendLine("$name: not scheduled")
@@ -121,11 +116,11 @@ object Diagnostics {
     /** The app's own warning and error lines; apps can only read their own log. */
     private fun readLog(): String {
         // This process only: earlier crashes are already under "Last crash", and repeating them
-        // here buried what's new. Warnings and errors, plus which setup the caption model loaded.
+        // here buried what's new. Warnings and errors.
         val process = Runtime.getRuntime().exec(
             arrayOf(
                 "logcat", "-d", "-v", "time", "-t", "1000", "--pid=${android.os.Process.myPid()}",
-                "*:W", "LiteRtLmCaptioner:I",
+                "*:W",
             ),
         )
         val lines = process.inputStream.bufferedReader().use { it.readLines() }

@@ -28,7 +28,6 @@ kotlin {
 dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:ocr"))
-    implementation(project(":core:caption"))
     implementation(project(":core:ml"))
     implementation(project(":core:embed"))
     implementation(project(":core:vision"))

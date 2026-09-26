@@ -120,50 +120,6 @@ abstract class StickerDao {
         indexVersion: Int,
     )
 
-    /** Stickers the basic indexer is done with but the caption model hasn't seen; favorites first. */
-    @Query(
-        "SELECT * FROM stickers WHERE captionedAt IS NULL AND indexedAt IS NOT NULL " +
-            "ORDER BY captionAttempts ASC, starred DESC, useCount DESC, lastModified DESC LIMIT :limit",
-    )
-    abstract suspend fun needingCaption(limit: Int): List<StickerEntity>
-
-    @Query(
-        "UPDATE stickers SET captionEn = :en, captionHe = :he, captionTags = :tags, " +
-            "captionedAt = :at, captionModel = :model, captionAttempts = 0 WHERE id = :id",
-    )
-    abstract suspend fun saveCaption(id: Long, en: String?, he: String?, tags: String?, at: Long, model: String)
-
-    /**
-     * A random sample of described stickers for the user to check, those written with the
-     * model/prompt ending in [modelSuffix] first. Copies of one image count once.
-     */
-    @Query(
-        "SELECT * FROM stickers WHERE captionedAt IS NOT NULL AND id IN " +
-            "(SELECT MIN(id) FROM stickers GROUP BY COALESCE(perceptualHash, id)) " +
-            "ORDER BY (captionModel LIKE '%' || :modelSuffix) DESC, RANDOM() LIMIT :limit",
-    )
-    abstract suspend fun describedSample(modelSuffix: String, limit: Int): List<StickerEntity>
-
-    /** Gives up on a sticker that keeps failing, keeping any description it already has. */
-    @Query("UPDATE stickers SET captionedAt = :at WHERE id = :id")
-    abstract suspend fun skipCaption(id: Long, at: Long)
-
-    /**
-     * Queues every described sticker to be described again (their current text stays until
-     * then). Stickers that got a description clearly don't crash the model, so their attempts
-     * restart; the rest keep at most [maxAttempts], so each gets at least one more try. Returns
-     * how many.
-     */
-    @Query(
-        "UPDATE stickers SET captionedAt = NULL, captionAttempts = CASE " +
-            "WHEN captionEn IS NOT NULL OR captionHe IS NOT NULL OR captionTags IS NOT NULL THEN 0 " +
-            "ELSE MIN(captionAttempts, :maxAttempts) END WHERE captionedAt IS NOT NULL",
-    )
-    abstract suspend fun requeueCaptions(maxAttempts: Int): Int
-
-    @Query("SELECT COUNT(*) FROM stickers WHERE captionedAt IS NULL")
-    abstract fun observeCaptionPendingCount(): Flow<Int>
-
     @Query("UPDATE stickers SET indexAttempts = indexAttempts + 1 WHERE id = :id")
     abstract suspend fun markIndexAttempt(id: Long)
 
@@ -225,9 +181,6 @@ abstract class StickerDao {
             "WHERE v.model = :model AND s.imageTaggedAt IS NOT NULL AND s.imageTagsVersion != :version LIMIT :limit",
     )
     abstract suspend fun imageVectorsWithOldTags(model: String, version: String, limit: Int): List<StickerVectorRow>
-
-    @Query("UPDATE stickers SET captionAttempts = captionAttempts + 1 WHERE id = :id")
-    abstract suspend fun markCaptionAttempt(id: Long)
 
     @Query("SELECT * FROM sticker_image_vectors WHERE stickerId = :id")
     abstract suspend fun imageVector(id: Long): StickerImageVector?

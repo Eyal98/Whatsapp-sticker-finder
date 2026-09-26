@@ -50,8 +50,6 @@ import kotlinx.coroutines.launch
 import com.eyal98.stickerfinder.Diagnostics
 import com.eyal98.stickerfinder.R
 import com.eyal98.stickerfinder.StickerFinderApp
-import com.eyal98.stickerfinder.index.CaptionStatus
-import com.eyal98.stickerfinder.ml.ModelCatalog
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.ml.PendingModel
 
@@ -59,7 +57,6 @@ import com.eyal98.stickerfinder.ml.PendingModel
 fun SmartSearchScreen(
     onBack: () -> Unit,
     onOpenQualityTest: () -> Unit,
-    onOpenDescriptionReview: () -> Unit,
     viewModel: SmartSearchViewModel = viewModel(factory = SmartSearchViewModel.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -92,74 +89,44 @@ fun SmartSearchScreen(
             Text(stringResource(R.string.smart_search), style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(R.string.smart_search_intro), style = MaterialTheme.typography.bodyLarge)
 
-            // Picture tags
+            // Picture tags: the model is part of the app, so there's nothing to install.
             if (state.pictureTagsAvailable) {
                 Text(stringResource(R.string.image_tags_title), style = MaterialTheme.typography.titleLarge)
                 Text(stringResource(R.string.image_tags_body), style = MaterialTheme.typography.bodyMedium)
                 TurnedOffNotice(ModelCrashGuard.IMAGE_TAGS, state, viewModel::turnOn)
-                SlotSection(ModelSlot.IMAGE, state, onImport, viewModel::remove)
-                state.slot(ModelSlot.IMAGE).installed?.let { installed ->
-                    if (installed.sha256 != ModelCatalog.SIGLIP2_B16.sha256) {
-                        ErrorText(stringResource(R.string.image_tags_wrong_file))
-                    } else {
-                        Text(
-                            if (state.imageTagPending > 0) {
-                                stringResource(R.string.image_tags_pending, state.imageTagPending, state.total)
-                            } else {
-                                stringResource(R.string.image_tags_done)
-                            },
-                        )
-                        if (state.imageTagRunning) {
-                            Text(
-                                stringResource(R.string.image_tags_running),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary,
-                            )
-                        } else if (state.imageTagPending > 0) {
-                            Button(onClick = viewModel::startImageTags) { Text(stringResource(R.string.image_tags_start)) }
-                        }
-                    }
-                }
-
-                HorizontalDivider()
-            }
-
-            // Descriptions
-            Text(stringResource(R.string.captions_title), style = MaterialTheme.typography.titleLarge)
-            Text(stringResource(R.string.smart_search_body), style = MaterialTheme.typography.bodyMedium)
-            if (!state.captionMemoryOk) ErrorText(stringResource(R.string.not_enough_memory))
-            TurnedOffNotice(ModelCrashGuard.CAPTION, state, viewModel::turnOn)
-            SlotSection(ModelSlot.CAPTION, state, onImport, viewModel::remove)
-            if (state.slot(ModelSlot.CAPTION).installed != null) {
                 Text(
-                    if (state.captionPending > 0) {
-                        stringResource(R.string.captions_pending, state.captionPending, state.total)
+                    if (state.imageTagPending > 0) {
+                        stringResource(R.string.image_tags_pending, state.imageTagPending, state.total)
                     } else {
-                        stringResource(R.string.captions_done)
+                        stringResource(R.string.image_tags_done)
                     },
                 )
-                CaptionStatusText(state.captionStatus)
-                // Asks for notifications first (Android 13+), so a run on the charger shows its
-                // progress; captioning starts whatever the answer.
-                val askNotifications = rememberLauncherForActivityResult(
-                    ActivityResultContracts.RequestPermission(),
-                ) { viewModel.startCaptioning() }
-                Button(
-                    onClick = {
+                if (state.imageTagRunning) {
+                    Text(
+                        stringResource(R.string.image_tags_running),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                } else if (state.imageTagPending > 0) {
+                    Text(stringResource(R.string.image_tags_waiting), style = MaterialTheme.typography.bodyMedium)
+                    // Asks for notifications first (Android 13+), so the run shows its progress;
+                    // tagging starts whatever the answer.
+                    val askNotifications = rememberLauncherForActivityResult(
+                        ActivityResultContracts.RequestPermission(),
+                    ) { viewModel.startImageTags() }
+                    Button(onClick = {
                         if (Build.VERSION.SDK_INT >= 33 &&
                             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
                             PackageManager.PERMISSION_GRANTED
                         ) {
                             askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
                         } else {
-                            viewModel.startCaptioning()
+                            viewModel.startImageTags()
                         }
-                    },
-                    enabled = state.captionMemoryOk && state.captionPending > 0,
-                ) { Text(stringResource(R.string.start_now)) }
-            }
-            if (state.slot(ModelSlot.CAPTION).installed != null) {
-                OutlinedButton(onClick = onOpenDescriptionReview) { Text(stringResource(R.string.review_open)) }
+                    }) { Text(stringResource(R.string.image_tags_start)) }
+                }
+
+                HorizontalDivider()
             }
 
             HorizontalDivider()
@@ -323,14 +290,3 @@ private fun ConfirmModelDialog(pending: PendingModel, onConfirm: () -> Unit, onD
     )
 }
 
-/** Whether the caption model is working right now, so the user can tell it's running. */
-@Composable
-private fun CaptionStatusText(status: CaptionStatus) {
-    val text = when (status) {
-        CaptionStatus.Idle -> return
-        CaptionStatus.Waiting -> stringResource(R.string.caption_status_waiting)
-        CaptionStatus.Loading -> stringResource(R.string.caption_status_loading)
-        is CaptionStatus.Describing -> stringResource(R.string.caption_status_running, status.done)
-    }
-    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-}

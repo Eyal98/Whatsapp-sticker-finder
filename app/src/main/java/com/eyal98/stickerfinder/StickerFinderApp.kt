@@ -9,9 +9,11 @@ import com.eyal98.stickerfinder.data.SemanticSearch
 import com.eyal98.stickerfinder.data.StickerDatabase
 import com.eyal98.stickerfinder.data.StickerRepository
 import com.eyal98.stickerfinder.embed.EmbedderHolder
+import com.eyal98.stickerfinder.index.RetiredFeatures
 import com.eyal98.stickerfinder.index.StickerIndexHost
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.ml.ModelStore
+import com.eyal98.stickerfinder.vision.SiglipModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -39,11 +41,11 @@ class StickerFinderApp : Application(), StickerIndexHost {
         ModelCrashGuard.onProcessStart(
             this,
             installedFeatures = buildSet {
-                if (ModelStore.CAPTION.installed(this@StickerFinderApp) != null) add(ModelCrashGuard.CAPTION)
                 if (ModelStore.EMBEDDING.installed(this@StickerFinderApp) != null) add(ModelCrashGuard.EMBEDDING)
-                if (ModelStore.IMAGE.installed(this@StickerFinderApp) != null) add(ModelCrashGuard.IMAGE_TAGS)
+                if (SiglipModel.isBundled(this@StickerFinderApp)) add(ModelCrashGuard.IMAGE_TAGS)
             },
         )
+        appScope.launch(Dispatchers.IO) { RetiredFeatures.cleanUp(this@StickerFinderApp) }
     }
 
     override fun onTrimMemory(level: Int) {

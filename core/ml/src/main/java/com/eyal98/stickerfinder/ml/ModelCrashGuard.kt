@@ -17,10 +17,9 @@ import androidx.core.content.edit
  */
 object ModelCrashGuard {
 
-    const val CAPTION = "caption"
     const val EMBEDDING = "embedding"
     const val IMAGE_TAGS = "image_tags"
-    val FEATURES = listOf(CAPTION, EMBEDDING, IMAGE_TAGS)
+    val FEATURES = listOf(EMBEDDING, IMAGE_TAGS)
 
     private const val TAG = "ModelCrashGuard"
     private const val PREFS = "model_crash_guard"

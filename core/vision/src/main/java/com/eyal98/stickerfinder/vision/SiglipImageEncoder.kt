@@ -5,7 +5,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import org.tensorflow.lite.Interpreter
 import java.io.Closeable
-import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.sqrt
@@ -16,9 +15,9 @@ import kotlin.math.sqrt
  * label vectors came from): drawn on white, resized to 224 px, RGB scaled to [-1, 1].
  * Not thread-safe.
  */
-class SiglipImageEncoder(modelFile: File) : Closeable {
+class SiglipImageEncoder(model: ByteBuffer) : Closeable {
 
-    private val interpreter = Interpreter(modelFile, Interpreter.Options().setNumThreads(THREADS))
+    private val interpreter = Interpreter(model, Interpreter.Options().setNumThreads(THREADS))
     private val inputShape = interpreter.getInputTensor(0).shape()
     private val channelsFirst = inputShape.contentEquals(intArrayOf(1, 3, SIZE, SIZE))
     val dim: Int = interpreter.getOutputTensor(0).shape().last()
