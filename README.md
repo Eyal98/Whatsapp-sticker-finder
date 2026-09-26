@@ -70,6 +70,17 @@ versions, crashes and freezes, error messages; no stickers, text, tags, names or
 they see in full before sharing. See [PRIVACY.md](PRIVACY.md) and
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
+### Reading crash reports
+
+Sideload and alpha builds are minified with R8, so stack traces in a tester's report use short
+obfuscated names. Every build keeps R8's map: `peel-it-<version>.mapping.txt` is attached to each
+alpha release and kept with each CI run's APK. The report's first lines give the version code;
+translate the trace with the matching map:
+
+```sh
+$ANDROID_HOME/cmdline-tools/latest/bin/retrace peel-it-0.1.0-alpha.2.mapping.txt crash.txt
+```
+
 ## Install on your phone (no computer needed)
 
 Every push to this branch (or `main`) builds an APK signed with one stable key and publishes it

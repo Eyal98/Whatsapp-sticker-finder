@@ -19,6 +19,8 @@ android {
         applicationId = "com.eyal98.stickerfinder"
         // The on-device smoke test (src/androidTest), run on an emulator by .github/workflows/smoke.yml.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Rules for the smoke test's own APK when it tests the minified build.
+        testProguardFiles("test-proguard-rules.pro")
         minSdk = 30
         targetSdk = 35
         // CI passes its run number so each sideload build installs over the previous one.
@@ -58,14 +60,19 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
         // A release-like build for installing on your own phone from CI: not debuggable (so
-        // app data can't be read over USB), signed with one stable key so updates keep data.
-        // R8 stays off until minified builds have been tested with the ML libraries.
+        // app data can't be read over USB), signed with one stable key so updates keep data, and
+        // minified like release. CI keeps R8's mapping.txt with each build to read crash reports.
         create("sideload") {
             initWith(getByName("release"))
-            isMinifyEnabled = false
-            isShrinkResources = false
             matchingFallbacks += listOf("release")
             signingConfigs.findByName("sideload")?.let { signingConfig = it }
+        }
+        // The sideload build's exact R8 setup, signed with the debug key: what the on-device smoke
+        // test runs (.github/workflows/smoke.yml), since the real key only exists in CI secrets.
+        create("minified") {
+            initWith(getByName("release"))
+            matchingFallbacks += listOf("release")
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
@@ -92,6 +99,10 @@ android {
         // uncompressed, they made the sideload download about 2.5x bigger.
         jniLibs.useLegacyPackaging = true
     }
+
+    // The smoke test runs against the minified build by default, so it checks what ships; pass
+    // -PtestBuildType=debug to run it against the debug build instead.
+    testBuildType = (findProperty("testBuildType") as String?) ?: "minified"
 
     lint {
         abortOnError = true

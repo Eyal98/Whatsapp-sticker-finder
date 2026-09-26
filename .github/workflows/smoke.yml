@@ -1,7 +1,7 @@
 # On-device smoke test: installs the app on an Android emulator and runs every bundled model once
 # (OCR, picture tags, face detection, meaning search) through app/src/androidTest. Unit tests can't
 # catch native code that fails to load or can't find its Java classes; this does, and it's the
-# check a minified (R8) build has to pass.
+# check a minified (R8) build has to pass: it runs against the minified build type.
 #
 # The APK is arm64-only; the x86_64 emulator image runs it through Android's ARM translation,
 # which is slow but fine for one pass of each model.
@@ -47,8 +47,10 @@ jobs:
             core/embed/build/generated/granite
           key: models-${{ hashFiles('core/ocr/tessdata.properties', 'core/vision/*.properties', 'core/embed/granite.properties', 'tools/siglip/labels.tsv') }}
 
+      # The minified build (the sideload build's R8 setup, debug-signed): the test checks that
+      # R8 kept everything the native code needs.
       - name: Build the app and the test APKs
-        run: ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest
+        run: ./gradlew --no-daemon assembleMinified assembleMinifiedAndroidTest
 
       # Hardware acceleration for the emulator.
       - name: Enable KVM
@@ -67,7 +69,7 @@ jobs:
           disk-size: 8G
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: ./gradlew --no-daemon connectedDebugAndroidTest
+          script: ./gradlew --no-daemon connectedMinifiedAndroidTest
 
       - name: Upload test reports
         if: always()

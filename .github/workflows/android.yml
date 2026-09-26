@@ -104,6 +104,8 @@ jobs:
           cp "$apk" "$RUNNER_TEMP/out/$name.apk"
           (cd "$RUNNER_TEMP/out" && sha256sum "$name.apk" > "$name.apk.sha256")
           cp "$RUNNER_TEMP/certificate.txt" "$RUNNER_TEMP/out/certificate.txt"
+          # R8's map from obfuscated to real names, to read crash reports from this build.
+          cp app/build/outputs/mapping/sideload/mapping.txt "$RUNNER_TEMP/out/$name.mapping.txt"
 
       - name: Keep sideload APK
         if: steps.sideload.outcome == 'success'
@@ -193,9 +195,9 @@ jobs:
           # The release may already exist when the tag was made from GitHub's "Draft a new release"
           # page: fill that one in rather than failing.
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" "$apk" "$apk.sha256" --clobber
+            gh release upload "$GITHUB_REF_NAME" "$apk" "$apk.sha256" "${apk%.apk}.mapping.txt" --clobber
             gh release edit "$GITHUB_REF_NAME" --prerelease --title "Peel-It $GITHUB_REF_NAME" --notes-file notes.md
           else
             gh release create "$GITHUB_REF_NAME" --prerelease --verify-tag --title "Peel-It $GITHUB_REF_NAME" \
-              --notes-file notes.md "$apk" "$apk.sha256"
+              --notes-file notes.md "$apk" "$apk.sha256" "${apk%.apk}.mapping.txt"
           fi

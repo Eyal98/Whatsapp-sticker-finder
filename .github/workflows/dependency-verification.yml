@@ -46,7 +46,7 @@ jobs:
       - name: Record checksums
         run: >-
           ./gradlew --no-daemon --write-verification-metadata sha256
-          :core:search:test testDebugUnitTest lintDebug assembleDebug assembleSideload assembleDebugAndroidTest
+          :core:search:test testDebugUnitTest lintDebug assembleDebug assembleSideload assembleMinified assembleMinifiedAndroidTest
 
       - name: Commit the updated file
         run: |

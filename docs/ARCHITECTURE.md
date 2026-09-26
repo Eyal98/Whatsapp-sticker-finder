@@ -304,7 +304,7 @@ flowchart LR
   to "מאחר" than to "banana". It catches native libraries that fail to load or can't find their
   Java classes, which unit tests can't; a minified build has to pass it.
 - **Toolchain.** Kotlin 2.4, AGP 8.13, Gradle 8.14, Room with KSP, Jetpack Compose, JDK 17.
-- **APK.** arm64-v8a only; native libraries compressed (extracted at install); `.tflite` and
+- **APK.** Minified with R8 (map kept per build); arm64-v8a only; native libraries compressed (extracted at install); `.tflite` and
   `.litertlm` stored uncompressed. About 560 MB, most of it the three models.
 - **Signing.** A PKCS12 key from repository secrets; the certificate digest is printed on every
   build so a key change is visible.
@@ -336,5 +336,7 @@ flowchart LR
   learned tags cover what the user tags themselves. Adding a built-in label is one edit to that
   file: the SigLIP labels workflow builds the vectors, pins them in `siglip.properties` with a bot
   commit and starts the Android build; phones retag from stored vectors on the next charge.
-- **Minification.** R8 is off for the sideload build; the smoke test is the gate for turning it on.
+- **Minification.** Sideload and alpha builds are minified with R8 (keep rules for the native
+  libraries in `app/proguard-rules.pro`); the smoke test runs against the same R8 setup, and each
+  build's `mapping.txt` is kept to read crash reports.
 - **Target SDK.** Currently 35; Play's minimum rises every year.
