@@ -218,6 +218,16 @@ abstract class StickerDao {
     @Query("UPDATE stickers SET captionAttempts = captionAttempts + 1 WHERE id = :id")
     abstract suspend fun markCaptionAttempt(id: Long)
 
+    @Query("SELECT * FROM sticker_image_vectors WHERE stickerId = :id")
+    abstract suspend fun imageVector(id: Long): StickerImageVector?
+
+    /** Picture vectors in id order, a page at a time (all of them at once is tens of MB). */
+    @Query(
+        "SELECT stickerId, vector FROM sticker_image_vectors WHERE model = :model AND stickerId > :after " +
+            "ORDER BY stickerId LIMIT :limit",
+    )
+    abstract suspend fun imageVectorPage(model: String, after: Long, limit: Int): List<StickerVectorRow>
+
     @Query("UPDATE stickers SET userTags = :tags WHERE id = :id")
     abstract suspend fun setTags(id: Long, tags: String)
 

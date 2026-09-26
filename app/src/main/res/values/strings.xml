@@ -12,6 +12,10 @@
     <string name="star_description">Mark as favorite</string>
     <string name="tags_title">Tags</string>
     <string name="tags_hint">e.g. cat sad חתול עצוב</string>
+    <string name="look_alikes_title">Tag look-alikes too?</string>
+    <string name="look_alikes_body">These stickers look like the one you tagged. Tap to pick the ones that should also get: %1$s</string>
+    <string name="look_alikes_apply">Tag %1$d</string>
+    <string name="look_alikes_skip">Skip</string>
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
     <string name="smart_search">Smart search</string>

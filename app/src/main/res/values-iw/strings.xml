@@ -12,6 +12,10 @@
     <string name="star_description">סימון כמועדפת</string>
     <string name="tags_title">תגיות</string>
     <string name="tags_hint">למשל: חתול עצוב cat sad</string>
+    <string name="look_alikes_title">לתייג גם מדבקות דומות?</string>
+    <string name="look_alikes_body">המדבקות האלה נראות כמו זו שתייגתם. הקישו כדי לבחור אילו יקבלו גם: %1$s</string>
+    <string name="look_alikes_apply">תיוג %1$d</string>
+    <string name="look_alikes_skip">דילוג</string>
     <string name="save">שמירה</string>
     <string name="cancel">ביטול</string>
     <string name="smart_search">חיפוש חכם</string>
