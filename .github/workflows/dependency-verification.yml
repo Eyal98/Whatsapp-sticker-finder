@@ -41,12 +41,12 @@ jobs:
       # Also verifies the checksum of gradle-wrapper.jar.
       - uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
 
-      # Every task CI runs, so every configuration they resolve is recorded. Unsigned: no secrets
-      # in this job.
+      # Every task CI runs (the smoke test's APK too), so every configuration they resolve is
+      # recorded. Unsigned: no secrets in this job.
       - name: Record checksums
         run: >-
           ./gradlew --no-daemon --write-verification-metadata sha256
-          :core:search:test testDebugUnitTest lintDebug assembleDebug assembleSideload
+          :core:search:test testDebugUnitTest lintDebug assembleDebug assembleSideload assembleDebugAndroidTest
 
       - name: Commit the updated file
         run: |

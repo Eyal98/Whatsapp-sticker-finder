@@ -17,6 +17,8 @@ android {
 
     defaultConfig {
         applicationId = "com.eyal98.stickerfinder"
+        // The on-device smoke test (src/androidTest), run on an emulator by .github/workflows/smoke.yml.
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         minSdk = 30
         targetSdk = 35
         // CI passes its run number so each sideload build installs over the previous one.
@@ -123,6 +125,11 @@ dependencies {
     implementation(libs.compose.material.icons.core)
     implementation(libs.compose.ui.tooling.preview)
     debugImplementation(libs.compose.ui.tooling)
+
+    androidTestImplementation(project(":core:ocr"))
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.junit)
 }
 
 /**

@@ -1,0 +1,78 @@
+# On-device smoke test: installs the app on an Android emulator and runs every bundled model once
+# (OCR, picture tags, face detection, meaning search) through app/src/androidTest. Unit tests can't
+# catch native code that fails to load or can't find its Java classes; this does, and it's the
+# check a minified (R8) build has to pass.
+#
+# The APK is arm64-only; the x86_64 emulator image runs it through Android's ARM translation,
+# which is slow but fine for one pass of each model.
+name: Smoke test
+
+on:
+  push:
+    branches: [main, claude/whatsapp-sticker-search-plugin-diz122]
+    paths-ignore:
+      - "**.md"
+      - docs/**
+      - tools/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@748248ddd2a24f49513d8f472f81c3a07d4d50e1 # v4.4.4
+
+      - name: Cache bundled models
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            core/ocr/build/generated/tessdata
+            core/vision/build/generated/siglip
+            core/vision/build/generated/faces
+            core/embed/build/generated/granite
+          key: models-${{ hashFiles('core/ocr/tessdata.properties', 'core/vision/*.properties', 'core/embed/granite.properties', 'tools/siglip/labels.tsv') }}
+
+      - name: Build the app and the test APKs
+        run: ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest
+
+      # Hardware acceleration for the emulator.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run the smoke test on an emulator
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          ram-size: 6144M
+          disk-size: 8G
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: ./gradlew --no-daemon connectedDebugAndroidTest
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: smoke-reports
+          path: app/build/reports/androidTests/
+          retention-days: 14
