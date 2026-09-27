@@ -67,6 +67,18 @@ an angel with a halo	angel, innocent	מלאך, תמים
 an alien	alien	חייזר
 a robot	robot	רובוט
 a monster	monster	מפלצת
+a face with a raised eyebrow, skeptical	skeptical, raised eyebrow, really	חשדן, גבה מורמת, באמת
+a pouting sulking face	pout, sulking, offended	ברוגז, נעלב, כועס
+a nerdy face with glasses and buck teeth	nerd, geek	חנון, חנונים
+a drooling face	drooling, yummy	מזיל ריר, טעים
+a face with money eyes	money, greedy	כסף, חמדן
+a melting face	melting, embarrassed	נמס, מובך
+an upside down face	upside down, silly	הפוך, שטותי
+a panicking face	panic, stress	פאניקה, לחץ
+a proud face	proud	גאה, גאווה
+a jealous face	jealous	מקנא, קנאה
+a peeking face	peek, peeking	מציץ, הצצה
+rolling on the floor laughing	rofl, laughing	מתגלגל מצחוק, צוחק
 # Hands and gestures
 a thumbs up	thumbs up, like, ok	אגודל, לייק, אחלה, סבבה
 a thumbs down	thumbs down, dislike	אגודל למטה, דיסלייק, לא טוב
@@ -125,6 +137,17 @@ a wizard	wizard, magic	קוסם, מכשף
 a pirate	pirate	פיראט, שודד ים
 a ninja	ninja	נינג'ה
 Santa Claus	santa, christmas	סנטה, כריסמס
+a pinched fingers hand gesture meaning wait	wait, one moment	רגע, חכה, סבלנות
+a heart made with two hands	heart hands, love	לב בידיים, אהבה
+a finger heart gesture	finger heart, love	לב באצבעות, אהבה
+a chef's kiss gesture	chef's kiss, perfect	מושלם, נשיקת שף
+a hand painting its nails	nails, sassy, whatever	לק, מתנשא, לא אכפת לי
+a person covering their ears	not listening, la la la	לא שומע, סותם אוזניים
+a person raising their hand	me, raise hand	אני, מצביע
+a hand showing stop, talk to the hand	talk to the hand, stop	די, תדבר עם היד
+rock and roll horns hand gesture	rock, rock on	רוק
+a person lying on the floor exhausted	exhausted, dead tired	מת מעייפות, גמור
+a person typing on a phone	texting, typing	מקליד, מסמס
 # Animals
 a cat	cat, kitty	חתול, חתולה, חתלתול
 a kitten	kitten, cute	חתלתול, גור חתולים
@@ -179,6 +202,8 @@ a giraffe	giraffe	ג'ירפה
 a camel	camel	גמל
 a capybara	capybara	קפיברה
 a seal	seal	כלב ים
+a pregnant woman	pregnant	בהריון, הריון
+a baby bottle	baby, bottle	בקבוק, תינוק
 # Food and drink
 coffee	coffee, morning	קפה, בוקר
 tea	tea	תה
@@ -219,6 +244,14 @@ a salad	salad, healthy	סלט, בריא
 a steak	steak, meat	סטייק, בשר
 a barbecue grill	barbecue, bbq	מנגל, על האש
 soup	soup	מרק
+shakshuka in a pan	shakshuka	שקשוקה
+bourekas pastries	bourekas	בורקס
+pita bread	pita	פיתה
+a sufganiyah jelly donut	sufganiyah, hanukkah	סופגנייה, חנוכה
+hamantaschen cookies	hamantaschen, purim	אוזני המן, פורים
+corn on the cob	corn	תירס
+a popsicle	popsicle, ice cream	ארטיק, קרטיב
+cheesecake	cheesecake	עוגת גבינה
 # Occasions and greetings
 a happy birthday greeting	happy birthday	יום הולדת שמח, מזל טוב
 a congratulations greeting	congratulations, mazal tov	מזל טוב, ברכות
@@ -255,6 +288,16 @@ a graduation cap	graduation	סיום לימודים, בוגר
 a trophy	winner, trophy	גביע, ניצחון, זוכה
 a medal	medal, winner	מדליה
 a crown	crown, queen, king	כתר, מלכה, מלך
+Israel Independence Day with blue and white flags	independence day, israel	יום העצמאות, חג עצמאות שמח
+a Lag BaOmer bonfire	lag baomer, bonfire	ל״ג בעומר, מדורה
+Shavuot with milk and cheese	shavuot	שבועות, חג שבועות
+a hamsa hand	hamsa, luck	חמסה, מזל
+a good week greeting with havdalah	good week	שבוע טוב
+a happy holiday greeting	happy holiday	חג שמח
+a happy mother's day greeting	mother's day, mom	יום האם, אמא
+a newborn baby with a stork	new baby, birth	לידה, מזל טוב, תינוק
+a bar mitzvah celebration	bar mitzvah	בר מצווה, בת מצווה
+a birthday party hat	birthday, party	יום הולדת, מסיבה
 # Hearts and symbols
 a red heart	heart, love	לב, אהבה
 a broken heart	broken heart, heartbroken	לב שבור
@@ -342,6 +385,14 @@ a trash can	trash, garbage	פח, זבל
 a toilet paper roll	toilet paper	נייר טואלט
 a candle	candle	נר
 a crystal ball	future, magic	כדור בדולח, עתיד
+zzz sleeping symbol	zzz, sleepy	זזז, ישנוני
+sweat drops	sweat, nervous	זיעה, לחוץ
+a low battery	low battery, tired	סוללה חלשה, אין כוח
+a rain cloud over someone's head	depressed, gloomy	דיכאון, מבואס
+a traffic jam	traffic, stuck, late	פקק, תקוע, מאחר
+an air conditioner	air conditioner, hot	מזגן, חם
+matkot beach paddle ball	matkot, beach	מטקות, ים
+a hammock	relax, chill	ערסל, רגוע
 # Meme and chat reactions
 a meme with text	meme	מם, ממים
 a cartoon character	cartoon	דמות מצוירת, קריקטורה
@@ -387,6 +438,29 @@ a character tired	tired	עייף
 a character sick	sick	חולה
 a character cold	cold	קר
 a character hot	hot	חם
+a character on the phone	phone, call	טלפון, מדבר בטלפון
+a character in the shower	shower	מקלחת
+a character driving a car	driving	נוהג
+a character exercising	workout, sport	אימון, ספורט
+a character shopping	shopping	קניות
+a character reading a book	reading	קורא
+a character cooking	cooking	מבשל
+a character blowing a kiss	kiss, love	נשיקה, אהבה
+a character with a broken heart	heartbroken	לב שבור
+a character applauding	applause, bravo	מחיאות כפיים, כל הכבוד
+a character bowing thank you	thank you	תודה
+a character saying sorry	sorry	סליחה
+a character holding a birthday cake	happy birthday	יום הולדת שמח
+a character holding a sign	sign	שלט
+a character peeking from behind a wall	peek, hiding	מציץ, מתחבא
+a character shrugging	shrug, whatever	לא יודע, לא אכפת
+a character with money	money, rich	כסף, עשיר
+a character in love with heart eyes	in love	מאוהב
+a character watching tv on the couch	tv, couch	טלוויזיה, ספה
+a character jumping for joy	yay, happy	יש, שמח
+a character waiting impatiently	waiting, impatient	מחכה, חסר סבלנות
+a character saying no	no	לא
+a character saying yes	yes	כן
 # Characters, shows and memes. The 4th column marks names: they are picked on their own and
 # need a closer match (PictureLabels.NAME_MIN_SIMILARITY). No real people.
 SpongeBob SquarePants	spongebob	בובספוג	name
@@ -479,3 +553,87 @@ a Wojak meme face	wojak, meme	וואג'ק, מם	name
 the trollface meme	trollface, troll, meme	טרול, מם	name
 Grumpy Cat meme	grumpy cat, meme	חתול עצבני, מם	name
 Nyan Cat	nyan cat, meme	ניאן קאט, מם	name
+Pusheen the cat	pusheen	פושין	name
+Bugcat Capoo	capoo	קאפו	name
+Tuzki the rabbit	tuzki	טוזקי	name
+Molang the bunny	molang	מולאנג	name
+Kuromi from Sanrio	kuromi, sanrio	קורומי	name
+My Melody from Sanrio	my melody, sanrio	מיי מלודי	name
+Cinnamoroll from Sanrio	cinnamoroll, sanrio	סינמורול	name
+Pochacco from Sanrio	pochacco, sanrio	פוצ'אקו	name
+Keroppi frog	keroppi, sanrio	קרופי	name
+Gudetama the lazy egg	gudetama, lazy	גודטמה, עצלן	name
+Rilakkuma bear	rilakkuma	ריל-קומה	name
+Milk and Mocha bears	milk and mocha	מילק ומוקה	name
+Brown bear and Cony from LINE	brown and cony, line friends	בראון וקוני	name
+the Grinch	grinch	הגרינץ'	name
+Masha and the Bear	masha and the bear	מאשה והדוב	name
+Pingu the penguin	pingu, noot noot	פינגו	name
+the This Is Fine dog meme	this is fine, meme	הכל בסדר, מם	name
+Surprised Pikachu meme	surprised pikachu, shocked, meme	פיקאצ'ו מופתע, בהלם, מם	name
+Psyduck pokemon	psyduck, pokemon	סיידאק, פוקימון	name
+Snorlax pokemon	snorlax, pokemon, sleepy	סנורלקס, פוקימון	name
+Eevee pokemon	eevee, pokemon	איבי, פוקימון	name
+Charmander pokemon	charmander, pokemon	צ'רמנדר, פוקימון	name
+Jigglypuff pokemon	jigglypuff, pokemon	ג'יגליפאף, פוקימון	name
+Gengar pokemon	gengar, pokemon	גנגר, פוקימון	name
+the crying cat meme	crying cat, sad, meme	חתול בוכה, עצוב, מם	name
+Cheems the dog meme	cheems, meme	צ'ימס, מם	name
+Big Floppa the caracal meme	floppa, meme	פלופה, מם	name
+Bongo Cat	bongo cat, meme	בונגו קאט, מם	name
+the Stonks meme	stonks, meme	סטונקס, מם	name
+the monkey puppet looking away meme	awkward, side eye, meme	מביך, מבט הצידה, מם	name
+Joy from Inside Out	joy, inside out	שמחה, הקול בראש	name
+Sadness from Inside Out	sadness, sad, inside out	עצב, עצוב, הקול בראש	name
+Anger from Inside Out	anger, angry, inside out	כעס, כועס, הקול בראש	name
+Disgust from Inside Out	disgust, inside out	גועל, הקול בראש	name
+Fear from Inside Out	fear, inside out	פחד, הקול בראש	name
+Anxiety from Inside Out 2	anxiety, inside out	חרדה, לחץ, הקול בראש	name
+Baymax from Big Hero 6	baymax	ביימקס	name
+Yoda from Star Wars	yoda, star wars	יודה, מלחמת הכוכבים	name
+Chewbacca from Star Wars	chewbacca, star wars	צ'ובקה, מלחמת הכוכבים	name
+R2-D2 robot from Star Wars	r2d2, star wars	מלחמת הכוכבים	name
+Gollum	gollum, lord of the rings	גולום, שר הטבעות	name
+Dobby the house elf	dobby, harry potter	דובי, הארי פוטר	name
+Jack Skellington	jack skellington	ג'ק סקלינגטון	name
+Casper the friendly ghost	casper, ghost	קספר, רוח רפאים	name
+Rudolph the red nosed reindeer	rudolph, reindeer	רודולף, אייל	name
+Charlie Brown from Peanuts	charlie brown, peanuts	צ'ארלי בראון	name
+Odie from Garfield	odie, garfield	אודי, גארפילד	name
+Tigger from Winnie the Pooh	tigger, pooh	טיגר, פו הדב	name
+Eeyore from Winnie the Pooh	eeyore, pooh	איה, פו הדב	name
+Piglet from Winnie the Pooh	piglet, pooh	חזרזיר, פו הדב	name
+Pluto the dog, Disney	pluto, disney	פלוטו, דיסני	name
+Daffy Duck	daffy duck	דאפי דאק	name
+the Road Runner and Wile E. Coyote	road runner, coyote	רוד ראנר, הזאב המהיר	name
+Pac-Man	pacman	פקמן	name
+Bowser from Mario	bowser, mario	באוזר, מריו	name
+Princess Peach from Mario	peach, mario	הנסיכה פיץ', מריו	name
+Link from Zelda	link, zelda	לינק, זלדה	name
+Anya from Spy x Family	anya, spy x family, anime	אניה, אנימה	name
+Tanjiro from Demon Slayer	tanjiro, demon slayer, anime	טנג'ירו, אנימה	name
+Nezuko from Demon Slayer	nezuko, demon slayer, anime	נזוקו, אנימה	name
+Saitama from One Punch Man	saitama, one punch man, anime	סאיטאמה, אנימה	name
+No-Face from Spirited Away	no face, ghibli	חסר פנים, ג'יבלי	name
+Hamtaro the hamster	hamtaro	המטרו, אוגר	name
+Paddington Bear	paddington	פדינגטון	name
+Moomin	moomin	מומין	name
+Curious George monkey	curious george	ג'ורג' הסקרן	name
+the Powerpuff Girls	powerpuff girls	בנות הפאוור פאף	name
+Courage the Cowardly Dog	courage, scared	קורג', הכלב הפחדן	name
+Gumball Watterson	gumball	גאמבול	name
+Finn and Jake from Adventure Time	adventure time, finn, jake	שעת הרפתקאות	name
+the penguins of Madagascar	penguins, madagascar	הפינגווינים ממדגסקר, מדגסקר	name
+King Julien from Madagascar	king julien, madagascar	המלך ג'וליאן, מדגסקר	name
+Sid the sloth from Ice Age	sid, ice age	סיד, עידן הקרח	name
+Dory from Finding Nemo	dory, nemo	דורי, נמו	name
+Remy the rat from Ratatouille	remy, ratatouille	רמי, רטטוי	name
+Sulley from Monsters Inc	sulley, monsters inc	סאלי, מפלצות בע״מ	name
+Stewie Griffin from Family Guy	stewie, family guy	סטואי, איש משפחה	name
+Brian the dog from Family Guy	brian, family guy	בריאן, איש משפחה	name
+Bender the robot from Futurama	bender, futurama	בנדר, פוטוראמה	name
+Cartman from South Park	cartman, south park	קרטמן, סאות' פארק	name
+Talking Tom cat	talking tom	טוקינג טום	name
+the Duolingo owl	duolingo	דואולינגו, ינשוף	name
+Kippi Ben Kippod, the hedgehog puppet from Rechov Sumsum	kippi, sesame street	קיפי בן קיפוד, רחוב סומסום	name
+Srulik, the Israeli cartoon boy in a tembel hat	srulik	שרוליק	name
