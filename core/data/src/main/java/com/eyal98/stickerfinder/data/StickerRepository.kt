@@ -7,6 +7,7 @@ import com.eyal98.stickerfinder.search.PickRanking
 import com.eyal98.stickerfinder.search.QueryParser
 import com.eyal98.stickerfinder.search.QueryTerm
 import com.eyal98.stickerfinder.search.RankFusion
+import com.eyal98.stickerfinder.search.SearchTags
 import com.eyal98.stickerfinder.search.Vectors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -76,11 +77,27 @@ class StickerRepository(
         return ids.filter(byId::containsKey)
     }
 
-    /** Remembers that the user sent [stickerId] after searching [query], so search learns from it. */
-    suspend fun recordPick(query: String, stickerId: Long) {
+    /**
+     * Remembers that the user sent [stickerId] after searching [query], so search learns from it.
+     * After [SearchTags.PICKS] sends for the same search, the search also becomes one of the
+     * sticker's own tags if it isn't found by those words yet (see [SearchTags]).
+     *
+     * @return true when a tag was added (the caller refreshes meaning vectors and learned tags)
+     */
+    suspend fun recordPick(query: String, stickerId: Long): Boolean {
         val key = PickRanking.key(query)
-        if (key.isNotEmpty()) dao.recordPick(key, stickerId, System.currentTimeMillis())
+        if (key.isEmpty()) return false
+        val pick = dao.recordPick(key, stickerId, System.currentTimeMillis())
+        if (pick.tagged || pick.count < SearchTags.PICKS) return false
+        dao.markPickTagged(key, stickerId)
+        val sticker = dao.byIds(listOf(stickerId)).firstOrNull() ?: return false
+        val tag = SearchTags.tagFor(query, fields(sticker)) ?: return false
+        addTags(listOf(stickerId), listOf(tag))
+        return true
     }
+
+    /** Stickers with learned tags (suggested from look-alikes), as they change. */
+    fun withLearnedTags(): Flow<List<StickerEntity>> = dao.observeWithLearnedTags()
 
     /** Forgets everything search learned from the user's picks. */
     suspend fun clearSearchHistory() = dao.clearPicks()
@@ -244,8 +261,10 @@ class StickerRepository(
         }
 
         /** How well [s] matches the query's words, field by field (see KeywordRelevance). */
-        fun relevance(terms: List<QueryTerm>, s: StickerEntity): Double = KeywordRelevance.score(
-            terms,
+        fun relevance(terms: List<QueryTerm>, s: StickerEntity): Double = KeywordRelevance.score(terms, fields(s))
+
+        /** A sticker's searchable text, field by field, with how much each says. */
+        fun fields(s: StickerEntity): List<KeywordRelevance.Field> =
             listOf(
                 KeywordRelevance.Field(s.userTags, KeywordRelevance.USER),
                 KeywordRelevance.Field(s.peopleNames, KeywordRelevance.USER),
@@ -255,8 +274,7 @@ class StickerRepository(
                 KeywordRelevance.Field(s.ocrText, KeywordRelevance.SEEN),
                 KeywordRelevance.Field(s.emojiWords, KeywordRelevance.HINT),
                 KeywordRelevance.Field(s.captionTags, KeywordRelevance.HINT),
-            ),
-        )
+            )
 
         /** Stable identity of a sticker's image; copies of the same image share it. */
         fun imageKey(s: StickerEntity): String =

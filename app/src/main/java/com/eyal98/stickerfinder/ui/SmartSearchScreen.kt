@@ -60,6 +60,7 @@ fun SmartSearchScreen(
     onBack: () -> Unit,
     onOpenQualityTest: () -> Unit,
     onOpenPeople: () -> Unit,
+    onOpenSuggestions: () -> Unit,
     viewModel: SmartSearchViewModel = viewModel(factory = SmartSearchViewModel.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -145,6 +146,12 @@ fun SmartSearchScreen(
 
                 HorizontalDivider()
             }
+
+            // Tag suggestions: the user's own tags on look-alike stickers, to approve in groups.
+            Text(stringResource(R.string.suggestions_title), style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.suggestions_section_body), style = MaterialTheme.typography.bodyMedium)
+            OutlinedButton(onClick = onOpenSuggestions) { Text(stringResource(R.string.suggestions_open)) }
+            HorizontalDivider()
 
             // People: faces grouped and named by the user.
             Text(stringResource(R.string.people_title), style = MaterialTheme.typography.titleLarge)

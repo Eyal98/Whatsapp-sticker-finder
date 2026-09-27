@@ -2,6 +2,7 @@ package com.eyal98.stickerfinder.ui
 
 import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -58,6 +59,7 @@ fun SearchScreen(
     onOpenKeyboard: () -> Unit,
     onOpenDetails: (Long) -> Unit,
     onOpenAbout: () -> Unit,
+    onOpenSuggestions: () -> Unit,
     viewModel: SearchViewModel = viewModel(factory = SearchViewModel.Factory),
 ) {
     val query by viewModel.query.collectAsStateWithLifecycle()
@@ -100,6 +102,14 @@ fun SearchScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                    }
+                    if (state.suggestedTags > 0) {
+                        Text(
+                            stringResource(R.string.suggestions_waiting, state.suggestedTags),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.clickable(onClick = onOpenSuggestions),
+                        )
                     }
                 }
                 IconButton(onClick = onOpenAbout) {

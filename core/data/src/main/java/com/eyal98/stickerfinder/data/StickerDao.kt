@@ -217,12 +217,21 @@ abstract class StickerDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun upsertPick(pick: SearchPick)
 
-    /** Counts one more pick of [stickerId] for the search [queryKey]. */
+    /** Counts one more pick of [stickerId] for the search [queryKey]; returns the updated pick. */
     @Transaction
-    open suspend fun recordPick(queryKey: String, stickerId: Long, at: Long) {
-        val count = (pick(queryKey, stickerId)?.count ?: 0) + 1
-        upsertPick(SearchPick(queryKey, stickerId, count, at))
+    open suspend fun recordPick(queryKey: String, stickerId: Long, at: Long): SearchPick {
+        val old = pick(queryKey, stickerId)
+        val updated = SearchPick(queryKey, stickerId, (old?.count ?: 0) + 1, at, tagged = old?.tagged ?: false)
+        upsertPick(updated)
+        return updated
     }
+
+    @Query("UPDATE search_picks SET tagged = 1 WHERE queryKey = :queryKey AND stickerId = :stickerId")
+    abstract suspend fun markPickTagged(queryKey: String, stickerId: Long)
+
+    /** Stickers with learned tags, for reviewing them. */
+    @Query("SELECT * FROM stickers WHERE learnedTags IS NOT NULL AND learnedTags != ''")
+    abstract fun observeWithLearnedTags(): Flow<List<StickerEntity>>
 
     /** Every remembered pick; a few thousand rows at most, ranked in memory. */
     @Query("SELECT * FROM search_picks")

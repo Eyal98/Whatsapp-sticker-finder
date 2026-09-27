@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StickerEntity::class, StickerFts::class, StickerVector::class, StickerImageVector::class,
         StickerFace::class, Person::class, SearchPick::class,
     ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 abstract class StickerDatabase : RoomDatabase() {
@@ -25,7 +25,7 @@ abstract class StickerDatabase : RoomDatabase() {
         // TODO(Phase 4): encrypt at rest with SQLCipher, key wrapped by Android Keystore.
         fun create(context: Context): StickerDatabase =
             Room.databaseBuilder(context.applicationContext, StickerDatabase::class.java, NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
                 .build()
 
         /** Adds [StickerEntity.indexVersion]; existing rows start at 0 so they get OCR'd. */
@@ -129,6 +129,13 @@ abstract class StickerDatabase : RoomDatabase() {
                         "count INTEGER NOT NULL, lastAt INTEGER NOT NULL, PRIMARY KEY(queryKey, stickerId))",
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_search_picks_stickerId ON search_picks (stickerId)")
+            }
+        }
+
+        /** Adds [SearchPick.tagged]: no existing pick has been turned into a tag yet. */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE search_picks ADD COLUMN tagged INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

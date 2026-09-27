@@ -21,9 +21,10 @@ import com.eyal98.stickerfinder.ui.SearchScreen
 import com.eyal98.stickerfinder.ui.SmartSearchScreen
 import com.eyal98.stickerfinder.ui.StickerDetailsScreen
 import com.eyal98.stickerfinder.ui.StickerFinderTheme
+import com.eyal98.stickerfinder.ui.SuggestionsScreen
 import kotlinx.coroutines.launch
 
-private enum class Screen { SEARCH, SMART_SEARCH, QUALITY_TEST, PEOPLE, KEYBOARD, ABOUT }
+private enum class Screen { SEARCH, SMART_SEARCH, QUALITY_TEST, PEOPLE, KEYBOARD, ABOUT, SUGGESTIONS }
 
 class MainActivity : ComponentActivity() {
 
@@ -48,16 +49,19 @@ class MainActivity : ComponentActivity() {
                             onOpenKeyboard = { screen = Screen.KEYBOARD },
                             onOpenDetails = { details = it },
                             onOpenAbout = { screen = Screen.ABOUT },
+                            onOpenSuggestions = { screen = Screen.SUGGESTIONS },
                         )
                         Screen.SMART_SEARCH -> SmartSearchScreen(
                             onBack = { screen = Screen.SEARCH },
                             onOpenQualityTest = { screen = Screen.QUALITY_TEST },
                             onOpenPeople = { screen = Screen.PEOPLE },
+                            onOpenSuggestions = { screen = Screen.SUGGESTIONS },
                         )
                         Screen.PEOPLE -> PeopleScreen(onBack = { screen = Screen.SMART_SEARCH })
                         Screen.QUALITY_TEST -> EvaluationScreen(onBack = { screen = Screen.SMART_SEARCH })
                         Screen.KEYBOARD -> KeyboardSetupScreen(onBack = { screen = Screen.SEARCH })
                         Screen.ABOUT -> AboutScreen(onBack = { screen = Screen.SEARCH })
+                        Screen.SUGGESTIONS -> SuggestionsScreen(onBack = { screen = Screen.SEARCH })
                     }
                 } else {
                     OnboardingScreen(

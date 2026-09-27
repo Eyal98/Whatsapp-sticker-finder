@@ -64,4 +64,28 @@ class SearchRankingTest {
         val boosted = RankFusion.fuse(listOf(listOf("a", "b"), listOf("b")), weights = listOf(1.0, 2.0))
         assertEquals(listOf("b", "a"), boosted)
     }
+
+    @Test
+    fun `a search that doesn't find the sticker by its text becomes a tag`() {
+        val fields = listOf(f("cat, sitting", KeywordRelevance.SEEN), f(null, KeywordRelevance.USER))
+        assertEquals("boker tov", SearchTags.tagFor("boker tov", fields))
+        assertEquals("שלום עולם", SearchTags.tagFor("  שלום   עולם ", fields)) // final letters kept
+    }
+
+    @Test
+    fun `a search the sticker already matches doesn't become a tag`() {
+        val fields = listOf(f("Kermit", KeywordRelevance.USER), f("frog, green", KeywordRelevance.SEEN))
+        assertEquals(null, SearchTags.tagFor("kermit", fields))
+        assertEquals(null, SearchTags.tagFor("kerm", fields)) // still being typed
+        assertEquals(null, SearchTags.tagFor("green frog", fields))
+        assertEquals("sad frog", SearchTags.tagFor("sad frog", fields))
+    }
+
+    @Test
+    fun `long, tiny or number searches don't become tags`() {
+        val fields = listOf(f("cat", KeywordRelevance.SEEN))
+        assertEquals(null, SearchTags.tagFor("see you at the party", fields))
+        assertEquals(null, SearchTags.tagFor("a", fields))
+        assertEquals(null, SearchTags.tagFor("2024", fields))
+    }
 }

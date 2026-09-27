@@ -20,22 +20,29 @@ object KeywordRelevance {
 
     fun score(terms: List<QueryTerm>, fields: List<Field>): Double {
         if (terms.isEmpty()) return 0.0
+        val best = fields.maxOfOrNull { it.weight } ?: return 0.0
+        return termWeights(terms, fields).sum() / (terms.size * best)
+    }
+
+    /** Whether every query word is found in some field: the sticker is already found by it. */
+    fun matchesAll(terms: List<QueryTerm>, fields: List<Field>): Boolean =
+        terms.isNotEmpty() && termWeights(terms, fields).all { it > 0.0 }
+
+    /** For each query word, the weight of the best field it's found in (0 if none). */
+    private fun termWeights(terms: List<QueryTerm>, fields: List<Field>): List<Double> {
         val tokenized = fields.mapNotNull { f ->
             f.text?.takeIf { it.isNotBlank() }?.let { text ->
                 TextNormalizer.tokenize(text).flatMap { HebrewPrefixes.variants(it) }.toHashSet() to f.weight
             }
         }
-        val best = fields.maxOfOrNull { it.weight } ?: return 0.0
-        var total = 0.0
-        terms.forEachIndexed { i, term ->
+        return terms.mapIndexed { i, term ->
             // The last word may still be being typed: it also matches as a prefix.
             val isLast = i == terms.lastIndex
-            total += tokenized.filter { (tokens, _) ->
+            tokenized.filter { (tokens, _) ->
                 term.alternatives.any { it in tokens } ||
                     (isLast && tokens.any { it.startsWith(term.original) })
             }.maxOfOrNull { it.second } ?: 0.0
         }
-        return total / (terms.size * best)
     }
 }
 
@@ -86,4 +93,37 @@ object PickRanking {
         val jaccard = shared.toDouble() / (words.size + otherWords.size - shared)
         return if (jaccard >= 0.5) SHARED_WORDS * jaccard else 0.0
     }
+}
+
+/**
+ * Turns a search the user keeps sending the same sticker for into a tag on that sticker, so it is
+ * found by those words everywhere (meaning search and look-alikes too), not just ranked higher for
+ * that exact search. Only short searches that don't already find the sticker by its own text: a
+ * search like "cat" for a sticker tagged "cat" adds nothing, and neither does "kerm" for one
+ * tagged "Kermit".
+ */
+object SearchTags {
+
+    /** Sends of one sticker for one search before the search becomes its tag. */
+    const val PICKS = 2
+    const val MAX_WORDS = 3
+    const val MAX_LENGTH = 30
+    private const val MIN_WORD_LENGTH = 2
+
+    /**
+     * The tag to add for search [query], as the user typed it, on a sticker with text [fields],
+     * or null when it shouldn't become a tag.
+     */
+    fun tagFor(query: String, fields: List<KeywordRelevance.Field>): String? {
+        val words = TextNormalizer.tokenize(query)
+        if (words.isEmpty() || words.size > MAX_WORDS) return null
+        if (words.any { it.length < MIN_WORD_LENGTH || it.all(Char::isDigit) }) return null
+        // As typed (final letters and capitals kept), only the spacing tidied.
+        val tag = query.trim().split(WHITESPACE).joinToString(" ")
+        if (tag.length > MAX_LENGTH) return null
+        if (KeywordRelevance.matchesAll(QueryParser.parse(query), fields)) return null
+        return tag
+    }
+
+    private val WHITESPACE = Regex("\\s+")
 }

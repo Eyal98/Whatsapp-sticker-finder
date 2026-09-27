@@ -188,7 +188,10 @@ random stickers are (99th percentile + 0.05), and never below 0.6. Tags whose st
 nothing alike ("funny") are skipped, a tag on a single sticker spreads only to near-copies (≥ 0.9),
 and each tag reaches at most 40 stickers, each sticker gets at most 3. Learned tags are
 searchable like picture tags; in the sticker's details the user can make one their own (which
-makes it an example too) or hide it for good.
+makes it an example too) or hide it for good. The **Tag suggestions** screen (`TagSuggestions`)
+turns them around per tag: the user unticks the misses and approves the rest in one tap, so the
+approved stickers become examples and the next round spreads further, while unticked ones are
+hidden there for good.
 
 **Sticker-pack metadata.** WhatsApp stickers carry a JSON note in the WebP EXIF chunk with the
 pack name, publisher and emojis. `StickerMetadata` parses it without a JSON library, and
@@ -230,6 +233,11 @@ sequenceDiagram
   `search_picks`. `PickRanking` ranks stickers picked for the same search, a prefix of it, or mostly
   the same words, fading with a 60-day half-life; the keyboard only learns from searches typed on its
   own keys. Clearable from About.
+- **Tags from searches.** The second time the same sticker is sent for the same search, the search
+  (as typed, at most 3 words and 30 characters) becomes one of its own tags, unless the sticker is
+  already found by those words (`SearchTags`). So "boker tov" found once through meaning search is
+  a real tag afterwards, used by keyword search, look-alikes and learned tags. `search_picks.tagged`
+  keeps it to once, so a tag the user removes doesn't come back.
 - **Fusion.** Rank-based, so the lists don't need comparable scores: keyword, meaning, and picks
   (weighted 2×). Without an embedding model the search is keyword and picks only.
 

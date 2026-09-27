@@ -22,6 +22,7 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.data.StickerEntity
+import com.eyal98.stickerfinder.index.EmbedWorker
 import com.eyal98.stickerfinder.search.TextNormalizer
 import com.eyal98.stickerfinder.ui.StickerFinderTheme
 import kotlinx.coroutines.CoroutineScope
@@ -209,7 +210,7 @@ class StickerKeyboardService :
                 app.repository.recordUse(sticker.id)
                 // Search learns from picks, but only for searches typed on this keyboard's keys:
                 // text read from the chat box is never saved.
-                if (!removeFromField) app.repository.recordPick(query, sticker.id)
+                if (!removeFromField && app.repository.recordPick(query, sticker.id)) EmbedWorker.runForEdit(app)
                 // Done: hand the text box back to the usual keyboard.
                 switchToPreviousInputMethod()
             } else {

@@ -8,6 +8,8 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.data.StickerEntity
 import com.eyal98.stickerfinder.data.StickerRepository
+import com.eyal98.stickerfinder.data.TagSuggestions
+import com.eyal98.stickerfinder.index.EmbedWorker
 import com.eyal98.stickerfinder.index.ImageTagStatus
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -34,6 +36,8 @@ data class SearchUiState(
     val pending: Int = 0,
     val isQueryBlank: Boolean = true,
     val imageTags: ImageTagStatus = ImageTagStatus(ImageTagStatus.Phase.DONE, 0, 0),
+    /** Tags suggested on look-alike stickers, waiting for review. */
+    val suggestedTags: Int = 0,
 )
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
@@ -88,9 +92,19 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
             repository.stickerCount,
             repository.pendingCount,
             _query,
-            ImageTagStatus.observe(app, app.database.stickerDao()),
-        ) { r, total, pending, q, tags ->
-            SearchUiState(results = r, total = total, pending = pending, isQueryBlank = q.isBlank(), imageTags = tags)
+            combine(
+                ImageTagStatus.observe(app, app.database.stickerDao()),
+                repository.withLearnedTags().map { TagSuggestions.group(it).size }.distinctUntilChanged(),
+            ) { tags, suggested -> tags to suggested },
+        ) { r, total, pending, q, (tags, suggested) ->
+            SearchUiState(
+                results = r,
+                total = total,
+                pending = pending,
+                isQueryBlank = q.isBlank(),
+                imageTags = tags,
+                suggestedTags = suggested,
+            )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState())
 
     fun onQueryChange(value: String) {
@@ -107,7 +121,8 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
     /** Counts the use, and remembers the pick for this search so search learns from it. */
     fun onSent(sticker: StickerEntity) = edit {
         repository.recordUse(sticker.id)
-        repository.recordPick(_query.value, sticker.id)
+        // Sent twice for one search: the search may have become a tag on it.
+        if (repository.recordPick(_query.value, sticker.id)) EmbedWorker.runForEdit(app)
     }
 
     private fun edit(block: suspend () -> Unit) {

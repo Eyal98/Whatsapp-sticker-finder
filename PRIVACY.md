@@ -18,7 +18,9 @@ Peel-It is built so that nothing you do in it can leave your phone.
 - **Search history.** When you send a sticker after a search, the app remembers that search and
   sticker so similar searches rank it higher. It stays on the phone, is left out of backups and
   problem reports, and **About → Clear search history** deletes it. The keyboard only learns from
-  searches typed on its own keys, never from text it read from the chat box.
+  searches typed on its own keys, never from text it read from the chat box. If you send the same
+  sticker twice for the same short search, that search becomes one of the sticker's tags, which you
+  can see and remove in the sticker's details.
 - **Keyboard.** The sticker keyboard reads at most 100 characters already in the chat box, only
   when you open it, never in password fields, and never saves them.
 - **Problem reports.** "Build report" makes a text report of counts, versions and error messages,
