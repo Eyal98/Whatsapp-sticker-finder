@@ -114,17 +114,27 @@ internal class TrayDriver(
         return fromWindows ?: service.rootInActiveWindow?.takeIf { it.packageName?.toString() in WhatsAppTrayService.PACKAGES }
     }
 
+    /**
+     * WhatsApp's emoji button: by its id, else an "emoji" control on the message box's row. (Not
+     * "the lower half of the screen": on Android 15+ WhatsApp's window spans the whole display with
+     * the keyboard drawn over it, so the message box can sit above the middle.)
+     */
     private fun emojiButton(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
-        val screenHeight = root.bounds().bottom
-        val candidates = root.all().filter { n ->
+        val nodes = root.all().filter { it.isVisibleToUser }.toList()
+        nodes.firstOrNull { it.id() in EMOJI_BUTTON_IDS }?.let { return it }
+        val row = messageBox(root) ?: return null
+        val candidates = nodes.filter { n ->
             val id = n.id()
-            id != null && "emoji" in id && "search" !in id && n.isVisibleToUser &&
-                n.bounds().centerY() > screenHeight / 2
-        }.toList()
-        return candidates.firstOrNull { it.id() in EMOJI_BUTTON_IDS }
-            ?: candidates.firstOrNull { it.isClickable }
-            ?: candidates.firstOrNull()
+            val b = n.bounds()
+            id != null && "emoji" in id && "search" !in id &&
+                b.centerY() in (row.top - row.height())..(row.bottom + row.height())
+        }
+        return candidates.firstOrNull { it.isClickable } ?: candidates.firstOrNull()
     }
+
+    /** The message box: the topmost text field (the emoji panel's search, if any, is below it). */
+    private fun messageBox(root: AccessibilityNodeInfo): Rect? =
+        root.all().filter { it.isEditable && it.isVisibleToUser }.map { it.bounds() }.minByOrNull { it.top }
 
     /**
      * What's below the message box: the emoji panel (or the keyboard). Every search for tabs,
@@ -132,8 +142,7 @@ internal class TrayDriver(
      * is never tapped.
      */
     private fun panel(root: AccessibilityNodeInfo): Sequence<AccessibilityNodeInfo> {
-        val messageBox = root.all().filter { it.isEditable && it.isVisibleToUser }.map { it.bounds() }.minByOrNull { it.top }
-        val top = messageBox?.bottom ?: root.bounds().centerY()
+        val top = messageBox(root)?.bottom ?: root.bounds().centerY()
         return root.all().filter { it.isVisibleToUser && it.bounds().top >= top }
     }
 
@@ -143,7 +152,11 @@ internal class TrayDriver(
         return nodes.firstOrNull { n ->
             val id = n.id() ?: return@firstOrNull false
             "sticker" in id && ("tab" in id || "button" in id || "btn" in id) && "search" !in id
-        } ?: nodes.firstOrNull { n -> label(n) in STICKER_TAB_LABELS }
+        } ?: nodes.firstOrNull { n ->
+            // "Stickers", "Stickers tab", "מדבקות"... but not a pack whose long name mentions stickers.
+            val label = label(n) ?: return@firstOrNull false
+            label.length <= MAX_TAB_LABEL && STICKER_TAB_WORDS.any { it in label } && !matchesPack(label)
+        }
     }
 
     /** The pack's tab or header, if it's on screen now. */
@@ -335,7 +348,8 @@ internal class TrayDriver(
         private const val MAX_NODES = 4_000
 
         private val EMOJI_BUTTON_IDS = setOf("emoji_picker_btn", "emoji_btn", "emoji_button", "input_emoji")
-        private val STICKER_TAB_LABELS = setOf("stickers", "sticker", "מדבקות", "מדבקה")
+        private val STICKER_TAB_WORDS = listOf("sticker", "מדבק")
+        private const val MAX_TAB_LABEL = 20
 
         private fun normalize(s: String) = s.trim().lowercase().replace(Regex("\\s+"), " ")
     }
