@@ -37,12 +37,30 @@ jobs:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
         run: node tools/showreel/render.js --mp4
 
+      # GitHub plays a video inline in a README only when it's uploaded in its web editor, and
+      # caps those uploads at 10 MB: a 720p cut at about 8 MB for that.
+      - name: README cut (720p, under 10 MB)
+        run: |
+          cd tools/showreel/out
+          in=peel-it-showreel-16x9.mp4
+          for pass in 1 2; do
+            out=/dev/null; audio=-an; fmt="-f mp4"
+            if [ $pass = 2 ]; then out=peel-it-showreel-readme.mp4; audio="-c:a aac -b:a 128k"; fmt="-movflags +faststart"; fi
+            ffmpeg -y -loglevel error -i "$in" -vf scale=1280:720:flags=lanczos \
+              -c:v libx264 -preset slow -b:v 1500k -maxrate 2200k -bufsize 3000k \
+              -pix_fmt yuv420p -profile:v high -pass $pass -passlogfile readme $audio $fmt "$out"
+          done
+          rm -f readme*.log*
+          size=$(stat -c%s peel-it-showreel-readme.mp4)
+          echo "README cut: $size bytes"
+          [ "$size" -lt 10000000 ]
+
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           ls -l tools/showreel/out
-          notes="A 37-second showreel of Peel-It in 16:9 and 9:16, drawn and scored in code (tools/showreel). MP4 (H.264 + AAC) plays everywhere; WebM (VP9 + Opus) is the frame-exact render. Rebuilt by the Showreel workflow from ${GITHUB_SHA::7}."
+          notes="A 37-second showreel of Peel-It in 16:9 and 9:16, drawn and scored in code (tools/showreel). MP4 (H.264 + AAC) plays everywhere; WebM (VP9 + Opus) is the frame-exact render; peel-it-showreel-readme.mp4 is a 720p cut under 10 MB, for dropping into GitHub's editor. Rebuilt by the Showreel workflow from ${GITHUB_SHA::7}."
           gh release view showreel >/dev/null 2>&1 || \
             gh release create showreel --prerelease --title "Peel-It showreel" --notes "$notes"
           gh release edit showreel --notes "$notes"
