@@ -13,7 +13,9 @@ indexing, search, keyboard, models, security, CI) and
 
 ## Showreel
 
-[![Peel-It showreel: tap to watch the 37-second video](docs/showreel-preview.png)](https://github.com/Eyal98/Whatsapp-sticker-finder/releases/download/showreel/peel-it-showreel-16x9.mp4)
+
+https://github.com/user-attachments/assets/8a53ba4c-0bc4-43ff-a7b0-1db610adf826
+
 
 A 37-second video of the app, with sound: tap the preview to watch it
 ([16:9 MP4](https://github.com/Eyal98/Whatsapp-sticker-finder/releases/download/showreel/peel-it-showreel-16x9.mp4),
