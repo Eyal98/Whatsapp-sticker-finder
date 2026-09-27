@@ -22,3 +22,10 @@
 -keep class com.eyal98.stickerfinder.ml.** { *; }
 -keep class com.eyal98.stickerfinder.embed.** { *; }
 -keep class com.eyal98.stickerfinder.search.** { *; }
+# The memory test (MemoryBudgetTest) runs the app's database and vector passes on a seeded
+# in-memory database: keep them, Room's builder and the coroutines they run on under their names.
+-keep class com.eyal98.stickerfinder.data.** { *; }
+-keep class com.eyal98.stickerfinder.index.** { *; }
+-keep class androidx.room.** { *; }
+-keep class androidx.sqlite.** { *; }
+-keep class kotlinx.coroutines.** { *; }

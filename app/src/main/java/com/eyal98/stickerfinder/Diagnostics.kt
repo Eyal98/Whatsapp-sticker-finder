@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.os.Build
+import android.os.Debug
 import android.view.inputmethod.InputMethodManager
 import androidx.work.WorkManager
 import com.eyal98.stickerfinder.data.IndexVersion
@@ -56,6 +57,7 @@ object Diagnostics {
                 appendLine("version ${info.versionName} (${info.longVersionCode})${if (debuggable) " debug" else ""}")
                 appendLine("Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}), ${Build.MANUFACTURER} ${Build.MODEL}")
                 appendLine("RAM ${gb(DeviceCapability.totalRamBytes(app))}, free storage ${gb(app.noBackupFilesDir.usableSpace)}")
+                appendLine(memory(app))
                 appendLine("folder granted: ${StickerFolder.current(app) != null}")
                 appendLine("keyboard enabled: ${keyboardEnabled(app)}")
                 appendLine("similarity cut-off: ${app.searchSettings.minSimilarity}")
@@ -212,6 +214,22 @@ object Diagnostics {
     fun redact(text: String): String =
         FILE.replace(PATH.replace(URI.replace(text, "<uri>"), "<path>"), "<file>")
 
+    /**
+     * How full the app's Java heap is, against the limit Android gives it (the "growth limit" in
+     * an out-of-memory crash), and the native heap (bitmaps, models), in MB.
+     */
+    fun memory(context: Context? = null): String {
+        val runtime = Runtime.getRuntime()
+        val used = runtime.totalMemory() - runtime.freeMemory()
+        val classes = context?.getSystemService(ActivityManager::class.java)
+            ?.let { ", memory class ${it.memoryClass} (large ${it.largeMemoryClass})" }.orEmpty()
+        return "memory: Java heap ${mb(used)} MB used of ${mb(runtime.maxMemory())} MB max " +
+            "(allocated ${mb(runtime.totalMemory())}, free ${mb(runtime.freeMemory())}), " +
+            "native heap ${mb(Debug.getNativeHeapAllocatedSize())} MB$classes"
+    }
+
+    private fun mb(bytes: Long) = bytes / (1024 * 1024)
+
     private fun gb(bytes: Long) = String.format(Locale.US, "%.1f GB", bytes / 1e9)
 
     private fun timestamp(millis: Long) = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date(millis))
@@ -229,6 +247,8 @@ object Diagnostics {
                     f.parentFile?.mkdirs()
                     f.writeText(
                         "${timestamp(System.currentTimeMillis())} on ${thread.name}\n" +
+                            // Headroom at the moment of the crash; an out-of-memory crash has none.
+                            "${memory()}\n" +
                             redact(error.stackTraceToString()).take(MAX_CRASH_CHARS),
                     )
                 } catch (ignored: Exception) {
