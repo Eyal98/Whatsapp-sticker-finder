@@ -189,7 +189,7 @@
     <string name="about_clear_history">Clear search history</string>
     <string name="about_history_cleared">Search history cleared</string>
     <string name="suggestions_title">Tag suggestions</string>
-    <string name="suggestions_intro">Your own tags, suggested on stickers that look like the ones you gave them. Untick any that don't fit, then add the tag to the rest in one tap. Each approval teaches the app your tag better, so the next suggestions get better too.</string>
+    <string name="suggestions_intro">Your own tags, suggested on stickers that look like the ones you gave them. Untick any that don\'t fit, then add the tag to the rest in one tap. Each approval teaches the app your tag better, so the next suggestions get better too.</string>
     <string name="suggestions_none">Nothing to review right now. Suggestions appear after you tag a few stickers that look alike.</string>
     <string name="suggestions_group_hint">%1$d stickers look like yours. Tap a sticker to untick it.</string>
     <string name="suggestions_add">Add to %1$d</string>
