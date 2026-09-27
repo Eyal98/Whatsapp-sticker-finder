@@ -335,6 +335,9 @@ flowchart LR
   the tag (`v0.1.0-alpha` → `0.1.0-alpha`) or is `0.1.0-dev`.
 - **Branding.** Launcher icon and mascot are generated as vector drawables from
   `tools/brand` (`make.py`).
+- **Showreel.** `tools/showreel` renders a 37-second video of the app from code (Canvas 2D and
+  Web Audio in headless Chromium, encoded frame by frame with WebCodecs); the Showreel workflow
+  publishes it as MP4 and WebM to the `showreel` pre-release.
 
 ## 11. Key decisions
 

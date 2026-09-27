@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Peel-It showreel</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #15122E;
+    --panel: #221E45;
+    --line: #3A3470;
+    --ink: #F3F0FF;
+    --muted: #B7B0E0;
+    --accent: #FF6FA8;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { width: min(100% - 32px, 1200px); margin: 24px auto; display: grid; gap: 14px; }
+  h1 { margin: 0; font-size: 20px; }
+  .stage { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 14px; overflow: hidden; justify-self: center; }
+  .stage.port { aspect-ratio: 9 / 16; width: auto; height: min(80vh, 1100px); }
+  canvas { width: 100%; height: 100%; display: block; }
+  .bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  button { font: inherit; color: var(--ink); background: #2F2A5E; border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+  button:hover { border-color: var(--muted); }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #2D0B1C; font-weight: 700; }
+  input[type=range] { flex: 1 1 220px; accent-color: var(--accent); }
+  #time { font-variant-numeric: tabular-nums; color: var(--muted); min-width: 7ch; }
+  #status { color: var(--muted); margin: 0; min-height: 1.45em; }
+  #status a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Peel-It showreel</h1>
+  <div class="stage" id="stage"><canvas id="view"></canvas></div>
+  <div class="bar">
+    <button class="primary" id="play">Play</button>
+    <input id="scrub" type="range" min="0" max="37" step="0.001" value="0" aria-label="Position">
+    <span id="time">0.00 s</span>
+    <button id="fmt">Switch to 9:16</button>
+    <button id="export">Export WebM</button>
+  </div>
+  <p id="status">Sound starts on Play. Space toggles playback; the arrow keys step one beat.</p>
+</main>
+<script src="src/core.js"></script>
+<script src="src/art.js"></script>
+<script src="src/scenes.js"></script>
+<script src="src/audio.js"></script>
+<script src="src/export.js"></script>
+<script>
+'use strict';
+// ------------------------------------------------------------ shared by the player and render.js
+
+function setFormat(fmt) {
+  const land = fmt !== 'port';
+  RS.W = land ? 1920 : 1080;
+  RS.H = land ? 1080 : 1920;
+  RS.land = land;
+}
+
+let soundtrack = null;
+function getSoundtrack() {
+  if (!soundtrack) soundtrack = renderSoundtrack(48000);
+  return soundtrack;
+}
+
+async function exportWebM({ format = 'land', quality = 'high', onProgress, maxFrames } = {}) {
+  const saved = { ...RS };
+  try {
+    setFormat(format);
+    // The web preset renders at two thirds of full HD (1280x720 / 720x1280) for embedding.
+    const scale = quality === 'web' ? 2 / 3 : 1;
+    RS.px = scale;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(RS.W * scale);
+    canvas.height = Math.round(RS.H * scale);
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const fps = 60, frames = maxFrames || Math.round(DURATION * fps);
+    const audio = await encodeAudio(await getSoundtrack(), quality === 'web' ? 160000 : 192000);
+    const t0 = performance.now();
+    const video = await encodeVideo({
+      canvas, frames, fps, quality, onProgress,
+      drawFrameAt: i => { ctx.setTransform(scale, 0, 0, scale, 0, 0); drawFrame(ctx, i / 25); }, // 60 fps at 144 BPM: 25 frames per beat
+    });
+    const bytes = muxWebM({ video, audio, durationMs: DURATION * 1000, title: 'Peel-It showreel' });
+    return { bytes, info: { width: canvas.width, height: canvas.height, frames, mode: video.mode, colorSpace: video.colorSpace, seconds: Math.round((performance.now() - t0) / 100) / 10 } };
+  } finally {
+    Object.assign(RS, saved);
+  }
+}
+
+async function loadFonts() {
+  const faces = [new FontFace(FONT_B, 'url(fonts/DejaVuSans-Bold.ttf)'), new FontFace(FONT_R, 'url(fonts/DejaVuSans.ttf)')];
+  for (const f of faces) document.fonts.add(await f.load());
+  try { await document.fonts.load(`40px ${EMOJI}`, '😂'); } catch (e) { /* the system emoji font is used as-is */ }
+}
+
+window.Reel = { ready: false, exportWebM, setFormat, drawFrame, getSoundtrack, wavBytes };
+
+// ------------------------------------------------------------ live player
+
+const view = document.getElementById('view'), stage = document.getElementById('stage');
+const playBtn = document.getElementById('play'), scrub = document.getElementById('scrub');
+const timeEl = document.getElementById('time'), statusEl = document.getElementById('status');
+const fmtBtn = document.getElementById('fmt'), exportBtn = document.getElementById('export');
+let format = 'land', playing = false, preparing = false, pos = 0, ac = null, src = null, startedAt = 0;
+
+function fit() {
+  const r = stage.getBoundingClientRect();
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  view.width = Math.max(2, Math.round(r.width * dpr));
+  view.height = Math.max(2, Math.round(r.height * dpr));
+}
+function now() { return playing ? Math.min(DURATION, ac.currentTime - startedAt) : pos; }
+function paint() {
+  setFormat(format);
+  RS.px = view.width / RS.W;
+  const ctx = view.getContext('2d');
+  ctx.setTransform(RS.px, 0, 0, RS.px, 0, 0);
+  const t = now();
+  drawFrame(ctx, t / BEAT);
+  scrub.value = t;
+  timeEl.textContent = `${t.toFixed(2)} s`;
+}
+function loop() {
+  if (!playing) return;
+  paint();
+  if (now() >= DURATION) { stop(); pos = DURATION; paint(); return; }
+  requestAnimationFrame(loop);
+}
+async function play() {
+  if (preparing) return;
+  preparing = true;
+  if (!ac) ac = new AudioContext({ sampleRate: 48000 });
+  await ac.resume();
+  statusEl.textContent = 'Preparing the soundtrack…';
+  const buf = await getSoundtrack();
+  statusEl.textContent = '';
+  preparing = false;
+  if (pos >= DURATION - 0.01) pos = 0;
+  src = ac.createBufferSource();
+  src.buffer = buf;
+  src.connect(ac.destination);
+  startedAt = ac.currentTime + 0.05 - pos;
+  src.start(ac.currentTime + 0.05, pos);
+  playing = true;
+  playBtn.textContent = 'Pause';
+  requestAnimationFrame(loop);
+}
+function stop() {
+  if (playing) pos = now();
+  playing = false;
+  if (src) { try { src.stop(); } catch (e) { /* already stopped */ } src = null; }
+  playBtn.textContent = 'Play';
+}
+playBtn.addEventListener('click', () => (playing ? stop() : play()));
+scrub.addEventListener('input', () => { const was = playing; stop(); pos = +scrub.value; paint(); if (was) play(); });
+fmtBtn.addEventListener('click', () => {
+  format = format === 'land' ? 'port' : 'land';
+  stage.classList.toggle('port', format === 'port');
+  fmtBtn.textContent = format === 'land' ? 'Switch to 9:16' : 'Switch to 16:9';
+  fit();
+  paint();
+});
+exportBtn.addEventListener('click', async () => {
+  stop();
+  exportBtn.disabled = true;
+  try {
+    const { bytes, info } = await exportWebM({ format, onProgress: p => { statusEl.textContent = `Encoding… ${Math.round(p * 100)}%`; } });
+    const url = URL.createObjectURL(new Blob([bytes], { type: 'video/webm' }));
+    const name = `peel-it-showreel-${format === 'land' ? '16x9' : '9x16'}.webm`;
+    statusEl.innerHTML = `Done in ${info.seconds} s: <a download="${name}" href="${url}">${name}</a> (${(bytes.length / 1e6).toFixed(1)} MB)`;
+  } catch (e) {
+    statusEl.textContent = `Export failed: ${e.message}. It needs a Chromium-based browser (WebCodecs VP9 and Opus).`;
+  } finally {
+    exportBtn.disabled = false;
+    paint();
+  }
+});
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' && e.code !== 'Space') return;
+  if (e.code === 'Space') { e.preventDefault(); playing ? stop() : play(); }
+  if (e.code === 'ArrowRight' || e.code === 'ArrowLeft') { stop(); pos = clamp(pos + (e.code === 'ArrowRight' ? BEAT : -BEAT), 0, DURATION); paint(); }
+});
+window.addEventListener('resize', () => { fit(); paint(); });
+
+loadFonts().then(() => {
+  const headless = new URLSearchParams(location.search).has('headless');
+  scrub.max = DURATION;
+  if (!headless) { fit(); pos = (BEATS - 1) * BEAT; paint(); }
+  window.Reel.ready = true;
+});
+</script>
+</body>
+</html>
