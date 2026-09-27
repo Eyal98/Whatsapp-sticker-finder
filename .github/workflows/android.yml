@@ -173,6 +173,13 @@ jobs:
           name: sideload-apk
           path: apk
 
+      # Only the release's "what's new" (docs/releases/<tag>.md), if there is one: text, not code.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          path: src
+          sparse-checkout: docs/releases
+          persist-credentials: false
+
       - name: Publish the alpha release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -193,6 +200,17 @@ jobs:
           The app has no internet access; nothing leaves the phone. See PRIVACY.md and THIRD_PARTY_NOTICES.md in the repository.
 
           **Found a problem?** In the app: About → Report a problem, then send the report with a line about what happened.
+          EOF
+          whatsnew="src/docs/releases/${GITHUB_REF_NAME}.md"
+          if [ -f "$whatsnew" ]; then { echo; cat "$whatsnew"; } >> notes.md; fi
+          reel="https://github.com/${GITHUB_REPOSITORY}/releases/download/showreel"
+          cat >> notes.md <<EOF
+
+          ### Showreel
+
+          [![Peel-It showreel: tap to watch](https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/${GITHUB_SHA}/docs/showreel-preview.png)](${reel}/peel-it-showreel-16x9.mp4)
+
+          A 37-second video of the app: [16:9](${reel}/peel-it-showreel-16x9.mp4) · [9:16 for phones](${reel}/peel-it-showreel-9x16.mp4)
           EOF
           # The release may already exist when the tag was made from GitHub's "Draft a new release"
           # page: fill that one in rather than failing.

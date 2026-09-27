@@ -11,9 +11,15 @@ See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how it is built (modules, d
 indexing, search, keyboard, models, security, CI) and
 [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md) for the history and roadmap.
 
-**Showreel**: a 37-second video of the app in 16:9 and 9:16, drawn and scored in code
-([tools/showreel](tools/showreel)). Download it from the
-[showreel release](https://github.com/Eyal98/Whatsapp-sticker-finder/releases/tag/showreel).
+## Showreel
+
+[![Peel-It showreel: tap to watch the 37-second video](docs/showreel-preview.png)](https://github.com/Eyal98/Whatsapp-sticker-finder/releases/download/showreel/peel-it-showreel-16x9.mp4)
+
+A 37-second video of the app, with sound: tap the preview to watch it
+([16:9 MP4](https://github.com/Eyal98/Whatsapp-sticker-finder/releases/download/showreel/peel-it-showreel-16x9.mp4),
+[9:16 for phones and stories](https://github.com/Eyal98/Whatsapp-sticker-finder/releases/download/showreel/peel-it-showreel-9x16.mp4),
+or everything on the [showreel release](https://github.com/Eyal98/Whatsapp-sticker-finder/releases/tag/showreel)).
+It's drawn and scored in code ([tools/showreel](tools/showreel)).
 
 ## Status
 
@@ -40,6 +46,12 @@ usual keyboard, switch to Peel-It, and tap a result: it's inserted with the keyb
 content API as `image/webp.wasticker` (falling back to WebP/PNG where that's what the field
 accepts), and the search text is removed. It reads at most 100 characters before the cursor, only
 when opened, never in password fields.
+
+**Less manual tagging**: your own tags are learned from their pictures and suggested on
+look-alike stickers, reviewed a whole group at a time on the **Tag suggestions** screen; a search
+you keep sending the same sticker for becomes one of its tags; and the picture-tag list covers
+about 620 labels, from expressions and gestures to Israeli food, holidays and popular sticker
+characters.
 
 **Search quality test** (Smart search screen): write test searches in Hebrew and English, mark the
 stickers each should find, and run them through the real pipeline on the phone. Reports Recall@5
