@@ -13,14 +13,12 @@ indexing, search, keyboard, models, security, CI) and
 
 ## Showreel
 
-
 https://github.com/user-attachments/assets/8a53ba4c-0bc4-43ff-a7b0-1db610adf826
 
-
-A 37-second video of the app, with sound: tap the preview to watch it
-([16:9 MP4](https://github.com/Eyal98/Whatsapp-sticker-finder/releases/download/showreel/peel-it-showreel-16x9.mp4),
+A 37-second video of the app, with sound. Full quality:
+[16:9 MP4](https://github.com/Eyal98/Whatsapp-sticker-finder/releases/download/showreel/peel-it-showreel-16x9.mp4),
 [9:16 for phones and stories](https://github.com/Eyal98/Whatsapp-sticker-finder/releases/download/showreel/peel-it-showreel-9x16.mp4),
-or everything on the [showreel release](https://github.com/Eyal98/Whatsapp-sticker-finder/releases/tag/showreel)).
+or everything on the [showreel release](https://github.com/Eyal98/Whatsapp-sticker-finder/releases/tag/showreel).
 It's drawn and scored in code ([tools/showreel](tools/showreel)).
 
 ## Status
