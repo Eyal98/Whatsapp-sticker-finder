@@ -198,14 +198,4 @@
     <string name="suggestions_section_body">Your tags, suggested on look-alike stickers. Approve them in groups instead of tagging one by one.</string>
     <string name="suggestions_open">Review suggestions</string>
     <string name="suggestions_waiting">Tag suggestions to review: %1$d</string>
-    <string name="tray_service_label">Peel-It: send from WhatsApp\'s stickers</string>
-    <string name="tray_service_description">Lets the Peel-It keyboard send a sticker from WhatsApp\'s own sticker tray, so it stays linked to its sticker pack. It can only see WhatsApp, only acts when you tap a sticker in the Peel-It keyboard, and keeps nothing it sees.</string>
-    <string name="tray_title">Keep the sticker pack link (experimental)</string>
-    <string name="tray_body">WhatsApp saves its own copy of any sticker sent from a keyboard, and that copy isn\'t linked to its pack. With this on, Peel-It sends stickers from packs through WhatsApp\'s own sticker tray instead: it opens the tray, finds the sticker and taps it for you. It works for packs added to WhatsApp; when it can\'t find a sticker, it sends a copy as before.</string>
-    <string name="tray_privacy">It uses Android\'s accessibility permission, limited to WhatsApp. It only acts while sending a sticker you tapped, looks at the screen then to find it, and keeps nothing it sees.</string>
-    <string name="tray_status_on">Pack link: on</string>
-    <string name="tray_status_off">Pack link: off</string>
-    <string name="tray_enable">Turn on in accessibility settings</string>
-    <string name="tray_restricted">If Android says it\'s a restricted setting: open App info, tap ⋮ at the top, choose \"Allow restricted settings\", then turn it on again.</string>
-    <string name="tray_app_info">Open App info</string>
 </resources>
