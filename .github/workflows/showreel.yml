@@ -42,7 +42,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           ls -l tools/showreel/out
+          notes="A 37-second showreel of Peel-It in 16:9 and 9:16, drawn and scored in code (tools/showreel). MP4 (H.264 + AAC) plays everywhere; WebM (VP9 + Opus) is the frame-exact render. Rebuilt by the Showreel workflow from ${GITHUB_SHA::7}."
           gh release view showreel >/dev/null 2>&1 || \
-            gh release create showreel --prerelease --title "Peel-It showreel" \
-              --notes "A 20-second showreel of Peel-It in 16:9 and 9:16, drawn and scored in code (tools/showreel). MP4 (H.264 + AAC) plays everywhere; WebM (VP9 + Opus) is the frame-exact render. Rebuilt by the Showreel workflow."
+            gh release create showreel --prerelease --title "Peel-It showreel" --notes "$notes"
+          gh release edit showreel --notes "$notes"
           gh release upload showreel tools/showreel/out/*.mp4 tools/showreel/out/*.webm --clobber

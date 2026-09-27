@@ -1,6 +1,7 @@
 // Peel-It showreel: the soundtrack, synthesized with the Web Audio API (no samples).
-// 144 BPM in F major: a bouncy chiptune-pop groove, plus sound effects cued to the same beat
-// timings the scenes use. renderSoundtrack() returns a deterministic stereo AudioBuffer.
+// 144 BPM in F major: a bouncy chiptune-pop groove, plus sound effects cued from the same scene
+// clocks and times the picture uses (scenes.js). renderSoundtrack() returns a deterministic stereo
+// AudioBuffer.
 'use strict';
 
 const NOTE = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
@@ -11,28 +12,43 @@ function midi(name) {
 }
 const hz = n => 440 * Math.pow(2, ((typeof n === 'string' ? midi(n) : n) - 69) / 12);
 
+// The arrangement follows the scenes (AT in scenes.js): intro under the logo, a build under
+// "10,000 stickers", the groove through search, sees, people and chat, a half-time breakdown for
+// privacy, a chorus under "Under the hood", and the finale.
+const TRI_F = ['F4', 'A4', 'C5'], TRI_C = ['E4', 'G4', 'C5'], TRI_DM = ['F4', 'A4', 'D5'], TRI_BB = ['F4', 'Bb4', 'D5'];
 // Chords by beat range: [start, end, root (bass), triad (plucks)].
 const CHORDS = [
-  [0, 4, 'F2', ['F4', 'A4', 'C5']],
-  [4, 6, 'Bb1', ['Bb3', 'D4', 'F4']], [6, 8, 'C2', ['C4', 'E4', 'G4']],
-  [8, 12, 'F2', ['F4', 'A4', 'C5']], [12, 16, 'C2', ['E4', 'G4', 'C5']], [16, 20, 'D2', ['F4', 'A4', 'D5']], [20, 24, 'Bb1', ['F4', 'Bb4', 'D5']],
-  [24, 28, 'F2', ['F4', 'A4', 'C5']], [28, 32, 'C2', ['E4', 'G4', 'C5']],
-  [32, 36, 'D2', ['F4', 'A4', 'D5']], [36, 38, 'Bb1', ['F4', 'Bb4', 'D5']], [38, 40, 'C2', ['E4', 'G4', 'C5']],
-  [40, 41, 'Bb1', ['F4', 'Bb4', 'D5']], [41, 42, 'C2', ['E4', 'G4', 'C5']],
-  [42, 44, 'F2', ['F4', 'A4', 'C5']], [44, 45, 'Bb1', ['F4', 'Bb4', 'D5']], [45, 46, 'C2', ['E4', 'G4', 'C5']], [46, 48, 'F2', ['F4', 'A4', 'C5']],
+  [0, 6, 'F2', TRI_F], [6, 8, 'C2', TRI_C],
+  [8, 10, 'Bb1', TRI_BB], [10, 12, 'C2', TRI_C], [12, 14, 'D2', TRI_DM], [14, 16, 'C2', TRI_C],
+  [16, 20, 'F2', TRI_F], [20, 24, 'C2', TRI_C], [24, 28, 'D2', TRI_DM], [28, 32, 'Bb1', TRI_BB], [32, 34, 'F2', TRI_F], [34, 36, 'C2', TRI_C],
+  [36, 40, 'D2', TRI_DM], [40, 44, 'Bb1', TRI_BB], [44, 48, 'F2', TRI_F], [48, 52, 'C2', TRI_C],
+  [52, 56, 'D2', TRI_DM], [56, 58, 'Bb1', TRI_BB], [58, 60, 'C2', TRI_C],
+  [60, 64, 'D2', TRI_DM], [64, 68, 'Bb1', TRI_BB], [68, 72, 'F2', TRI_F], [72, 76, 'C2', TRI_C],
+  [76, 77, 'Bb1', TRI_BB], [77, 78, 'C2', TRI_C], [78, 80, 'F2', TRI_F], [80, 82, 'D2', TRI_DM], [82, 84, 'Bb1', TRI_BB], [84, 86, 'C2', TRI_C], [86, 88, 'F2', TRI_F],
 ];
 // Lead melody: [beat, note, length in beats]
 const MELODY = [
-  [8, 'C5', 0.5], [8.5, 'F5', 0.5], [9, 'A5', 1], [10, 'G5', 0.5], [10.5, 'F5', 0.5], [11, 'G5', 0.5], [11.5, 'A5', 0.5],
-  [12, 'G5', 1], [13, 'E5', 0.5], [13.5, 'C5', 0.5], [14, 'E5', 0.5], [14.5, 'G5', 0.5], [15, 'C6', 1],
-  [16, 'A5', 0.5], [16.5, 'F5', 0.5], [17, 'D6', 1], [18, 'C6', 0.5], [18.5, 'A5', 0.5], [19, 'F5', 0.5], [19.5, 'A5', 0.5],
-  [20, 'Bb5', 1.5], [21.5, 'A5', 0.5], [22, 'G5', 0.5], [22.5, 'F5', 0.5], [23, 'G5', 1],
-  [24, 'C6', 0.5], [24.5, 'A5', 0.5], [25, 'F5', 0.5], [25.5, 'A5', 0.5], [26, 'C6', 0.75], [26.75, 'D6', 0.25], [27, 'C6', 0.5], [27.5, 'A5', 0.5],
-  [38, 'C6', 0.5], [38.5, 'D6', 0.5], [39, 'E6', 1],
-  [40, 'D6', 0.5], [40.5, 'C6', 0.5], [41, 'E6', 0.5], [41.5, 'G6', 0.5], [42, 'F6', 1.5],
-  [44, 'A5', 0.5], [44.5, 'C6', 0.5], [45, 'D6', 0.5], [45.5, 'E6', 0.5], [46, 'F6', 2],
+  // groove A: search, sees
+  [16, 'C5', 0.5], [16.5, 'F5', 0.5], [17, 'A5', 1], [18, 'G5', 0.5], [18.5, 'F5', 0.5], [19, 'G5', 0.5], [19.5, 'A5', 0.5],
+  [20, 'G5', 1], [21, 'E5', 0.5], [21.5, 'C5', 0.5], [22, 'E5', 0.5], [22.5, 'G5', 0.5], [23, 'C6', 1],
+  [24, 'A5', 0.5], [24.5, 'F5', 0.5], [25, 'D6', 1], [26, 'C6', 0.5], [26.5, 'A5', 0.5], [27, 'F5', 0.5], [27.5, 'A5', 0.5],
+  [28, 'Bb5', 1.5], [29.5, 'A5', 0.5], [30, 'G5', 0.5], [30.5, 'F5', 0.5], [31, 'G5', 1],
+  [32, 'C6', 0.5], [32.5, 'A5', 0.5], [33, 'F5', 0.5], [33.5, 'A5', 0.5], [34, 'G5', 0.5], [34.5, 'E5', 0.5], [35, 'C5', 0.5], [35.5, 'E5', 0.5],
+  // groove B: people, chat
+  [36, 'D6', 1], [37, 'C6', 0.5], [37.5, 'A5', 0.5], [38, 'F5', 1], [39, 'A5', 0.5], [39.5, 'C6', 0.5],
+  [40, 'D6', 0.5], [40.5, 'C6', 0.5], [41, 'Bb5', 1], [42, 'A5', 0.5], [42.5, 'G5', 0.5], [43, 'F5', 1],
+  [44, 'C6', 0.5], [44.5, 'A5', 0.5], [45, 'F5', 0.5], [45.5, 'A5', 0.5], [46, 'C6', 0.75], [46.75, 'D6', 0.25], [47, 'C6', 0.5], [47.5, 'A5', 0.5],
+  [48, 'G5', 1], [49, 'E5', 0.5], [49.5, 'G5', 0.5], [50, 'C6', 1], [51, 'E5', 0.5], [51.5, 'G5', 0.5],
+  // chorus (the sticker slaps play the melody over 60-64, the stat bells over 68-70)
+  [64, 'Bb5', 1.5], [65.5, 'A5', 0.5], [66, 'G5', 0.5], [66.5, 'F5', 0.5], [67, 'G5', 1],
+  [70, 'A5', 0.5], [70.5, 'C6', 0.5], [71, 'D6', 0.5], [71.5, 'C6', 0.5],
+  [72, 'C6', 0.5], [72.5, 'D6', 0.5], [73, 'E6', 1], [74, 'G6', 1.5],
+  // finale
+  [76, 'D6', 0.5], [76.5, 'C6', 0.5], [77, 'E6', 0.5], [77.5, 'G6', 0.5], [78, 'F6', 1.5],
+  [80, 'A5', 0.5], [80.5, 'C6', 0.5], [81, 'D6', 1], [82, 'D6', 0.5], [82.5, 'C6', 0.5], [83, 'Bb5', 1],
+  [84, 'A5', 0.5], [84.5, 'C6', 0.5], [85, 'D6', 0.5], [85.5, 'E6', 0.5], [86, 'F6', 2],
 ];
-const GROOVE = [[8, 28], [32, 40], [42, 46]]; // full drum groove ranges
+const GROOVE = [[16, 52], [60, 75]]; // full drum groove ranges
 
 async function renderSoundtrack(sampleRate = 48000) {
   const len = Math.ceil(DURATION * sampleRate);
@@ -354,150 +370,193 @@ async function renderSoundtrack(sampleRate = 48000) {
   // ------------------------------------------------ music
   const chordAt = b => CHORDS.find(c => b >= c[0] && b < c[1]) || CHORDS[CHORDS.length - 1];
   const inGroove = b => GROOVE.some(([a, e]) => b >= a && b < e);
-  // Bass: octave bounce on 8th notes in the grooves, longer notes elsewhere.
-  for (let b = 4; b < 46; b += 0.5) {
-    const [, , root] = chordAt(b);
-    const r = midi(root);
-    if (b >= 28 && b < 32) { if (b % 2 === 0) bass(b, r, 2, 0.9); continue; }
-    if (b >= 40 && b < 42) { bass(b, r + (b % 1 ? 12 : 0), 0.5, 1); continue; }
+  const inBreak = b => b >= AT.privacy && b < AT.hood;
+  const at = (scene, t) => AT[scene] + t;
+  // Bass: long notes in the intro and the breakdown, an octave bounce on 8th notes elsewhere.
+  bass(0.25, midi('F2'), 1.5, 1);
+  for (const [b, n] of [[4, 'F2'], [5, 'F2'], [6, 'C2'], [7, 'C2']]) bass(b, midi(n), 0.9, 0.75);
+  for (let b = 8; b < 86; b += 0.5) {
+    const r = midi(chordAt(b)[2]);
+    if (inBreak(b)) { if (b === 52 || b === 56 || b === 58) bass(b, r, b === 52 ? 4 : 2, 0.9); continue; }
+    if (b >= 75 && b < 76) continue; // a beat of air before the finale
+    if (b >= 76 && b < 78) { bass(b, r + (b % 1 ? 12 : 0), 0.5, 1); continue; }
     const step = Math.round(b * 2) % 8;
     const n = step % 2 ? r + 12 : step === 6 ? r + 7 : r;
-    bass(b, n, 0.5, inGroove(b) ? 1 : 0.8);
+    bass(b, n, 0.5, inGroove(b) || b >= 78 ? 1 : 0.8);
   }
-  bass(0.25, midi('F1') + 12, 1.5, 1);
-  bass(42, midi('F2'), 1, 1.1);
-  bass(46, midi('F1') + 12, 2, 1.1);
+  bass(86, midi('F2'), 2, 1.1);
   // Offbeat plucks.
-  for (let b = 8; b < 46; b++) {
-    if (b >= 28 && b < 32) continue;
-    pluck(b + 0.5, chordAt(b)[3], b >= 32 && b < 36 ? 0.7 : 1);
+  for (let b = 4; b < 7; b++) pluck(b + 0.5, chordAt(b)[3], 0.55);
+  for (let b = 16; b < 86; b++) {
+    if (inBreak(b) || (b >= 75 && b < 78)) continue;
+    pluck(b + 0.5, chordAt(b)[3], b >= 60 && b < 64 ? 0.7 : b >= 78 ? 0.8 : 1);
   }
-  // Pads under the intro and the breakdown.
-  pad(0.25, ['F3', 'A3', 'C4'], 3.1, 0.8);
-  pad(28, ['C4', 'E4', 'G4'], 3.8, 1.1);
-  // Rising arpeggio in the "10,000 stickers" build.
-  for (let b = 4; b < 8; b += 0.25) {
+  // Pads under the intro, the breakdown and the end card.
+  pad(0.25, ['F3', 'A3', 'C4'], 3.6, 0.8);
+  pad(4, ['F3', 'A3', 'C4'], 2, 0.6); pad(6, ['E3', 'G3', 'C4'], 1.4, 0.6);
+  pad(52, ['F3', 'A3', 'D4'], 4, 1.1); pad(56, ['F3', 'Bb3', 'D4'], 2, 1.1); pad(58, ['E3', 'G3', 'C4'], 2, 1.1);
+  [[78, ['F3', 'A3', 'C4']], [80, ['F3', 'A3', 'D4']], [82, ['F3', 'Bb3', 'D4']], [84, ['E3', 'G3', 'C4']]].forEach(([b, n]) => pad(b, n, 2, 0.5));
+  pad(86, ['F3', 'A3', 'C4'], 2, 0.7);
+  // A glockenspiel tag under the logo, and a rising arpeggio in the "10,000 stickers" build.
+  [[4, 'C6'], [4.5, 'A5'], [5, 'F5'], [5.5, 'A5'], [6, 'G5'], [6.5, 'E5'], [7, 'C6']].forEach(([b, n]) => bell(b, n, 0.45, 0.8));
+  for (let b = 8; b < 16; b += 0.25) {
     const tri = chordAt(b)[3].map(midi);
     const k = Math.round(b * 4) % 4;
-    arp(b, (k === 3 ? tri[0] + 12 : tri[k]) + 12, 0.6 + (b - 4) * 0.12);
+    arp(b, (k === 3 ? tri[0] + 12 : tri[k]) + 12, 0.45 + (b - 8) * 0.07);
   }
   MELODY.forEach(([b, n, l]) => lead(b, n, l));
 
   // ------------------------------------------------ drums
-  for (let b = 8; b < 46; b += 0.25) {
-    const s16 = Math.round(b * 4) % 16;
-    if (b >= 28 && b < 32) continue;
-    if (b >= 40 && b < 42) continue;
+  for (let b = 16; b < 75; b += 0.25) {
     if (!inGroove(b)) continue;
+    const s16 = Math.round(b * 4) % 16;
     if ([0, 8, 10].includes(s16) || (Math.floor(b / 4) % 2 === 1 && s16 === 6)) kick(b);
     if (s16 === 4 || s16 === 12) clap(b);
     const open = s16 % 4 === 2;
     hat(b, open ? 0.9 : s16 % 2 ? 0.45 : 0.75, open);
-    if (b >= 32 && b < 40) shaker(b, s16 % 2 ? 0.6 : 1);
+    if ((b >= 36 && b < 52) || b >= 60) shaker(b, s16 % 2 ? 0.6 : 1);
   }
-  // intro + build
-  kick(0.25, 1.1);
-  crash(0.25, 0.8);
-  for (let b = 1; b < 3.4; b += 0.5) hat(b, 0.4);
-  [3.5, 3.625, 3.75, 3.875].forEach((b, i) => snare(b, 0.35 + i * 0.15));
-  for (let b = 4; b < 8; b++) kick(b, 0.95);
-  clap(5); clap(7);
-  for (let b = 4; b < 7.5; b += 0.25) hat(b, 0.3 + (b - 4) * 0.12, Math.round(b * 4) % 4 === 2);
-  for (let i = 0; i < 8; i++) snare(7.5 + i * 0.0625, 0.25 + i * 0.09);
+  // intro
+  kick(0.25, 1.1); crash(0.25, 0.8);
+  for (let b = 1; b < 4; b += 0.5) hat(b, 0.4);
+  [3.5, 3.625, 3.75, 3.875].forEach((b, i) => snare(b, 0.3 + i * 0.12));
+  kick(4, 0.9); kick(5.5, 0.6); kick(6, 0.85); clap(5, 0.7); clap(7, 0.7);
+  for (let b = 4; b < 7.25; b += 0.5) hat(b, 0.4, b % 1 === 0.5);
+  // build
   crash(8, 0.9);
+  for (let b = 8; b < 16; b++) kick(b, 0.95);
+  for (const b of [9, 11, 13]) clap(b);
+  for (let b = 8; b < 15; b += 0.25) hat(b, 0.3 + (b - 8) * 0.06, Math.round(b * 4) % 4 === 2);
+  for (let i = 0; i < 16; i++) snare(15 + i * 0.0625, 0.2 + i * 0.05);
+  crash(16, 1); crash(28, 0.6); crash(36, 0.7); crash(44, 0.7);
   // breakdown (half time)
-  kick(28, 1); kick(29.5, 0.7); snare(30, 1); kick(30.75, 0.6); kick(31, 0.8);
-  for (let b = 28; b < 31.5; b += 0.5) hat(b, 0.35);
-  crash(32, 1);
-  for (let i = 0; i < 8; i++) snare(39.0 + i * 0.0625, 0.25 + i * 0.09);
-  // finale
-  crash(42, 1.1); kick(42, 1.2);
-  for (const b of [40.0, 40.5, 41.0]) kick(b, 0.9);
-  kick(46, 1.2); crash(46, 1);
-  for (let b = 46.5; b < 47.5; b += 0.5) hat(b, 0.25);
+  kick(52, 1); kick(53.5, 0.7); snare(54, 1); kick(54.75, 0.6); kick(55, 0.8); kick(56, 0.9); kick(57.5, 0.6); snare(58, 0.8);
+  for (let b = 52; b < 59; b += 0.5) hat(b, 0.33);
+  for (let i = 0; i < 16; i++) snare(59 + i * 0.0625, 0.18 + i * 0.05);
+  // chorus
+  crash(60, 1); crash(68, 0.7);
+  for (let i = 0; i < 12; i++) snare(74.5 + i * 0.0625, 0.25 + i * 0.06);
+  // finale: kicks on the landings, then a lighter groove under the end card
+  for (const b of [76.0, 76.5, 77.0]) kick(b, 0.9);
+  crash(78, 1.1); kick(78, 1.2);
+  for (let b = 78; b < 86; b += 0.5) {
+    const s8 = Math.round(b * 2) % 8;
+    if ((s8 === 0 || s8 === 4) && b !== 78) kick(b, 0.85);
+    if (s8 === 2 || s8 === 6) clap(b, 0.75);
+    hat(b, s8 % 2 ? 0.35 : 0.55);
+  }
+  kick(86, 1.2); crash(86, 1);
+  for (let b = 86.5; b < 87.5; b += 0.5) hat(b, 0.25);
 
-  // ------------------------------------------------ cues (see scenes.js for the matching visuals)
+  // ------------------------------------------------ cues (scene clocks and times from scenes.js)
   // S1 logo sting
-  slap(0.25, 1.2); click(0.2, 0.8);
+  click(0.2, 0.8); slap(0.25, 1.2);
   bell(0.25, 'F5', 0.8); bell(0.25, 'A5', 0.7); bell(0.25, 'C6', 0.7);
   peel(1.0, 0.45, 0.5); sparkle(1.05, 0.6, 3);
   ['C5', 'F5', 'A5', 'C6', 'F6', 'A6', 'C7'].forEach((n, i) => xylo(1.5 + i * 0.125, n, 0.9));
-  popS(2.5, 900, 0.8); bell(2.5, 'C6', 0.6); sparkle(2.25, 0.35, 5);
-  peel(3.375, 0.85, 1);
+  sparkle(2.25, 0.35, 5); popS(2.5, 900, 0.8); bell(2.5, 'C6', 0.6);
+  sparkle(4.0, 0.4, 6);
+  peel(6.0, 0.5, 0.35); sparkle(6.05, 0.4, 8);
+  peel(at('many', -0.625), 0.875, 1);
   // S2 10,000 stickers
   const pent = ['C6', 'D6', 'F6', 'G6', 'A6', 'C7'];
   const Rp = rng(99);
-  for (let i = 0; i < RAIN_N; i++) popS(rainLand(i), hz(pent[Math.floor(Rp() * pent.length)]) * 0.5, 0.42, (Rp() - 0.5) * 1.2);
-  for (let k = 0; k < 8; k++) tick(4.25 + k * 0.25, 2000 + k * 260, 0.9);
-  slap(6.25, 1.1); crash(6.25, 0.7); bell(6.25, 'C6', 0.9); bell(6.25, 'E6', 0.8); bell(6.25, 'G6', 0.8);
-  boing(6.5, 180, 0.8);
-  popS(6.75, 700, 0.9); blips(6.75, ['C5', 'G5'], 0.9, 0.125);
-  whoosh(7.0, 0.15, 0.25); whoosh(7.25, 0.15, 0.25, true, [0.7, -0.7]);
-  whoosh(7.5, 0.6, 0.7); sparkle(7.6, 0.4, 7); riser(7.0, 1.0, 0.5);
+  for (let i = 0; i < RAIN_N + RAIN_LATE.length; i++) popS(at('many', rainLand(i)), hz(pent[Math.floor(Rp() * pent.length)]) * 0.5, i < RAIN_N ? 0.42 : 0.55, (Rp() - 0.5) * 1.2);
+  for (let k = 0; k < 12; k++) tick(at('many', 0.25 + k * 0.25), 1800 + k * 180, 0.9);
+  slap(at('many', 3.25), 1.1); crash(at('many', 3.25), 0.7);
+  ['C6', 'E6', 'G6'].forEach(n => bell(at('many', 3.25), n, 0.85));
+  boing(at('many', 4.0), 180, 0.8);
+  popS(at('many', 4.25), 700, 0.9); blips(at('many', 4.25), ['C5', 'G5'], 0.9, 0.125);
+  whoosh(at('many', 4.75), 0.15, 0.25); whoosh(at('many', 5.5), 0.15, 0.25, true, [0.7, -0.7]);
+  riser(at('many', 6.0), 2.0, 0.5);
+  whoosh(at('many', 7.5), 0.6, 0.7); sparkle(at('many', 7.6), 0.4, 7);
   // S3 search
-  whoosh(7.75, 0.3, 0.4);
-  for (let i = 0; i < QUERY.length; i++) key(typedAt(i), 0.9);
-  PARTIAL.forEach((_, i) => popS(9.75 + i * 0.05, 700 + i * 80, 0.5));
-  FINAL.forEach((_, i) => popS(12.0 + i * 0.05, 600 + i * 45, 0.45));
-  popS(12.25, 850, 0.7); popS(12.5, 1000, 0.6); popS(12.75, 1150, 0.7);
-  bell(13.0, 'G6', 1); sparkle(13.0, 0.5, 11); popS(13.25, 900, 0.6);
-  peel(14.0, 0.375, 0.7); popS(14.375, 950, 0.6); sparkle(14.5, 0.5, 13);
-  whoosh(15.2, 0.8, 0.9); riser(15.25, 0.75, 0.6);
-  // S4 sees the picture
-  slap(16, 1.1); crash(16, 0.6);
-  scan(16.5, 1.4, 1);
-  [17.0, 17.25, 17.5].forEach((b, i) => { popS(b, 800 + i * 150, 0.7); blips(b, [['A5', 'C6', 'D6'][i]], 0.7); });
-  clack(18.0, 0.8); bell(18.0, 'A6', 0.8); popS(18.25, 1000, 0.7);
-  boing(19.0, 260, 0.35);
-  whoosh(19.5, 0.65, 1, true, [0.8, -0.8]);
+  whoosh(at('search', -0.25), 0.3, 0.4);
+  for (let i = 0; i < QUERY.length; i++) key(at('search', typedAt(i)), 0.9);
+  PARTIAL.forEach((_, i) => popS(at('search', RESULTS_PARTIAL + i * 0.05), 700 + i * 80, 0.5));
+  FINAL.forEach((_, i) => popS(at('search', RESULTS_FINAL + i * 0.05), 600 + i * 45, 0.45));
+  popS(at('search', 4.25), 850, 0.7); popS(at('search', 4.5), 1000, 0.6); popS(at('search', 4.75), 1150, 0.7);
+  bell(at('search', 5.0), 'G6', 1); sparkle(at('search', 5.0), 0.5, 11); popS(at('search', 5.25), 900, 0.6);
+  popS(at('search', 6.0), 1200, 0.35); popS(at('search', 8.0), 1200, 0.35);
+  blips(at('search', 8.0), ['G6'], 0.5); blips(at('search', 8.5), ['A6'], 0.5);
+  peel(at('search', HERO_LIFT), 0.375, 0.7); popS(at('search', HERO_LIFT + 0.375), 950, 0.6); sparkle(at('search', HERO_LIFT + 0.5), 0.5, 13);
+  whoosh(at('search', 11.2), 0.8, 0.9); riser(at('search', 11.25), 0.75, 0.6);
+  // S4 sees the picture, reads the text
+  slap(at('sees', 0), 1.1);
+  scan(at('sees', 0.5), 1.4, 1);
+  SEES_TAGS.forEach((tag, i) => { popS(at('sees', tag.t), 800 + i * 150, 0.7); blips(at('sees', tag.t), [['A5', 'C6', 'D6'][i]], 0.7); });
+  clack(at('sees', OCR_AT), 0.8); bell(at('sees', OCR_AT), 'A6', 0.8); popS(at('sees', OCR_AT + 0.25), 1000, 0.7);
+  boing(at('sees', 3.0), 260, 0.35);
+  [0, 1, 2].forEach(i => popS(at('sees', 4.0 + i * 0.125), 900 + i * 120, 0.3));
+  popS(at('sees', 4.5), 1100, 0.3);
+  boing(at('sees', 5.0), 280, 0.3);
+  whoosh(at('people', -0.5), 0.65, 1, true, [0.8, -0.8]);
   // S5 People
-  FACES.forEach((_, i) => { slap(20 + i * 0.125, 0.45, 1.2 + i * 0.05); popS(20 + i * 0.125, 700 + i * 60, 0.4); });
-  for (let i = 0; i < 6; i++) tick(21 + i * 0.0625, 3600, 0.8);
-  scan(21.25, 0.4, 0.5); popS(21.5, 900, 0.5);
-  whoosh(22.0, 0.35, 0.6); boing(22.0, 240, 0.5);
-  bell(22.5, 'D6', 0.8); popS(22.5, 900, 0.6); bell(22.75, 'F6', 0.8); popS(22.75, 1100, 0.6);
-  peel(23.5, 0.875, 0.9);
+  FACES.forEach((_, i) => { slap(at('people', i * 0.125), 0.45, 1.2 + i * 0.05); popS(at('people', i * 0.125), 700 + i * 60, 0.4); });
+  for (let i = 0; i < 6; i++) tick(at('people', 1.0 + i * 0.0625), 3600, 0.8);
+  scan(at('people', 1.25), 0.4, 0.5); popS(at('people', 1.5), 900, 0.5);
+  whoosh(at('people', PEOPLE_T.group), 0.35, 0.6); boing(at('people', PEOPLE_T.group), 240, 0.5);
+  bell(at('people', PEOPLE_T.names), 'D6', 0.8); popS(at('people', PEOPLE_T.names), 900, 0.6);
+  bell(at('people', PEOPLE_T.names + 0.25), 'F6', 0.8); popS(at('people', PEOPLE_T.names + 0.25), 1100, 0.6);
+  popS(at('people', PEOPLE_T.search), 850, 0.7);
+  for (let k = 0; k < 4; k++) key(at('people', PEOPLE_T.search + k * 0.0625), 0.6);
+  ['D6', 'F6', 'A6'].forEach((n, i) => bell(at('people', PEOPLE_T.found + i * 0.125), n, 0.7));
+  sparkle(at('people', PEOPLE_T.found), 0.5, 57);
+  [0, 1, 2].forEach(i => boing(at('people', PEOPLE_T.found + i * 0.125), 260 + i * 40, 0.35));
+  peel(at('chat', -0.5), 0.875, 0.9);
   // S6 keyboard -> chat
-  whoosh(23.9, 0.3, 0.35);
-  blips(24.25, ['E6', 'C6'], 0.7, 0.06);
-  for (let i = 0; i < 4; i++) key(24.5 + i * 0.125, 0.8);
-  whoosh(25.0, 0.3, 0.35, true, [0, 0]);
-  for (let i = 0; i < 4; i++) popS(25.25 + i * 0.125, 800 + i * 100, 0.45);
-  tick(26.0, 2400, 1); popS(26.0, 700, 0.6);
-  whoosh(26.0, 0.5, 0.6, true, [-0.5, 0.5]);
-  slap(26.5, 0.9); sparkle(26.5, 0.4, 17);
-  blips(26.75, ['C6', 'G6'], 0.7, 0.06);
-  blips(27.0, ['G6', 'E6'], 0.7, 0.06); popS(27.0, 1100, 0.4);
-  whoosh(27.5, 0.5, 0.7, false); boing(28.0, 150, 0.4);
+  whoosh(at('chat', -0.1), 0.3, 0.35);
+  blips(at('chat', 0.25), ['E6', 'C6'], 0.7, 0.06);
+  for (let i = 0; i < 4; i++) key(at('chat', CHAT_T.typed + i * 0.125), 0.8);
+  whoosh(at('chat', CHAT_T.kb), 0.3, 0.35, true, [0, 0]);
+  for (let i = 0; i < 4; i++) popS(at('chat', CHAT_T.kb + 0.25 + i * 0.125), 800 + i * 100, 0.45);
+  tick(at('chat', CHAT_T.tap), 2400, 1); popS(at('chat', CHAT_T.tap), 700, 0.6);
+  whoosh(at('chat', CHAT_T.tap), 0.5, 0.6, true, [-0.5, 0.5]);
+  slap(at('chat', CHAT_T.land), 0.9); sparkle(at('chat', CHAT_T.land), 0.4, 17);
+  blips(at('chat', CHAT_T.ticks), ['C6', 'G6'], 0.7, 0.06);
+  blips(at('chat', CHAT_T.reply), ['G6', 'E6'], 0.7, 0.06); popS(at('chat', CHAT_T.reply), 1100, 0.4);
+  blips(at('chat', CHAT_T.turtle), ['G6', 'E6'], 0.7, 0.06); slap(at('chat', CHAT_T.turtle), 0.5, 1.3); popS(at('chat', CHAT_T.turtle), 600, 0.5);
+  whoosh(at('privacy', -0.5), 0.5, 0.7, false);
   // S7 privacy
-  popS(28.0, 500, 0.9); clack(28.5, 1); popS(28.75, 800, 0.6);
-  tone(sfx, { t: T(29), f: 120, f2: 240, glide: 0.25, gain: 0.35, decay: 0.5, send: 0.3 }); sparkle(29.0, 0.4, 19);
-  [29.25, 29.75, 30.25, 30.75].forEach((b, i) => { whoosh(b, 0.375, 0.3, true, [0, (i % 2 ? 1 : -1) * 0.6]); boing(b + 0.375, 300 + i * 40, 0.55); });
-  stamp(30.0, 1.1);
-  popS(30.5, 900, 0.6);
-  riser(31.0, 0.75, 0.7);
-  popS(31.75, 380, 1); sparkle(31.75, 0.6, 23); whoosh(31.75, 0.25, 0.4);
+  popS(at('privacy', 0), 500, 0.9); boing(at('privacy', 0), 150, 0.35);
+  clack(at('privacy', 0.5), 1); popS(at('privacy', 0.75), 800, 0.6);
+  tone(sfx, { t: T(at('privacy', 1.0)), f: 120, f2: 240, glide: 0.25, gain: 0.35, decay: 0.5, send: 0.3 }); sparkle(at('privacy', 1.0), 0.4, 19);
+  PACKETS.forEach(([t0], i) => { whoosh(at('privacy', t0), PACKET_OUT, 0.3, true, [0, (i % 2 ? 1 : -1) * 0.6]); boing(at('privacy', t0 + PACKET_OUT), 300 + (i % 4) * 40, 0.5); });
+  stamp(at('privacy', 2.0), 1.1);
+  popS(at('privacy', 2.5), 900, 0.6); popS(at('privacy', 3.25), 1000, 0.6);
+  clack(at('privacy', 4.0), 0.4);
+  riser(at('privacy', 6.0), 1.625, 0.7);
+  popS(at('privacy', SHIELD_POP), 380, 1); sparkle(at('privacy', SHIELD_POP), 0.6, 23); whoosh(at('privacy', SHIELD_POP), 0.25, 0.4);
   // S8 under the hood
-  slap(32, 1); popS(32.25, 800, 0.4);
+  slap(at('hood', 0), 1); popS(at('hood', 0.25), 800, 0.4);
   const bombNotes = ['D5', 'F5', 'A5', 'D6', 'C6', 'A5', 'F5', 'A5', 'C6', 'D6', 'F6', 'E6', 'D6', 'A6'];
-  TECH.forEach((_, i) => { slap(TECH_T(i), 0.6, 0.9 + i * 0.03); xylo(TECH_T(i), bombNotes[i], 0.55); });
-  whoosh(36.0, 0.5, 0.5);
-  ['F5', 'Bb5', 'D6', 'F6'].forEach((n, i) => { popS(STAT_T(i), 800, 0.6); bell(STAT_T(i), n, 1); for (let k = 1; k < 4; k++) tick(STAT_T(i) + k * 0.125, 2500 + k * 300, 0.5); });
-  boing(38.5, 280, 0.5);
-  peel(39.25, 0.875, 1);
+  TECH.forEach((_, i) => { slap(at('hood', TECH_T(i)), 0.6, 0.9 + i * 0.03); xylo(at('hood', TECH_T(i)), bombNotes[i], 0.55); });
+  sparkle(at('hood', 5.0), 0.5, 43); riser(at('hood', 5.0), 0.9, 0.25);
+  whoosh(at('hood', HOOD_SHRINK), 0.5, 0.5);
+  ['F5', 'A5', 'C6', 'F6'].forEach((n, i) => { const b = at('hood', STAT_T(i)); popS(b, 800, 0.6); bell(b, n, 1); for (let k = 1; k < 4; k++) tick(b + k * 0.125, 2500 + k * 300, 0.5); });
+  boing(at('hood', 12.0), 280, 0.5);
+  [0, 1, 2, 3].forEach(i => popS(at('hood', 12.0 + i * 0.125), 900 + i * 100, 0.35));
+  peel(at('finale', -0.75), 0.875, 1);
   // S9 finale
-  [39.5, 40.0, 40.5].forEach((b, i) => { boing(b, 200 + i * 60, 0.6); thud(b + 0.5, 0.8); });
-  sparkle(41.25, 0.6, 29);
-  whoosh(41.5, 0.5, 0.7); riser(41.5, 0.5, 0.5);
-  slap(42, 1.3); brass(42, ['F3', 'A3', 'C4', 'F4', 'A4', 'C5'], 1.5, 1.1); bell(42, 'F6', 1); sparkle(42.1, 0.8, 31);
+  [-0.5, 0, 0.5].forEach((b, i) => { boing(at('finale', b), 200 + i * 60, 0.6); thud(at('finale', b + 0.5), 0.8); });
+  sparkle(at('finale', 1.25), 0.6, 29);
+  whoosh(at('finale', 1.5), 0.5, 0.7); riser(at('finale', 1.5), 0.5, 0.5);
+  const tada = at('finale', FIN_T.tada);
+  slap(tada, 1.3); brass(tada, ['F3', 'A3', 'C4', 'F4', 'A4', 'C5'], 1.5, 1.1); bell(tada, 'F6', 1); sparkle(tada + 0.1, 0.8, 31);
   const Rc = rng(5);
-  for (let i = 0; i < 14; i++) popS(42 + i * 0.045, 900 + Rc() * 900, 0.3, (Rc() - 0.5) * 1.6);
-  ['C5', 'F5', 'A5', 'C6', 'F6', 'A6', 'C7'].forEach((n, i) => xylo(42.25 + i * 0.125, n, 0.8));
-  popS(43.25, 900, 0.7); bell(43.25, 'C6', 0.6);
-  ['F5', 'A5', 'C6'].forEach((n, i) => { popS(43.75 + i * 0.25, 800 + i * 150, 0.55); bell(43.75 + i * 0.25, n, 0.5); });
-  bell(44.75, 'A5', 0.4); bell(45.0, 'C6', 0.4);
-  brass(46, ['F3', 'C4', 'F4', 'A4', 'C5', 'F5'], 1.75, 1.2); click(46, 1); sparkle(46.05, 0.9, 37); bell(46, 'F6', 0.9); bell(46, 'C6', 0.7);
-  sparkle(47.0, 0.35, 41);
+  for (let i = 0; i < 14; i++) popS(tada + i * 0.045, 900 + Rc() * 900, 0.3, (Rc() - 0.5) * 1.6);
+  ['C5', 'F5', 'A5', 'C6', 'F6', 'A6', 'C7'].forEach((n, i) => xylo(tada + 0.25 + i * 0.125, n, 0.8));
+  boing(at('finale', FIN_T.rest), 320, 0.3); thud(at('finale', FIN_T.rest + 0.5), 0.5);
+  popS(at('finale', 3.25), 900, 0.7); bell(at('finale', 3.25), 'C6', 0.6);
+  ['F5', 'A5', 'C6'].forEach((n, i) => { popS(at('finale', 3.75 + i * 0.25), 800 + i * 150, 0.55); bell(at('finale', 3.75 + i * 0.25), n, 0.5); });
+  bell(at('finale', 4.75), 'A5', 0.4); bell(at('finale', 5.0), 'C6', 0.4);
+  peel(at('finale', 6.0), 0.5, 0.3); sparkle(at('finale', 6.05), 0.4, 33);
+  boing(at('finale', FIN_T.idleHop), 300, 0.4); thud(at('finale', FIN_T.idleHop + 0.4), 0.5);
+  peel(at('finale', 8.0), 0.5, 0.3);
+  [0, 1, 2, 3].forEach(i => popS(at('finale', 8.0 + i * 0.125), 1000 + i * 100, 0.3));
+  const fin = at('finale', FIN_T.final);
+  brass(fin, ['F3', 'C4', 'F4', 'A4', 'C5', 'F5'], 1.75, 1.2); click(fin, 1); sparkle(fin + 0.05, 0.9, 37); bell(fin, 'F6', 0.9); bell(fin, 'C6', 0.7);
+  sparkle(fin + 1.0, 0.35, 41);
 
   const buf = await ac.startRendering();
   // Normalise to -0.6 dBFS and fade the last 200 ms.

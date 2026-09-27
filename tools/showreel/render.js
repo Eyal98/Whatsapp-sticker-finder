@@ -3,7 +3,7 @@
 //
 //   node tools/showreel/render.js                   # 16:9 and 9:16 WebM (VP9 + Opus) in tools/showreel/out
 //   node tools/showreel/render.js --format land     # one cut only (land = 16:9, port = 9:16)
-//   node tools/showreel/render.js --quality web     # smaller files for web pages
+//   node tools/showreel/render.js --quality web     # 1280x720 / 720x1280, smaller files for web pages
 //   node tools/showreel/render.js --mp4             # also H.264 + AAC MP4s (needs ffmpeg with libx264)
 //   node tools/showreel/render.js --wav             # also the soundtrack on its own
 //   node tools/showreel/render.js --serve           # live preview at http://127.0.0.1:8123/showreel.html
@@ -99,9 +99,9 @@ async function main() {
         const duration = v.duration;
         v.currentTime = 10;
         await new Promise(ok => { v.onseeked = ok; });
-        return { duration, width: v.videoWidth, height: v.videoHeight, seeked: v.currentTime };
+        return { duration, expected: DURATION, width: v.videoWidth, height: v.videoHeight, seeked: v.currentTime };
       });
-      if (Math.abs(check.duration - 20) > 0.1) throw new Error(`unexpected duration ${check.duration}`);
+      if (Math.abs(check.duration - check.expected) > 0.1) throw new Error(`unexpected duration ${check.duration}, expected ${check.expected}`);
       console.log(`  plays back: ${check.width}x${check.height}, ${check.duration.toFixed(2)} s`);
       if (opt('mp4')) toMp4(file, path.join(OUT, `${name}.mp4`));
     }

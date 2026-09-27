@@ -5,8 +5,8 @@
 const TAU = Math.PI * 2;
 const BPM = 144;
 const BEAT = 60 / BPM;          // 0.41667 s: exactly 25 frames at 60 fps
-const BEATS = 48;               // 12 bars
-const DURATION = BEATS * BEAT;  // 20 s
+const BEATS = 88;               // 22 bars
+const DURATION = BEATS * BEAT;  // 36.7 s
 
 // Brand colours (app/src/main/java/.../ui/Theme.kt and tools/brand/flat.py), plus a few accents.
 const C = {
@@ -313,13 +313,17 @@ function stext(ctx, str, x, y, o) {
   return L.width;
 }
 
-// Common per-letter entrance: letters pop in one after another from t0.
+// Common per-letter entrance: letters pop in one after another from t0. Once settled, they give a
+// small hop on every bar's first beat, rippling left to right (scenes start on bar lines, so a
+// scene's own clock is in step with the music's bars).
 function letterPop(tb, t0, stagger = 0.08, { f = 1.4, z = 0.36, rise = 0.5, spin = 0.25, size = 100 } = {}) {
   return i => {
     const tt = tb - t0 - i * stagger;
     if (tt <= 0) return false;
     const s = spring(tt, f, z);
-    return { s, dy: (1 - s) * size * rise, r: (1 - s) * spin * (i % 2 ? 1 : -1) };
+    const q = tb - Math.floor(tb / 4) * 4 - i * 0.03;
+    const hop = tt > 1.2 && q >= 0 && q < 0.4 ? Math.sin((Math.PI * q) / 0.4) : 0;
+    return { s: s * (1 + hop * 0.02), dy: (1 - s) * size * rise - hop * size * 0.06, r: (1 - s) * spin * (i % 2 ? 1 : -1) };
   };
 }
 

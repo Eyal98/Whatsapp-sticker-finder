@@ -38,7 +38,7 @@
   <div class="stage" id="stage"><canvas id="view"></canvas></div>
   <div class="bar">
     <button class="primary" id="play">Play</button>
-    <input id="scrub" type="range" min="0" max="20" step="0.001" value="0" aria-label="Position">
+    <input id="scrub" type="range" min="0" max="37" step="0.001" value="0" aria-label="Position">
     <span id="time">0.00 s</span>
     <button id="fmt">Switch to 9:16</button>
     <button id="export">Export WebM</button>
@@ -71,20 +71,22 @@ async function exportWebM({ format = 'land', quality = 'high', onProgress, maxFr
   const saved = { ...RS };
   try {
     setFormat(format);
-    RS.px = 1;
+    // The web preset renders at two thirds of full HD (1280x720 / 720x1280) for embedding.
+    const scale = quality === 'web' ? 2 / 3 : 1;
+    RS.px = scale;
     const canvas = document.createElement('canvas');
-    canvas.width = RS.W;
-    canvas.height = RS.H;
+    canvas.width = Math.round(RS.W * scale);
+    canvas.height = Math.round(RS.H * scale);
     const ctx = canvas.getContext('2d', { alpha: false });
     const fps = 60, frames = maxFrames || Math.round(DURATION * fps);
     const audio = await encodeAudio(await getSoundtrack(), quality === 'web' ? 160000 : 192000);
     const t0 = performance.now();
     const video = await encodeVideo({
       canvas, frames, fps, quality, onProgress,
-      drawFrameAt: i => { ctx.setTransform(1, 0, 0, 1, 0, 0); drawFrame(ctx, i / 25); }, // 60 fps at 144 BPM: 25 frames per beat
+      drawFrameAt: i => { ctx.setTransform(scale, 0, 0, scale, 0, 0); drawFrame(ctx, i / 25); }, // 60 fps at 144 BPM: 25 frames per beat
     });
     const bytes = muxWebM({ video, audio, durationMs: DURATION * 1000, title: 'Peel-It showreel' });
-    return { bytes, info: { width: RS.W, height: RS.H, frames, mode: video.mode, colorSpace: video.colorSpace, seconds: Math.round((performance.now() - t0) / 100) / 10 } };
+    return { bytes, info: { width: canvas.width, height: canvas.height, frames, mode: video.mode, colorSpace: video.colorSpace, seconds: Math.round((performance.now() - t0) / 100) / 10 } };
   } finally {
     Object.assign(RS, saved);
   }
@@ -187,7 +189,8 @@ window.addEventListener('resize', () => { fit(); paint(); });
 
 loadFonts().then(() => {
   const headless = new URLSearchParams(location.search).has('headless');
-  if (!headless) { fit(); pos = 47 * BEAT; paint(); }
+  scrub.max = DURATION;
+  if (!headless) { fit(); pos = (BEATS - 1) * BEAT; paint(); }
   window.Reel.ready = true;
 });
 </script>
