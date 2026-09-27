@@ -7,7 +7,7 @@ import com.eyal98.stickerfinder.data.StickerDao
 import com.eyal98.stickerfinder.data.UserTags
 import com.eyal98.stickerfinder.ml.ModelCatalog
 import com.eyal98.stickerfinder.search.LearnedTags
-import com.eyal98.stickerfinder.search.Vectors
+import com.eyal98.stickerfinder.search.PackedVectors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.util.Locale
@@ -28,12 +28,16 @@ class LearnedTagger(private val context: Context, private val dao: StickerDao) {
         val signature = signature(states.map { Triple(it.id, it.userTags, it.removedImageTags) }, vectorCount)
         if (prefs.getLong(KEY_SIGNATURE, 0L) == signature) return@withContext 0
 
-        val vectors = HashMap<Long, FloatArray>(vectorCount * 2)
+        // Packed, a page at a time: as float arrays, 10,000 picture vectors are 31 MB.
+        var vectors: PackedVectors? = null
         var after = -1L
         while (true) {
             val page = dao.imageVectorPage(MODEL, after, PAGE)
             if (page.isEmpty()) break
-            page.forEach { vectors[it.stickerId] = Vectors.decode(it.vector) }
+            for (row in page) {
+                val packed = vectors ?: PackedVectors(row.vector.size / 4, vectorCount).also { vectors = it }
+                packed.addEncoded(row.stickerId, row.vector)
+            }
             after = page.last().stickerId
         }
 
@@ -41,7 +45,7 @@ class LearnedTagger(private val context: Context, private val dao: StickerDao) {
         val blocked = states.associate { s ->
             s.id to ImageTagFilter.split(s.removedImageTags).map { it.lowercase() }.toSet()
         }.filterValues { it.isNotEmpty() }
-        val result = if (vectors.isEmpty() || tags.isEmpty()) null else LearnedTags.suggest(vectors, tags, blocked)
+        val result = vectors?.takeIf { tags.isNotEmpty() }?.let { LearnedTags.suggest(it, tags, blocked) }
 
         var changed = 0
         for (s in states) {

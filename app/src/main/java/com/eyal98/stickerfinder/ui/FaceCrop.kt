@@ -4,7 +4,6 @@ import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
-import android.util.LruCache
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
@@ -24,8 +23,11 @@ import java.io.IOException
 
 private const val DECODE_PX = 320
 
+/** A few hundred face crops, bounded by their pixels' size (see [BitmapCache]). */
+private const val FACE_CACHE_BYTES = 24 * 1024 * 1024
+
 private object FaceCropCache {
-    private val cache = LruCache<Long, ImageBitmap>(200)
+    private val cache = BitmapCache<Long>(FACE_CACHE_BYTES)
 
     suspend fun load(resolver: ContentResolver, face: FaceOnSticker): ImageBitmap? {
         cache.get(face.id)?.let { return it }

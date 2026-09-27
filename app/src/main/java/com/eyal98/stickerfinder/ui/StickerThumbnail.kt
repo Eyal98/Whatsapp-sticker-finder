@@ -14,6 +14,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.Dispatchers
@@ -22,8 +23,19 @@ import java.io.IOException
 
 private const val THUMBNAIL_PX = 192
 
+/**
+ * About 220 thumbnails of 192 px, a few screens' worth. Pixels live outside the Java heap, but
+ * still count against the phone's memory.
+ */
+private const val THUMBNAIL_CACHE_BYTES = 32 * 1024 * 1024
+
+/** An LRU cache of bitmaps, bounded by the bytes their pixels take. */
+internal class BitmapCache<K : Any>(maxBytes: Int) : LruCache<K, ImageBitmap>(maxBytes) {
+    override fun sizeOf(key: K, value: ImageBitmap): Int = value.asAndroidBitmap().allocationByteCount
+}
+
 private object ThumbnailCache {
-    private val cache = LruCache<String, ImageBitmap>(300)
+    private val cache = BitmapCache<String>(THUMBNAIL_CACHE_BYTES)
 
     suspend fun load(resolver: ContentResolver, uri: String): ImageBitmap? {
         cache.get(uri)?.let { return it }

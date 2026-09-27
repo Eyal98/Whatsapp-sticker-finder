@@ -60,14 +60,21 @@ abstract class StickerDao {
     @Query("SELECT * FROM stickers WHERE id IN (:ids)")
     abstract suspend fun byIds(ids: List<Long>): List<StickerEntity>
 
+    /**
+     * The text fields meaning vectors are made from, in id order, a page at a time: every
+     * sticker's whole row at once is tens of MB.
+     */
+    @Query(
+        "SELECT id, captionEn, captionHe, captionTags, ocrText, userTags, imageTags, learnedTags, removedImageTags, " +
+            "packName, emojiWords, peopleNames, userDescription FROM stickers WHERE id > :after ORDER BY id LIMIT :limit",
+    )
+    abstract suspend fun embeddingTextPage(after: Long, limit: Int): List<StickerTextFields>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun upsertVector(vector: StickerVector)
 
     @Query("SELECT stickerId, model, fingerprint FROM sticker_vectors")
     abstract suspend fun vectorStates(): List<StickerVectorState>
-
-    @Query("SELECT stickerId, vector FROM sticker_vectors WHERE model = :model")
-    abstract suspend fun vectors(model: String): List<StickerVectorRow>
 
     @Query("SELECT COUNT(*) AS count, TOTAL(fingerprint) + TOTAL(stickerId) AS total FROM sticker_vectors")
     abstract suspend fun vectorSignature(): VectorSignature
@@ -228,6 +235,10 @@ abstract class StickerDao {
 
     @Query("UPDATE search_picks SET tagged = 1 WHERE queryKey = :queryKey AND stickerId = :stickerId")
     abstract suspend fun markPickTagged(queryKey: String, stickerId: Long)
+
+    /** The tag fields of stickers with learned tags: enough to count the suggestions to review. */
+    @Query("SELECT id, userTags, learnedTags, removedImageTags FROM stickers WHERE learnedTags IS NOT NULL AND learnedTags != ''")
+    abstract fun observeLearnedTagStates(): Flow<List<StickerTagState>>
 
     /** Stickers with learned tags, for reviewing them. */
     @Query("SELECT * FROM stickers WHERE learnedTags IS NOT NULL AND learnedTags != ''")

@@ -1,7 +1,7 @@
 package com.eyal98.stickerfinder.data
 
+import com.eyal98.stickerfinder.search.PackedVectors
 import com.eyal98.stickerfinder.search.TextEmbedder
-import com.eyal98.stickerfinder.search.VectorIndex
 import com.eyal98.stickerfinder.search.Vectors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -15,7 +15,8 @@ interface EmbedderAccess {
 
 /**
  * Finds stickers whose meaning is close to the query, in either language. Vectors are cached in
- * memory and reloaded only when the table changes.
+ * memory, compactly (see [PackedVectors]), and reloaded only when the table changes or after
+ * [release].
  */
 class SemanticSearch(
     private val dao: StickerDao,
@@ -23,7 +24,7 @@ class SemanticSearch(
     private val minSimilarity: () -> Float = { SearchSettings.DEFAULT_MIN_SIMILARITY },
 ) {
     private val lock = Mutex()
-    private var cached: Triple<String, VectorSignature, VectorIndex>? = null
+    private var cached: Triple<String, VectorSignature, PackedVectors>? = null
 
     /**
      * Recent queries' vectors: typing back and forth ("cat", "cats", "cat") and the keyboard
@@ -55,18 +56,38 @@ class SemanticSearch(
         return withContext(Dispatchers.Default) { index.search(queryVector, limit, minSimilarity) }
     }
 
-    private suspend fun index(model: String): VectorIndex = lock.withLock {
+    private suspend fun index(model: String): PackedVectors = lock.withLock {
         val signature = dao.vectorSignature()
         cached?.let { (m, s, index) -> if (m == model && s == signature) return index }
-        val index = withContext(Dispatchers.Default) {
-            VectorIndex(dao.vectors(model).map { it.stickerId to Vectors.decode(it.vector) })
-        }
+        // Let the old index go before loading the new one, rather than holding both.
+        cached = null
+        val index = load(model, signature.count)
         cached = Triple(model, signature, index)
         index
     }
 
+    /** Reads [model]'s vectors a page at a time: all the stored bytes at once are tens of MB. */
+    private suspend fun load(model: String, expected: Int): PackedVectors = withContext(Dispatchers.Default) {
+        var index: PackedVectors? = null
+        var after = -1L
+        while (true) {
+            val page = dao.meaningVectorPage(model, after, PAGE)
+            if (page.isEmpty()) break
+            for (row in page) {
+                val packed = index ?: PackedVectors(row.vector.size / 4, expected).also { index = it }
+                packed.addEncoded(row.stickerId, row.vector)
+            }
+            after = page.last().stickerId
+        }
+        index?.also { it.trim() } ?: PackedVectors(Vectors.DIMENSIONS, 1)
+    }
+
+    /** Frees the cached vectors (the app went to the background); the next search reloads them. */
+    suspend fun release() = lock.withLock { cached = null }
+
     companion object {
         const val LIMIT = 100
+        private const val PAGE = 500
         private const val QUERY_CACHE_SIZE = 64
     }
 }

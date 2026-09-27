@@ -4,7 +4,10 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.abs
+import kotlin.random.Random
 
 class VectorsTest {
 
@@ -26,16 +29,39 @@ class VectorsTest {
     }
 
     @Test
-    fun `index returns most similar first and applies the threshold`() {
-        val index = VectorIndex(
-            listOf(
-                1L to Vectors.prepare(floatArrayOf(1f, 0f)),
-                2L to Vectors.prepare(floatArrayOf(1f, 1f)),
-                3L to Vectors.prepare(floatArrayOf(-1f, 0f)),
-            ),
-        )
+    fun `packed vectors return most similar first and apply the threshold`() {
+        val index = PackedVectors(dims = 2, capacity = 1)
+        index.add(1L, floatArrayOf(1f, 0f))
+        index.addEncoded(2L, Vectors.encode(floatArrayOf(3f, 3f)))
+        index.add(3L, floatArrayOf(-1f, 0f))
+        assertEquals(false, index.add(4L, floatArrayOf(1f, 0f, 0f)))
+        assertEquals(3, index.size)
         val hits = index.search(Vectors.prepare(floatArrayOf(1f, 0.1f)), limit = 10, minSimilarity = 0.5f)
         assertEquals(listOf(1L, 2L), hits.map { it.first })
+    }
+
+    @Test
+    fun `packed similarities are within rounding of the float ones`() {
+        val random = Random(5)
+        fun unit() = Vectors.prepare(FloatArray(768) { random.nextFloat() * 2 - 1 }, 768)
+        val vectors = List(500) { unit() }
+        val packed = PackedVectors(768)
+        vectors.forEachIndexed { i, v -> packed.add(i.toLong(), v) }
+        packed.trim()
+        repeat(20) {
+            val query = unit()
+            var worst = 0f
+            for (i in vectors.indices) {
+                worst = maxOf(worst, abs(packed.dot(i, query) - Vectors.dot(vectors[i], query)))
+            }
+            assertTrue("off by $worst", worst < 0.005f)
+            // The best match found is the best, or within rounding of it.
+            val best = vectors.maxOf { Vectors.dot(it, query) }
+            val found = packed.search(query, 1, -1f).single().first.toInt()
+            assertEquals(best, Vectors.dot(vectors[found], query), 0.005f)
+        }
+        assertEquals(Vectors.dot(vectors[0], vectors[1]), packed.dot(0, 1), 0.005f)
+        assertArrayEquals(vectors[2], packed.vector(2), 0.005f)
     }
 
     @Test

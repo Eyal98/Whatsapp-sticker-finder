@@ -68,9 +68,13 @@ class StickerFinderApp : Application(), StickerIndexHost {
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         // The embedding model takes a few hundred MB; free it once the UI is hidden. It reloads
-        // on the next search (or indexing run) in about a second.
+        // on the next search (or indexing run) in about a second, and the search's cached
+        // vectors (several MB of Java heap) with it.
         if (level >= ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN) {
-            appScope.launch { embedders.release() }
+            appScope.launch {
+                embedders.release()
+                semanticSearch.release()
+            }
         }
     }
 }

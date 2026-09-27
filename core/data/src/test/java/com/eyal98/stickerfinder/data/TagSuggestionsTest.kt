@@ -36,4 +36,17 @@ class TagSuggestionsTest {
         )
         assertEquals(listOf(3L), groups.single().stickers.map { it.id })
     }
+
+    @Test
+    fun `count matches the groups, from the tag fields alone`() {
+        val stickers = listOf(
+            sticker(1, "Kermit", own = "kermit"),
+            sticker(2, "kermit, Elmo"),
+            sticker(3, "Elmo", hidden = "elmo"),
+            sticker(4, "Kermit, Oscar"),
+        )
+        val states = stickers.map { StickerTagState(it.id, it.userTags, it.learnedTags, it.removedImageTags) }
+        assertEquals(TagSuggestions.group(stickers).size, TagSuggestions.count(states))
+        assertEquals(3, TagSuggestions.count(states))
+    }
 }

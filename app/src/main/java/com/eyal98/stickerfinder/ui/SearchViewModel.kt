@@ -8,7 +8,6 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.data.StickerEntity
 import com.eyal98.stickerfinder.data.StickerRepository
-import com.eyal98.stickerfinder.data.TagSuggestions
 import com.eyal98.stickerfinder.index.EmbedWorker
 import com.eyal98.stickerfinder.index.ImageTagStatus
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -94,7 +93,7 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
             _query,
             combine(
                 ImageTagStatus.observe(app, app.database.stickerDao()),
-                repository.withLearnedTags().map { TagSuggestions.group(it).size }.distinctUntilChanged(),
+                repository.learnedTagCount(),
             ) { tags, suggested -> tags to suggested },
         ) { r, total, pending, q, (tags, suggested) ->
             SearchUiState(

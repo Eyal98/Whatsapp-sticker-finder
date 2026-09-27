@@ -33,35 +33,42 @@ class EmbedIndexer(
         val states = dao.vectorStates().associateBy { it.stickerId }
         var written = 0
         val stale = mutableListOf<Long>()
-        for (sticker in dao.allStickers()) {
-            currentCoroutineContext().ensureActive()
-            if (budget.exhausted) return StickerIndexer.Progress(written, finished = false)
-            val text = EmbeddingText.document(
-                sticker.captionEn, sticker.captionHe, sticker.captionTags, sticker.ocrText, sticker.userTags, sticker.visibleImageTags,
-                sticker.packName, sticker.emojiWords, sticker.peopleNames, sticker.userDescription,
-            )
-            if (text == null) {
-                if (sticker.id in states) stale += sticker.id
-                continue
-            }
-            val fingerprint = EmbeddingText.fingerprint(text)
-            val state = states[sticker.id]
-            val outcome = embedders.withEmbedder { embedder ->
-                when {
-                    state != null && state.model == embedder.modelId && state.fingerprint == fingerprint ->
-                        Outcome.UpToDate
-                    else -> try {
-                        Outcome.Embedded(embedder.modelId, Vectors.prepare(embedder.embed(text, TextEmbedder.Kind.DOCUMENT), embedder.dimensions))
-                    } catch (e: RuntimeException) {
-                        // Leave this sticker for the next run rather than stopping the whole pass.
-                        Log.w(TAG, "Embedding failed", e)
-                        Outcome.Failed
-                    }
+        var after = -1L
+        while (true) {
+            // A page at a time: every sticker's text at once is tens of MB on a big collection.
+            val page = dao.embeddingTextPage(after, PAGE)
+            if (page.isEmpty()) break
+            after = page.last().id
+            for (sticker in page) {
+                currentCoroutineContext().ensureActive()
+                if (budget.exhausted) return StickerIndexer.Progress(written, finished = false)
+                val text = EmbeddingText.document(
+                    sticker.captionEn, sticker.captionHe, sticker.captionTags, sticker.ocrText, sticker.userTags, sticker.visibleImageTags,
+                    sticker.packName, sticker.emojiWords, sticker.peopleNames, sticker.userDescription,
+                )
+                if (text == null) {
+                    if (sticker.id in states) stale += sticker.id
+                    continue
                 }
-            } ?: return null
-            if (outcome is Outcome.Embedded) {
-                dao.upsertVector(StickerVector(sticker.id, outcome.model, fingerprint, Vectors.encode(outcome.vector)))
-                written++
+                val fingerprint = EmbeddingText.fingerprint(text)
+                val state = states[sticker.id]
+                val outcome = embedders.withEmbedder { embedder ->
+                    when {
+                        state != null && state.model == embedder.modelId && state.fingerprint == fingerprint ->
+                            Outcome.UpToDate
+                        else -> try {
+                            Outcome.Embedded(embedder.modelId, Vectors.prepare(embedder.embed(text, TextEmbedder.Kind.DOCUMENT), embedder.dimensions))
+                        } catch (e: RuntimeException) {
+                            // Leave this sticker for the next run rather than stopping the whole pass.
+                            Log.w(TAG, "Embedding failed", e)
+                            Outcome.Failed
+                        }
+                    }
+                } ?: return null
+                if (outcome is Outcome.Embedded) {
+                    dao.upsertVector(StickerVector(sticker.id, outcome.model, fingerprint, Vectors.encode(outcome.vector)))
+                    written++
+                }
             }
         }
         if (stale.isNotEmpty()) dao.deleteVectors(stale)
@@ -70,5 +77,6 @@ class EmbedIndexer(
 
     private companion object {
         const val TAG = "EmbedIndexer"
+        const val PAGE = 500
     }
 }

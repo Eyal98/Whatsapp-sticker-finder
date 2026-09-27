@@ -144,3 +144,23 @@ data class StickerTagState(
     val learnedTags: String?,
     val removedImageTags: String?,
 )
+
+/** A sticker's text fields, for building the text its meaning vector is made from. */
+data class StickerTextFields(
+    val id: Long,
+    val captionEn: String?,
+    val captionHe: String?,
+    val captionTags: String?,
+    val ocrText: String?,
+    val userTags: String,
+    val imageTags: String?,
+    val learnedTags: String?,
+    val removedImageTags: String?,
+    val packName: String?,
+    val emojiWords: String?,
+    val peopleNames: String?,
+    val userDescription: String?,
+) {
+    /** The same as [StickerEntity.visibleImageTags]. */
+    val visibleImageTags: String? get() = ImageTagFilter.visible(ImageTagFilter.join(imageTags, learnedTags), removedImageTags)
+}

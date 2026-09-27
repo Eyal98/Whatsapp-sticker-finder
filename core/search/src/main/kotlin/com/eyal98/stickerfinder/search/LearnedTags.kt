@@ -57,34 +57,45 @@ object LearnedTags {
 
     private const val RANDOM_PAIRS = 3000
 
-    /**
-     * @param vectors each sticker's picture vector; scaled to unit length in place (thousands of
-     *   picture vectors are tens of MB, so they aren't copied)
-     * @param tags each sticker's own tags
-     * @param blocked tags not to suggest on a sticker (lower case): ones the user hid there
-     * @return suggestions per sticker, best first; stickers with none are left out
-     */
+    /** The same as the other [suggest], for vectors in a map (tests, small collections). */
     fun suggest(
         vectors: Map<Long, FloatArray>,
         tags: Map<Long, List<String>>,
         blocked: Map<Long, Set<String>> = emptyMap(),
         random: Random = Random(7),
     ): Result {
-        vectors.values.forEach(::normalizeInPlace)
-        val unit = vectors
-        val ids = unit.keys.toList()
-        val (randomMedian, randomP99) = randomPairs(ids.map { unit.getValue(it) }, random)
+        val packed = PackedVectors(vectors.values.firstOrNull()?.size ?: 1, vectors.size)
+        for ((id, v) in vectors) packed.add(id, v)
+        return suggest(packed, tags, blocked, random)
+    }
+
+    /**
+     * @param vectors each sticker's picture vector (packed: thousands of picture vectors as float
+     *   arrays are tens of MB)
+     * @param tags each sticker's own tags
+     * @param blocked tags not to suggest on a sticker (lower case): ones the user hid there
+     * @return suggestions per sticker, best first; stickers with none are left out
+     */
+    fun suggest(
+        vectors: PackedVectors,
+        tags: Map<Long, List<String>>,
+        blocked: Map<Long, Set<String>> = emptyMap(),
+        random: Random = Random(7),
+    ): Result {
+        val index = HashMap<Long, Int>(vectors.size * 2)
+        for (i in 0 until vectors.size) index[vectors.id(i)] = i
+        val (randomMedian, randomP99) = randomPairs(vectors, random)
         val floor = maxOf(FLOOR, randomP99 + ABOVE_RANDOM)
 
         // Tags by lower case, keeping the spelling used most.
-        val byTag = HashMap<String, MutableList<Long>>()
+        val byTag = HashMap<String, MutableList<Int>>()
         val spelling = HashMap<String, MutableMap<String, Int>>()
         for ((id, list) in tags) {
-            if (id !in unit) continue
+            val i = index[id] ?: continue
             for (tag in list) {
                 val key = tag.trim().lowercase()
                 if (key.isEmpty()) continue
-                byTag.getOrPut(key) { mutableListOf() } += id
+                byTag.getOrPut(key) { mutableListOf() } += i
                 spelling.getOrPut(key) { HashMap() }.merge(tag.trim(), 1) { a, b -> a + b }
             }
         }
@@ -93,11 +104,11 @@ object LearnedTags {
         var learned = 0
         for ((key, examples) in byTag) {
             val display = spelling.getValue(key).maxBy { it.value }.key
+            val exampleVectors = examples.map(vectors::vector)
+            val prototype = mean(exampleVectors)
             val threshold = if (examples.size < MIN_EXAMPLES) {
                 SINGLE_EXAMPLE_SIMILARITY
             } else {
-                val exampleVectors = examples.map { unit.getValue(it) }
-                val prototype = mean(exampleVectors)
                 if (exampleVectors.map { Vectors.dot(it, prototype) }.average() < MIN_COHERENCE) continue
                 // The least typical example, measured against the others only (their sum is the
                 // total minus itself).
@@ -107,11 +118,10 @@ object LearnedTags {
                 }
                 maxOf(floor, leaveOneOut - MARGIN)
             }
-            val prototype = mean(examples.map { unit.getValue(it) })
             val exampleSet = examples.toHashSet()
-            val matches = ids.asSequence()
-                .filter { it !in exampleSet && key !in blocked[it].orEmpty() }
-                .map { it to Vectors.dot(unit.getValue(it), prototype) }
+            val matches = (0 until vectors.size).asSequence()
+                .filter { it !in exampleSet && key !in blocked[vectors.id(it)].orEmpty() }
+                .map { vectors.id(it) to vectors.dot(it, prototype) }
                 .filter { it.second >= threshold }
                 .sortedByDescending { it.second }
                 .take(MAX_PER_TAG)
@@ -126,13 +136,6 @@ object LearnedTags {
             suggestions,
             Stats(byTag.size, learned, suggestions.values.sumOf { it.size }, randomMedian, randomP99),
         )
-    }
-
-    private fun normalizeInPlace(v: FloatArray) {
-        var norm = 0.0
-        for (x in v) norm += x * x
-        val length = sqrt(norm).toFloat()
-        if (length > 0f) for (i in v.indices) v[i] /= length
     }
 
     private fun normalized(v: FloatArray): FloatArray {
@@ -152,13 +155,13 @@ object LearnedTags {
     private fun mean(vectors: List<FloatArray>): FloatArray = normalized(sum(vectors))
 
     /** Median and 99th percentile similarity of random pairs: how alike unrelated stickers are. */
-    private fun randomPairs(vectors: List<FloatArray>, random: Random): Pair<Float, Float> {
+    private fun randomPairs(vectors: PackedVectors, random: Random): Pair<Float, Float> {
         if (vectors.size < 2) return 0f to 0f
         val sims = FloatArray(RANDOM_PAIRS) {
             val a = random.nextInt(vectors.size)
             var b = random.nextInt(vectors.size - 1)
             if (b >= a) b++
-            Vectors.dot(vectors[a], vectors[b])
+            vectors.dot(a, b)
         }
         sims.sort()
         return sims[sims.size / 2] to sims[(sims.size * 99) / 100]

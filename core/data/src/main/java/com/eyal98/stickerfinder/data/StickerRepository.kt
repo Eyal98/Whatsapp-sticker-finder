@@ -11,6 +11,8 @@ import com.eyal98.stickerfinder.search.SearchTags
 import com.eyal98.stickerfinder.search.Vectors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.util.PriorityQueue
 import kotlin.math.ln
@@ -98,6 +100,9 @@ class StickerRepository(
 
     /** Stickers with learned tags (suggested from look-alikes), as they change. */
     fun withLearnedTags(): Flow<List<StickerEntity>> = dao.observeWithLearnedTags()
+
+    /** How many learned tags wait for review (see [TagSuggestions]), as it changes. */
+    fun learnedTagCount(): Flow<Int> = dao.observeLearnedTagStates().map(TagSuggestions::count).distinctUntilChanged()
 
     /** Forgets everything search learned from the user's picks. */
     suspend fun clearSearchHistory() = dao.clearPicks()
