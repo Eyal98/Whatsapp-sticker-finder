@@ -50,6 +50,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.eyal98.stickerfinder.R
 import com.eyal98.stickerfinder.WhatsAppSender
 import com.eyal98.stickerfinder.data.StickerEntity
+import com.eyal98.stickerfinder.index.ImageTagStatus
 
 @Composable
 fun SearchScreen(
@@ -81,6 +82,25 @@ fun SearchScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    // Once the stickers are read, what's left is picture tagging: say where it stands
+                    // (details and Start now on the Smart search screen).
+                    val tags = state.imageTags
+                    if (state.pending == 0 && tags.left > 0) {
+                        val line = when (tags.phase) {
+                            ImageTagStatus.Phase.RUNNING -> R.string.image_tags_header_running
+                            ImageTagStatus.Phase.WAITING_FOR_CHARGER -> R.string.image_tags_header_charger
+                            ImageTagStatus.Phase.BATTERY_LOW -> R.string.image_tags_header_battery
+                            ImageTagStatus.Phase.WAITING_TO_START -> R.string.image_tags_header_starting
+                            else -> null
+                        }
+                        line?.let {
+                            Text(
+                                stringResource(it, tags.left),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
                 IconButton(onClick = onOpenAbout) {
                     Icon(Icons.Outlined.Info, contentDescription = stringResource(R.string.about_open))

@@ -174,6 +174,11 @@ flowchart LR
 All workers run in bounded slices (`WorkBudget`) and reschedule themselves, so Android can stop
 them at any time without losing progress.
 
+Picture tagging is the longest stage, so its state is shown in words (`ImageTagStatus`): running
+with an estimated time left (from the last 10 minutes of progress), waiting for the charger,
+paused for a low battery, or waiting for Android to start it. The Smart search screen shows it with
+a progress bar and "Start now"; the main screen's header shows a one-line summary.
+
 **Learned tags.** The picture model only knows a fixed label list, so the user's own tags are
 learned from their pictures (`LearnedTags` in `:core:search`, run by `LearnedTagger`). For each
 tag, the picture vectors of the stickers that have it are averaged into a prototype, and a sticker

@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.data.StickerEntity
 import com.eyal98.stickerfinder.data.StickerRepository
+import com.eyal98.stickerfinder.index.ImageTagStatus
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.delay
@@ -32,6 +33,7 @@ data class SearchUiState(
     val total: Int = 0,
     val pending: Int = 0,
     val isQueryBlank: Boolean = true,
+    val imageTags: ImageTagStatus = ImageTagStatus(ImageTagStatus.Phase.DONE, 0, 0),
 )
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
@@ -81,8 +83,14 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
         }
 
     val uiState: StateFlow<SearchUiState> =
-        combine(results, repository.stickerCount, repository.pendingCount, _query) { r, total, pending, q ->
-            SearchUiState(results = r, total = total, pending = pending, isQueryBlank = q.isBlank())
+        combine(
+            results,
+            repository.stickerCount,
+            repository.pendingCount,
+            _query,
+            ImageTagStatus.observe(app, app.database.stickerDao()),
+        ) { r, total, pending, q, tags ->
+            SearchUiState(results = r, total = total, pending = pending, isQueryBlank = q.isBlank(), imageTags = tags)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState())
 
     fun onQueryChange(value: String) {

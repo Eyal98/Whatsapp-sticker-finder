@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.index.EmbedWorker
+import com.eyal98.stickerfinder.index.ImageTagStatus
 import com.eyal98.stickerfinder.index.ImageTagWorker
 import com.eyal98.stickerfinder.ml.BundledEmbedding
 import com.eyal98.stickerfinder.ml.DeviceCapability
@@ -64,8 +65,8 @@ data class SmartSearchUiState(
     val embeddingMemoryOk: Boolean = true,
     /** Features turned off because their model crashed the app (see ModelCrashGuard). */
     val turnedOff: Set<String> = emptySet(),
-    val imageTagPending: Int = 0,
-    val imageTagRunning: Boolean = false,
+    /** What picture tagging is doing: running (with time left) or why it's paused. */
+    val imageTags: ImageTagStatus = ImageTagStatus(ImageTagStatus.Phase.DONE, 0, 0),
     /** False only in a build made without the bundled model or labels; the section is hidden then. */
     val pictureTagsAvailable: Boolean = false,
 ) {
@@ -77,8 +78,7 @@ data class SmartSearchUiState(
 
 private data class Background(
     val turnedOff: Set<String>,
-    val imageTagPending: Int,
-    val imageTagRunning: Boolean,
+    val imageTags: ImageTagStatus,
 )
 
 class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
@@ -132,14 +132,12 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
         app.repository.stickerCount,
         combine(
             turnedOff,
-            app.database.stickerDao().observeImageTagPendingCount(),
-            ImageTagWorker.observeRunning(app),
-        ) { off, imagePending, imageRunning -> Background(off, imagePending, imageRunning) },
+            ImageTagStatus.observe(app, app.database.stickerDao()),
+        ) { off, imageTags -> Background(off, imageTags) },
     ) { slots, vectors, total, background ->
         SmartSearchUiState(
             turnedOff = background.turnedOff,
-            imageTagPending = background.imageTagPending,
-            imageTagRunning = background.imageTagRunning,
+            imageTags = background.imageTags,
             pictureTagsAvailable = pictureTagsAvailable,
             slots = slots,
             vectorCount = vectors,

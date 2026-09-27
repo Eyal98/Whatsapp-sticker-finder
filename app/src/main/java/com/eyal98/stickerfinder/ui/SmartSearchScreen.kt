@@ -51,6 +51,7 @@ import kotlinx.coroutines.launch
 import com.eyal98.stickerfinder.Diagnostics
 import com.eyal98.stickerfinder.R
 import com.eyal98.stickerfinder.StickerFinderApp
+import com.eyal98.stickerfinder.index.ImageTagStatus
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.ml.PendingModel
 
@@ -96,36 +97,50 @@ fun SmartSearchScreen(
                 Text(stringResource(R.string.image_tags_title), style = MaterialTheme.typography.titleLarge)
                 Text(stringResource(R.string.image_tags_body), style = MaterialTheme.typography.bodyMedium)
                 TurnedOffNotice(ModelCrashGuard.IMAGE_TAGS, state, viewModel::turnOn)
-                Text(
-                    if (state.imageTagPending > 0) {
-                        stringResource(R.string.image_tags_pending, state.imageTagPending, state.total)
-                    } else {
-                        stringResource(R.string.image_tags_done)
-                    },
-                )
-                if (state.imageTagRunning) {
-                    Text(
-                        stringResource(R.string.image_tags_running),
+                val tags = state.imageTags
+                if (tags.phase == ImageTagStatus.Phase.DONE) {
+                    Text(stringResource(R.string.image_tags_done))
+                } else {
+                    Text(stringResource(R.string.image_tags_pending, tags.left, tags.total))
+                    if (tags.total > 0) {
+                        LinearProgressIndicator(progress = { tags.done.toFloat() / tags.total }, modifier = Modifier.fillMaxWidth())
+                    }
+                }
+                when (tags.phase) {
+                    ImageTagStatus.Phase.DONE, ImageTagStatus.Phase.TURNED_OFF -> Unit
+                    ImageTagStatus.Phase.RUNNING -> Text(
+                        tags.etaMillis?.let { stringResource(R.string.image_tags_running_eta, durationText(it)) }
+                            ?: stringResource(R.string.image_tags_running),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.primary,
                     )
-                } else if (state.imageTagPending > 0) {
-                    Text(stringResource(R.string.image_tags_waiting), style = MaterialTheme.typography.bodyMedium)
-                    // Asks for notifications first (Android 13+), so the run shows its progress;
-                    // tagging starts whatever the answer.
-                    val askNotifications = rememberLauncherForActivityResult(
-                        ActivityResultContracts.RequestPermission(),
-                    ) { viewModel.startImageTags() }
-                    Button(onClick = {
-                        if (Build.VERSION.SDK_INT >= 33 &&
-                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
-                            PackageManager.PERMISSION_GRANTED
-                        ) {
-                            askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        } else {
-                            viewModel.startImageTags()
-                        }
-                    }) { Text(stringResource(R.string.image_tags_start)) }
+                    else -> {
+                        Text(
+                            stringResource(
+                                when (tags.phase) {
+                                    ImageTagStatus.Phase.BATTERY_LOW -> R.string.image_tags_battery_low
+                                    ImageTagStatus.Phase.WAITING_TO_START -> R.string.image_tags_waiting_to_start
+                                    else -> R.string.image_tags_waiting_for_charger
+                                },
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        // Asks for notifications first (Android 13+), so the run shows its progress;
+                        // tagging starts whatever the answer.
+                        val askNotifications = rememberLauncherForActivityResult(
+                            ActivityResultContracts.RequestPermission(),
+                        ) { viewModel.startImageTags() }
+                        Button(onClick = {
+                            if (Build.VERSION.SDK_INT >= 33 &&
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+                                PackageManager.PERMISSION_GRANTED
+                            ) {
+                                askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                viewModel.startImageTags()
+                            }
+                        }) { Text(stringResource(R.string.image_tags_start)) }
+                    }
                 }
 
                 HorizontalDivider()

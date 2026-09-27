@@ -103,6 +103,16 @@
     <string name="image_tags_running">פועל עכשיו. ממשיך גם אם יוצאים מהאפליקציה.</string>
     <string name="image_tags_waiting">רץ מעצמו כשהטלפון בטעינה, או שאפשר להתחיל עכשיו.</string>
     <string name="image_tags_start">התחלה עכשיו</string>
+    <string name="image_tags_running_eta">פועל עכשיו, נותרו בערך %1$s. ממשיך גם אם יוצאים מהאפליקציה.</string>
+    <string name="image_tags_waiting_for_charger">מושהה: רץ כשהטלפון בטעינה. אפשר לחבר למטען או ללחוץ על התחלה עכשיו.</string>
+    <string name="image_tags_battery_low">מושהה: הסוללה חלשה. ימשיך כשהטלפון יהיה בטעינה.</string>
+    <string name="image_tags_waiting_to_start">ממתין שאנדרואיד יפעיל אותו, בדרך כלל תוך כמה דקות. או ללחוץ על התחלה עכשיו.</string>
+    <string name="image_tags_header_running">תגיות תמונה: נותרו %1$d, פועל</string>
+    <string name="image_tags_header_charger">תגיות תמונה: נותרו %1$d, ממתין למטען</string>
+    <string name="image_tags_header_battery">תגיות תמונה: נותרו %1$d, מושהה (סוללה חלשה)</string>
+    <string name="image_tags_header_starting">תגיות תמונה: נותרו %1$d, יתחיל בקרוב</string>
+    <string name="duration_minutes">%1$d דק׳</string>
+    <string name="duration_hours">%1$d שע׳ ו-%2$d דק׳</string>
     <string name="model_turned_off_reason">פרטים: %1$s</string>
     <string name="people_title">אנשים</string>
     <string name="people_open">פתיחת אנשים</string>

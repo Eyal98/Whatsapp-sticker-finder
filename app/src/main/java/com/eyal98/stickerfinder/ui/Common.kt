@@ -41,6 +41,17 @@ fun AppLogo(size: Dp, modifier: Modifier = Modifier) {
     }
 }
 
+/** A rough duration for "time left": "about 5 min", "about 2 h 10 min". */
+@Composable
+fun durationText(millis: Long): String {
+    val minutes = ((millis + 59_999) / 60_000).coerceAtLeast(1)
+    return if (minutes < 60) {
+        stringResource(R.string.duration_minutes, minutes.toInt())
+    } else {
+        stringResource(R.string.duration_hours, (minutes / 60).toInt(), (minutes % 60).toInt())
+    }
+}
+
 /** The mascot, a lady elephant lifting a sticker with her trunk. */
 @Composable
 fun Mascot(size: Dp, modifier: Modifier = Modifier) {
