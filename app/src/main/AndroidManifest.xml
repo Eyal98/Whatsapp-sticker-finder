@@ -47,6 +47,25 @@
                 android:resource="@xml/sticker_keyboard" />
         </service>
 
+        <!--
+            Optional, off until the user turns it on in Android's accessibility settings: sends a
+            sticker from WhatsApp's own tray so it stays linked to its pack. It can only see
+            WhatsApp (res/xml/tray_service.xml) and only acts while the keyboard sends a sticker.
+            BIND_ACCESSIBILITY_SERVICE means only the system can bind to it.
+        -->
+        <service
+            android:name=".keyboard.WhatsAppTrayService"
+            android:exported="true"
+            android:label="@string/tray_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/tray_service" />
+        </service>
+
         <!-- Serves the sticker being sent to the app it's sent to, and nothing else. -->
         <provider
             android:name="androidx.core.content.FileProvider"

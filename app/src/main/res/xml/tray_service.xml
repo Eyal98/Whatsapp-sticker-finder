@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Sends stickers from WhatsApp's own tray (WhatsAppTrayService). Android shows it only WhatsApp
+    and WhatsApp Business; it asks for no events it would act on by itself. View ids and window
+    content are needed to find the tray, gestures to tap where a click isn't exposed, and a
+    screenshot to recognize the sticker among the ones on screen.
+-->
+<accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/tray_service_description"
+    android:packageNames="com.whatsapp,com.whatsapp.w4b"
+    android:accessibilityEventTypes="typeWindowStateChanged"
+    android:accessibilityFeedbackType="feedbackGeneric"
+    android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows"
+    android:canRetrieveWindowContent="true"
+    android:canPerformGestures="true"
+    android:canTakeScreenshot="true"
+    android:isAccessibilityTool="false"
+    android:notificationTimeout="100" />

@@ -18,6 +18,8 @@ import com.eyal98.stickerfinder.index.IndexWorker
 import com.eyal98.stickerfinder.index.LearnedTagger
 import com.eyal98.stickerfinder.index.StickerFolder
 import com.eyal98.stickerfinder.keyboard.StickerKeyboardService
+import com.eyal98.stickerfinder.keyboard.TrayTrace
+import com.eyal98.stickerfinder.keyboard.WhatsAppTrayService
 import com.eyal98.stickerfinder.ml.BundledEmbedding
 import com.eyal98.stickerfinder.ml.DeviceCapability
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
@@ -95,6 +97,13 @@ object Diagnostics {
                 appendLine("remembered picks ${app.database.stickerDao().pickCount()}")
                 LearnedTagger.stats(app)?.let(::appendLine)
                 IndexStats.describe(app)?.let(::appendLine)
+            }
+            section("Pack link (WhatsApp tray)") {
+                appendLine("turned on ${WhatsAppTrayService.isEnabled(app)}, running ${WhatsAppTrayService.connected != null}")
+                // Steps, WhatsApp's view ids and match scores only: never text.
+                val attempts = TrayTrace.read(app)
+                if (attempts.isEmpty()) appendLine("no attempts yet")
+                attempts.forEach(::appendLine)
             }
             section("Background work") {
                 val workManager = WorkManager.getInstance(app)

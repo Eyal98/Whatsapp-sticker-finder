@@ -269,6 +269,20 @@ Stickers sent through the share sheet arrive in WhatsApp as photos; the keyboard
 only way for a third-party app to send a real sticker. Files are exposed through a non-exported
 `FileProvider` with a one-off URI grant.
 
+**Keeping the pack link (optional).** WhatsApp re-saves a sticker inserted by a keyboard as a new
+file, which is no longer linked to its pack (a user test showed a new file in the stickers folder
+after each keyboard send; tray sends reuse the pack's file). When the user turns on
+`WhatsAppTrayService` (an accessibility service limited to WhatsApp by `packageNames`, off by
+default), the keyboard sends stickers that have a pack name through WhatsApp's own tray instead
+(`TrayDriver`): open the emoji panel, the Stickers tab and the pack's tab (found by its label,
+scrolling the strip of packs), then take one screenshot and recognize the sticker among the cells
+on screen (`StickerMatch`: each side cut to what differs from the tray's background, 32×32 colour
+grid, correlation ≥ 0.9 and ≥ 0.02 ahead of the next cell), and tap it. Every search stays below
+the message box, so chat content is never tapped. Anything unexpected (no tab, pack not in the
+tray, two cells alike, 12 s timeout) closes the panel and the keyboard sends a copy as before.
+Each attempt leaves a text-free trace in problem reports (`TrayTrace`: steps, WhatsApp view ids,
+scores), since WhatsApp's layout isn't an API and changes between versions.
+
 ## 8. Models
 
 | Model | Purpose | Size | How it ships | Runtime |
@@ -295,7 +309,7 @@ only way for a third-party app to send a real sticker. Files are exposed through
 | Network | No `INTERNET` permission; `scripts/check-apk-permissions.sh` fails CI on any permission outside an allowlist |
 | Storage | App-private storage only; backups and device transfer excluded (`allowBackup=false`, data extraction rules) |
 | Folder access | Read-only Storage Access Framework grant for the folder the user picks |
-| Exported components | Launcher activity and the keyboard service (protected by `BIND_INPUT_METHOD`); the `FileProvider` is not exported |
+| Exported components | Launcher activity, the keyboard service (protected by `BIND_INPUT_METHOD`) and the optional tray service (protected by `BIND_ACCESSIBILITY_SERVICE`, sees only WhatsApp); the `FileProvider` is not exported |
 | Keyboard | Reads at most 100 characters before the cursor, only when opened, never in password fields, never stored |
 | Faces | Opt-in, on-device, deletable in one tap; explained in the app as biometric data |
 | Diagnostics | Redacted report (no stickers, file names, text, tags, names or searches), shown in full before the user shares it; includes the last crash and the latest freeze trace |

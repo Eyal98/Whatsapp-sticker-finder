@@ -23,6 +23,14 @@ Peel-It is built so that nothing you do in it can leave your phone.
   can see and remove in the sticker's details.
 - **Keyboard.** The sticker keyboard reads at most 100 characters already in the chat box, only
   when you open it, never in password fields, and never saves them.
+- **Pack link (optional, off by default).** WhatsApp saves its own copy of a sticker sent from any
+  keyboard, and that copy isn't linked to its sticker pack. If you turn on "Peel-It: send from
+  WhatsApp's stickers" in Android's accessibility settings, Peel-It sends stickers from packs
+  through WhatsApp's own sticker tray instead. Android lets it see only WhatsApp. It does nothing
+  until you tap a sticker in the Peel-It keyboard; then it opens WhatsApp's sticker tray, takes one
+  screenshot to recognize the sticker, taps it, and discards the screenshot. It keeps only a short
+  record of each attempt (steps, WhatsApp's screen element ids, match scores; no text), which
+  appears in problem reports. Turn it off in the same settings at any time.
 - **Problem reports.** "Build report" makes a text report of counts, versions and error messages,
   with no stickers, file names, sticker text, tags, names or searches. It's only shared if you
   share it yourself, and you see all of it first.

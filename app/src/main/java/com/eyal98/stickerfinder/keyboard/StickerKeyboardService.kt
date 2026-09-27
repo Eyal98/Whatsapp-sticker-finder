@@ -192,7 +192,6 @@ class StickerKeyboardService :
 
     override fun onSend(sticker: StickerEntity) {
         val info = currentInputEditorInfo ?: return
-        val connection = currentInputConnection ?: return
         val mimeType = StickerSender.chooseMimeType(info)
         if (mimeType == null) {
             state.value = state.value.copy(message = KeyboardMessage.NOT_ACCEPTED)
@@ -200,23 +199,60 @@ class StickerKeyboardService :
         }
         val query = state.value.query
         val removeFromField = queryFromField
+        val tray = WhatsAppTrayService.connected
+        val packName = sticker.packName
         scope.launch {
-            val prepared = withContext(Dispatchers.IO) {
-                StickerSender.prepare(this@StickerKeyboardService, mimeType, Uri.parse(sticker.documentUri))
-            }
-            val result = prepared?.let { StickerSender.commit(info, connection, it) } ?: StickerSender.Result.Failed
-            if (result is StickerSender.Result.Sent) {
+            // In WhatsApp, a sticker from a pack goes out from WhatsApp's own tray when the user
+            // turned that on: sent from here, WhatsApp would save a copy that's no longer linked
+            // to its pack. Anything unexpected there falls back to sending a copy.
+            if (tray != null && packName != null && info.packageName in WhatsAppTrayService.PACKAGES) {
                 if (removeFromField) removeQueryText(query)
-                app.repository.recordUse(sticker.id)
-                // Search learns from picks, but only for searches typed on this keyboard's keys:
-                // text read from the chat box is never saved.
-                if (!removeFromField && app.repository.recordPick(query, sticker.id)) EmbedWorker.runForEdit(app)
-                // Done: hand the text box back to the usual keyboard.
-                switchToPreviousInputMethod()
+                val picture = withContext(Dispatchers.IO) { StickerPicture.decode(this@StickerKeyboardService, sticker.documentUri) }
+                val sent = picture != null && try {
+                    tray.send(picture, packName)
+                } finally {
+                    picture.recycle()
+                }
+                if (sent) {
+                    afterSend(sticker, query, fromField = removeFromField)
+                    return@launch
+                }
+                // The tray put WhatsApp back as it was: send a copy from here.
+                delay(FALLBACK_SETTLE_MS)
+                sendCopy(sticker, mimeType, query, removeFromField = false, fromField = removeFromField)
             } else {
-                state.value = state.value.copy(message = KeyboardMessage.FAILED)
+                sendCopy(sticker, mimeType, query, removeFromField, fromField = removeFromField)
             }
         }
+    }
+
+    /** Sends a copy of the sticker through the text box (the keyboard content API). */
+    private suspend fun sendCopy(sticker: StickerEntity, mimeType: String, query: String, removeFromField: Boolean, fromField: Boolean) {
+        val info = currentInputEditorInfo
+        val connection = currentInputConnection
+        if (info == null || connection == null) {
+            state.value = state.value.copy(message = KeyboardMessage.FAILED)
+            return
+        }
+        val prepared = withContext(Dispatchers.IO) {
+            StickerSender.prepare(this@StickerKeyboardService, mimeType, Uri.parse(sticker.documentUri))
+        }
+        val result = prepared?.let { StickerSender.commit(info, connection, it) } ?: StickerSender.Result.Failed
+        if (result is StickerSender.Result.Sent) {
+            if (removeFromField) removeQueryText(query)
+            afterSend(sticker, query, fromField)
+        } else {
+            state.value = state.value.copy(message = KeyboardMessage.FAILED)
+        }
+    }
+
+    private suspend fun afterSend(sticker: StickerEntity, query: String, fromField: Boolean) {
+        app.repository.recordUse(sticker.id)
+        // Search learns from picks, but only for searches typed on this keyboard's keys: text
+        // read from the chat box is never saved.
+        if (!fromField && app.repository.recordPick(query, sticker.id)) EmbedWorker.runForEdit(app)
+        // Done: hand the text box back to the usual keyboard.
+        switchToPreviousInputMethod()
     }
 
     /** Deletes the search text from the text box, if it's still what's before the cursor. */
@@ -235,6 +271,7 @@ class StickerKeyboardService :
         const val BROWSE_LIMIT = 200
         const val TYPING_PAUSE_MS = 250L
         const val MEANING_PAUSE_MS = 250L
+        const val FALLBACK_SETTLE_MS = 300L
         const val PREFS = "sticker_keyboard"
         const val KEY_LAYOUT = "layout"
     }

@@ -4,6 +4,7 @@ import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
 import androidx.activity.compose.BackHandler
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -32,13 +34,18 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.eyal98.stickerfinder.R
 import com.eyal98.stickerfinder.keyboard.StickerKeyboardService
+import com.eyal98.stickerfinder.keyboard.WhatsAppTrayService
 
 @Composable
 fun KeyboardSetupScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     var enabled by remember { mutableStateOf(isKeyboardEnabled(context)) }
-    // Re-check when coming back from the system keyboard settings.
-    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { enabled = isKeyboardEnabled(context) }
+    var trayOn by remember { mutableStateOf(WhatsAppTrayService.isEnabled(context)) }
+    // Re-check when coming back from the system settings.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        enabled = isKeyboardEnabled(context)
+        trayOn = WhatsAppTrayService.isEnabled(context)
+    }
 
     BackHandler(onBack = onBack)
     Scaffold { padding ->
@@ -66,6 +73,22 @@ fun KeyboardSetupScreen(onBack: () -> Unit) {
             Text(stringResource(R.string.keyboard_how_title), style = MaterialTheme.typography.titleMedium)
             Text(stringResource(R.string.keyboard_how), style = MaterialTheme.typography.bodyMedium)
             Text(stringResource(R.string.keyboard_privacy), style = MaterialTheme.typography.bodySmall)
+
+            // Optional: send stickers from WhatsApp's own tray, so they stay linked to their pack.
+            HorizontalDivider()
+            Text(stringResource(R.string.tray_title), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.tray_body), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.tray_privacy), style = MaterialTheme.typography.bodySmall)
+            Text(
+                stringResource(if (trayOn) R.string.tray_status_on else R.string.tray_status_off),
+                style = MaterialTheme.typography.titleSmall,
+                color = if (trayOn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            OutlinedButton(onClick = { openAccessibilitySettings(context) }) { Text(stringResource(R.string.tray_enable)) }
+            if (!trayOn) {
+                Text(stringResource(R.string.tray_restricted), style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = { openAppInfo(context) }) { Text(stringResource(R.string.tray_app_info)) }
+            }
         }
     }
 }
@@ -83,6 +106,19 @@ private fun openKeyboardSettings(context: Context) {
     } catch (e: ActivityNotFoundException) {
         context.startActivity(Intent(Settings.ACTION_SETTINGS))
     }
+}
+
+private fun openAccessibilitySettings(context: Context) {
+    try {
+        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+    } catch (e: ActivityNotFoundException) {
+        context.startActivity(Intent(Settings.ACTION_SETTINGS))
+    }
+}
+
+/** Where Android 13+ lets the user allow "restricted settings" for an app installed from a file. */
+private fun openAppInfo(context: Context) {
+    context.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)))
 }
 
 private fun showPicker(context: Context) {
