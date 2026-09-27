@@ -118,14 +118,16 @@ object LearnedTags {
                 }
                 maxOf(floor, leaveOneOut - MARGIN)
             }
-            val exampleSet = examples.toHashSet()
-            val matches = (0 until vectors.size).asSequence()
-                .filter { it !in exampleSet && key !in blocked[vectors.id(it)].orEmpty() }
-                .map { vectors.id(it) to vectors.dot(it, prototype) }
-                .filter { it.second >= threshold }
-                .sortedByDescending { it.second }
-                .take(MAX_PER_TAG)
-                .toList()
+            val isExample = BooleanArray(vectors.size).also { flags -> examples.forEach { flags[it] = true } }
+            // Only close matches become objects: this runs for every sticker, for every tag.
+            val close = ArrayList<Pair<Long, Float>>()
+            for (i in 0 until vectors.size) {
+                if (isExample[i]) continue
+                val similarity = vectors.dot(i, prototype)
+                if (similarity < threshold || key in blocked[vectors.id(i)].orEmpty()) continue
+                close += vectors.id(i) to similarity
+            }
+            val matches = close.sortedByDescending { it.second }.take(MAX_PER_TAG)
             if (matches.isEmpty()) continue
             learned++
             for ((id, similarity) in matches) found.getOrPut(id) { mutableListOf() } += Suggestion(display, similarity)

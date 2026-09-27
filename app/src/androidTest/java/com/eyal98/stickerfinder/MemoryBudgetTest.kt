@@ -20,6 +20,7 @@ import com.eyal98.stickerfinder.search.TextEmbedder
 import com.eyal98.stickerfinder.search.Vectors
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,6 +37,9 @@ import kotlin.random.Random
  * for all, 768 floats each). Each pass runs on its own after a GC; the report goes to the log
  * (tag MemoryBudget), which the smoke run prints. Numbers are heap in use, so a peak includes
  * garbage not yet collected.
+ *
+ * Before these passes packed vectors and read them a page at a time, they peaked at +57 to +74 MB
+ * each and meaning search kept +30 MB: run together, more than the 256 MB heap had left.
  */
 @RunWith(AndroidJUnit4::class)
 class MemoryBudgetTest {
@@ -43,6 +47,8 @@ class MemoryBudgetTest {
     private val context: Context = InstrumentationRegistry.getInstrumentation().targetContext
     private lateinit var database: StickerDatabase
     private val report = mutableListOf<String>()
+    private val peaks = mutableMapOf<String, Long>()
+    private val retained = mutableMapOf<String, Long>()
 
     private class FakeEmbedder : TextEmbedder {
         override val modelId = MEANING_MODEL
@@ -85,6 +91,10 @@ class MemoryBudgetTest {
         // Still referenced here, so its index counts as retained above.
         semantic.hashCode()
         Log.w(TAG, report.joinToString("\n"))
+
+        for ((name, peak) in peaks) assertTrue("$name peaked at +$peak MB", peak <= MAX_PEAK_MB)
+        val index = retained.getValue("meaning search, first")
+        assertTrue("meaning search keeps +$index MB", index <= MAX_INDEX_MB)
     }
 
     /** Runs [block] after a GC; records the highest heap use during it, and what it left behind. */
@@ -105,6 +115,8 @@ class MemoryBudgetTest {
         sampler.join()
         peak.accumulateAndGet(used()) { a, b -> maxOf(a, b) }
         val after = settle()
+        peaks[name] = mb(peak.get() - before)
+        retained[name] = mb(after - before)
         report += String.format(
             Locale.US, "%-24s peak +%d MB, retained +%d MB, %d ms", name, mb(peak.get() - before), mb(after - before), millis,
         )
@@ -179,6 +191,12 @@ class MemoryBudgetTest {
 
     private companion object {
         const val TAG = "MemoryBudget"
+
+        /** Any one pass, garbage included; measured at +22 to +38 MB. */
+        const val MAX_PEAK_MB = 48L
+
+        /** The cached meaning index: 10,206 packed vectors are under 8 MB. */
+        const val MAX_INDEX_MB = 12L
         const val STICKERS = 10_308
         const val DIMS = 768
         const val CHARACTERS = 40
