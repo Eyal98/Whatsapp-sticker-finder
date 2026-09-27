@@ -91,6 +91,8 @@ object Diagnostics {
                 FaceGrouping.pairStats(app.database.stickerDao().faceRows().map { Vectors.decode(it.vector) })
                     ?.let { (median, p90) -> appendLine("face pair similarity: median %.2f, 90%% %.2f".format(median, p90)) }
                 appendLine("with learned tags ${app.database.stickerDao().countWithLearnedTags()}")
+                // How many search → sticker picks search learns from; never the searches themselves.
+                appendLine("remembered picks ${app.database.stickerDao().pickCount()}")
                 LearnedTagger.stats(app)?.let(::appendLine)
                 IndexStats.describe(app)?.let(::appendLine)
             }

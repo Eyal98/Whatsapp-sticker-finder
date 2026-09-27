@@ -1,7 +1,11 @@
 package com.eyal98.stickerfinder.data
 
 import com.eyal98.stickerfinder.search.FtsQueryBuilder
+import com.eyal98.stickerfinder.search.KeywordRelevance
+import com.eyal98.stickerfinder.search.Pick
+import com.eyal98.stickerfinder.search.PickRanking
 import com.eyal98.stickerfinder.search.QueryParser
+import com.eyal98.stickerfinder.search.QueryTerm
 import com.eyal98.stickerfinder.search.RankFusion
 import com.eyal98.stickerfinder.search.Vectors
 import kotlinx.coroutines.Dispatchers
@@ -23,21 +27,29 @@ class StickerRepository(
 
     /**
      * Keyword search in Hebrew and English. Every query word must match; if nothing does, falls
-     * back to stickers matching any word. Fast, so it's shown while semantic search runs.
+     * back to stickers matching any word. Results are ordered by how well they match (how many
+     * words, in which fields; see KeywordRelevance), then by what the user picked before for
+     * searches like this one. Fast, so it's shown while semantic search runs.
      */
     suspend fun searchKeywords(query: String, limit: Int = SEARCH_LIMIT): List<StickerEntity> {
         val terms = QueryParser.parse(query)
         val all = FtsQueryBuilder.matchAll(terms) ?: return emptyList()
+        // "Any word" matches can be many: look at more of them, since they're re-ranked below.
         val results = dao.searchFts(all, limit).ifEmpty {
-            FtsQueryBuilder.matchAny(terms)?.let { dao.searchFts(it, limit) }.orEmpty()
+            FtsQueryBuilder.matchAny(terms)?.let { dao.searchFts(it, limit * ANY_WORD_FACTOR) }.orEmpty()
         }
-        return dedupe(results)
+        // Stable sort: the index's order (starred, then most used) breaks ties.
+        val ranked = results.sortedByDescending { relevance(terms, it) }
+        val byId = ranked.associateBy { it.id }.toMutableMap()
+        val picked = pickedFor(query, byId)
+        val ids = if (picked.isEmpty()) ranked.map { it.id } else RankFusion.fuse(listOf(ranked.map { it.id }, picked), weights = listOf(1.0, PICK_WEIGHT))
+        return dedupe(ids.mapNotNull(byId::get)).take(limit)
     }
 
     /**
-     * Keyword and meaning-based results merged with Reciprocal Rank Fusion, with a small boost
-     * for starred and often-used stickers. Same as [searchKeywords] when no embedding model is
-     * installed.
+     * Keyword, meaning-based and previously picked results merged with Reciprocal Rank Fusion,
+     * with a small boost for starred and often-used stickers. What the user picked before for this
+     * kind of search counts the most. Same as [searchKeywords] when no embedding model is installed.
      */
     suspend fun search(query: String, limit: Int = SEARCH_LIMIT): List<StickerEntity> {
         val keyword = searchKeywords(query, limit)
@@ -45,10 +57,33 @@ class StickerRepository(
         if (semanticIds.isEmpty()) return keyword
 
         val byId = keyword.associateBy { it.id }.toMutableMap()
+        val picked = pickedFor(query, byId)
         val missing = semanticIds.filterNot(byId::containsKey)
         if (missing.isNotEmpty()) dao.byIds(missing).forEach { byId[it.id] = it }
-        return dedupe(fuse(keyword.map { it.id }, semanticIds, byId).mapNotNull(byId::get)).take(limit)
+        return dedupe(fuse(keyword.map { it.id }, semanticIds, byId, picked).mapNotNull(byId::get)).take(limit)
     }
+
+    /**
+     * Stickers the user sent after searches like [query], best first, loading any not in [byId]
+     * into it. Stickers deleted since are dropped.
+     */
+    private suspend fun pickedFor(query: String, byId: MutableMap<Long, StickerEntity>): List<Long> {
+        val ids = PickRanking.rank(query, dao.allPicks().map { Pick(it.queryKey, it.stickerId, it.count, it.lastAt) }, System.currentTimeMillis())
+            .take(PICK_LIMIT)
+        if (ids.isEmpty()) return emptyList()
+        val missing = ids.filterNot(byId::containsKey)
+        if (missing.isNotEmpty()) dao.byIds(missing).forEach { byId[it.id] = it }
+        return ids.filter(byId::containsKey)
+    }
+
+    /** Remembers that the user sent [stickerId] after searching [query], so search learns from it. */
+    suspend fun recordPick(query: String, stickerId: Long) {
+        val key = PickRanking.key(query)
+        if (key.isNotEmpty()) dao.recordPick(key, stickerId, System.currentTimeMillis())
+    }
+
+    /** Forgets everything search learned from the user's picks. */
+    suspend fun clearSearchHistory() = dao.clearPicks()
 
     suspend fun setStarred(id: Long, starred: Boolean) = dao.setStarred(id, starred)
 
@@ -189,12 +224,39 @@ class StickerRepository(
         private const val STAR_BOOST = 0.004
         private const val USE_BOOST = 0.001
 
+        /** What the user picked before counts twice as much as a keyword or meaning match. */
+        private const val PICK_WEIGHT = 2.0
+        private const val PICK_LIMIT = 30
+
+        /** How many more "any word" matches to look at, since they're re-ranked by relevance. */
+        private const val ANY_WORD_FACTOR = 3
+
         /** Merges keyword and semantic rankings; [stickers] must hold every id in both. */
-        fun fuse(keywordIds: List<Long>, semanticIds: List<Long>, stickers: Map<Long, StickerEntity>): List<Long> {
-            if (semanticIds.isEmpty()) return keywordIds
-            val boosts = (keywordIds + semanticIds).mapNotNull(stickers::get).associate { it.id to boost(it) }
-            return RankFusion.fuse(listOf(keywordIds, semanticIds), boosts)
+        fun fuse(
+            keywordIds: List<Long>,
+            semanticIds: List<Long>,
+            stickers: Map<Long, StickerEntity>,
+            pickedIds: List<Long> = emptyList(),
+        ): List<Long> {
+            if (semanticIds.isEmpty() && pickedIds.isEmpty()) return keywordIds
+            val boosts = (keywordIds + semanticIds + pickedIds).mapNotNull(stickers::get).associate { it.id to boost(it) }
+            return RankFusion.fuse(listOf(keywordIds, semanticIds, pickedIds), boosts, weights = listOf(1.0, 1.0, PICK_WEIGHT))
         }
+
+        /** How well [s] matches the query's words, field by field (see KeywordRelevance). */
+        fun relevance(terms: List<QueryTerm>, s: StickerEntity): Double = KeywordRelevance.score(
+            terms,
+            listOf(
+                KeywordRelevance.Field(s.userTags, KeywordRelevance.USER),
+                KeywordRelevance.Field(s.peopleNames, KeywordRelevance.USER),
+                KeywordRelevance.Field(s.userDescription, KeywordRelevance.USER),
+                KeywordRelevance.Field(s.visibleImageTags, KeywordRelevance.SEEN),
+                KeywordRelevance.Field(s.packName, KeywordRelevance.SEEN),
+                KeywordRelevance.Field(s.ocrText, KeywordRelevance.SEEN),
+                KeywordRelevance.Field(s.emojiWords, KeywordRelevance.HINT),
+                KeywordRelevance.Field(s.captionTags, KeywordRelevance.HINT),
+            ),
+        )
 
         /** Stable identity of a sticker's image; copies of the same image share it. */
         fun imageKey(s: StickerEntity): String =

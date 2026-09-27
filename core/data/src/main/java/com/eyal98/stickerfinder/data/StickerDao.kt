@@ -211,6 +211,29 @@ abstract class StickerDao {
     @Query("UPDATE stickers SET userDescription = :description WHERE id = :id")
     abstract suspend fun setUserDescription(id: Long, description: String?)
 
+    @Query("SELECT * FROM search_picks WHERE queryKey = :queryKey AND stickerId = :stickerId")
+    abstract suspend fun pick(queryKey: String, stickerId: Long): SearchPick?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun upsertPick(pick: SearchPick)
+
+    /** Counts one more pick of [stickerId] for the search [queryKey]. */
+    @Transaction
+    open suspend fun recordPick(queryKey: String, stickerId: Long, at: Long) {
+        val count = (pick(queryKey, stickerId)?.count ?: 0) + 1
+        upsertPick(SearchPick(queryKey, stickerId, count, at))
+    }
+
+    /** Every remembered pick; a few thousand rows at most, ranked in memory. */
+    @Query("SELECT * FROM search_picks")
+    abstract suspend fun allPicks(): List<SearchPick>
+
+    @Query("DELETE FROM search_picks")
+    abstract suspend fun clearPicks()
+
+    @Query("SELECT COUNT(*) FROM search_picks")
+    abstract suspend fun pickCount(): Int
+
     @Query("SELECT COUNT(*) FROM sticker_image_vectors WHERE model = :model")
     abstract suspend fun imageVectorCount(model: String): Int
 

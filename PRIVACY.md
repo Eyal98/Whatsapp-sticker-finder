@@ -15,6 +15,10 @@ Peel-It is built so that nothing you do in it can leave your phone.
   fingerprints, which count as biometric data. They never leave the phone, aren't backed up, and
   **Delete all face data** on the People screen removes them at any time. Only use it on stickers
   of people who are OK with it.
+- **Search history.** When you send a sticker after a search, the app remembers that search and
+  sticker so similar searches rank it higher. It stays on the phone, is left out of backups and
+  problem reports, and **About → Clear search history** deletes it. The keyboard only learns from
+  searches typed on its own keys, never from text it read from the chat box.
 - **Keyboard.** The sticker keyboard reads at most 100 characters already in the chat box, only
   when you open it, never in password fields, and never saves them.
 - **Problem reports.** "Build report" makes a text report of counts, versions and error messages,

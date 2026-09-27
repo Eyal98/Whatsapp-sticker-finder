@@ -207,6 +207,9 @@ class StickerKeyboardService :
             if (result is StickerSender.Result.Sent) {
                 if (removeFromField) removeQueryText(query)
                 app.repository.recordUse(sticker.id)
+                // Search learns from picks, but only for searches typed on this keyboard's keys:
+                // text read from the chat box is never saved.
+                if (!removeFromField) app.repository.recordPick(query, sticker.id)
                 // Done: hand the text box back to the usual keyboard.
                 switchToPreviousInputMethod()
             } else {

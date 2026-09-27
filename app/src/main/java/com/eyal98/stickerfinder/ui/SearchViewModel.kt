@@ -96,7 +96,11 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
         refresh.value++
     }
 
-    fun onSent(sticker: StickerEntity) = edit { repository.recordUse(sticker.id) }
+    /** Counts the use, and remembers the pick for this search so search learns from it. */
+    fun onSent(sticker: StickerEntity) = edit {
+        repository.recordUse(sticker.id)
+        repository.recordPick(_query.value, sticker.id)
+    }
 
     private fun edit(block: suspend () -> Unit) {
         viewModelScope.launch {

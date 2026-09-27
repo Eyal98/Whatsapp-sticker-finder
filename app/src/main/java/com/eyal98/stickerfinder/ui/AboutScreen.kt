@@ -126,6 +126,19 @@ fun AboutScreen(onBack: () -> Unit) {
 
             Text(stringResource(R.string.about_privacy_title), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.about_privacy_body), style = MaterialTheme.typography.bodyMedium)
+            // Search learns from which sticker was sent after which search; this forgets it all.
+            var historyCleared by remember { mutableStateOf(false) }
+            OutlinedButton(
+                onClick = {
+                    scope.launch {
+                        (context.applicationContext as StickerFinderApp).repository.clearSearchHistory()
+                        historyCleared = true
+                    }
+                },
+                enabled = !historyCleared,
+            ) {
+                Text(stringResource(if (historyCleared) R.string.about_history_cleared else R.string.about_clear_history))
+            }
 
             HorizontalDivider()
             Text(stringResource(R.string.about_models_title), style = MaterialTheme.typography.titleLarge)

@@ -12,17 +12,21 @@ object RankFusion {
     /**
      * @param rankings ranked lists of sticker ids, best first.
      * @param boosts extra score per id, e.g. for starred or often-used stickers.
+     * @param weights how much each ranking counts (default 1 each), e.g. more for what the user
+     *   picked before than for what a model guessed.
      * @return ids ordered by fused score, best first. Ties keep first-seen order.
      */
     fun <T> fuse(
         rankings: List<List<T>>,
         boosts: Map<T, Double> = emptyMap(),
         k: Int = DEFAULT_K,
+        weights: List<Double> = emptyList(),
     ): List<T> {
         val scores = LinkedHashMap<T, Double>()
-        for (ranking in rankings) {
+        rankings.forEachIndexed { r, ranking ->
+            val weight = weights.getOrElse(r) { 1.0 }
             ranking.forEachIndexed { index, id ->
-                scores[id] = (scores[id] ?: 0.0) + 1.0 / (k + index + 1)
+                scores[id] = (scores[id] ?: 0.0) + weight / (k + index + 1)
             }
         }
         for ((id, boost) in boosts) {

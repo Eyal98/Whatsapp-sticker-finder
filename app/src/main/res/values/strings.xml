@@ -156,7 +156,7 @@
     <string name="report_body">Something crashed, got stuck or found the wrong stickers? Build a report and send it with a line about what happened. It has counts, versions and error messages only: no stickers, file names, sticker text, tags, names or searches. You\'ll see all of it before sharing.</string>
     <string name="report_button">Build report</string>
     <string name="about_privacy_title">Privacy</string>
-    <string name="about_privacy_body">• Peel-It has no internet access: Android doesn\'t let it connect to anything, so nothing you do in it can leave the phone.\n• It reads only the stickers folder you picked. The index, tags, people and settings are stored only in the app, and are left out of backups and phone-to-phone transfers.\n• People is off until you turn it on. It turns faces into face fingerprints, which count as biometric data. Only use it on stickers of people who are OK with it, and you can delete all face data from the People screen at any time.\n• The keyboard reads at most 100 characters already in the chat box, only when you open it, never in password fields, and never saves them.\n• Uninstalling the app deletes everything it stored.</string>
+    <string name="about_privacy_body">• Peel-It has no internet access: Android doesn\'t let it connect to anything, so nothing you do in it can leave the phone.\n• It reads only the stickers folder you picked. The index, tags, people and settings are stored only in the app, and are left out of backups and phone-to-phone transfers.\n• People is off until you turn it on. It turns faces into face fingerprints, which count as biometric data. Only use it on stickers of people who are OK with it, and you can delete all face data from the People screen at any time.\n• The keyboard reads at most 100 characters already in the chat box, only when you open it, never in password fields, and never saves them.\n• Search learns from you: when you send a sticker after a search, it\'s remembered for similar searches, on this phone only. The keyboard learns only from searches typed on its own keys. You can clear this below.\n• Uninstalling the app deletes everything it stored.</string>
     <string name="about_models_title">Built-in models</string>
     <string name="about_models_body">All run on this phone. They\'re downloaded when the app is built and checked against pinned fingerprints (SHA-256).</string>
     <string name="about_use_picture_tags">picture tags</string>
@@ -176,4 +176,6 @@
     <string name="mascot_description">Peel-It\'s mascot, an elephant peeling a sticker</string>
     <string name="details_learned_tags">Learned from your tags</string>
     <string name="details_learned_tags_hint">Suggested because this sticker looks like stickers you tagged. They\'re already searchable. Tap + to make one your tag, or ✕ to hide it.</string>
+    <string name="about_clear_history">Clear search history</string>
+    <string name="about_history_cleared">Search history cleared</string>
 </resources>

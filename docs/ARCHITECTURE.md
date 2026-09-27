@@ -70,7 +70,7 @@ flowchart TD
 |---|---|---|
 | `:app` | Screens (search, sticker details, Smart search, People, keyboard setup, quality test, About), the sticker keyboard, diagnostics, theme and branding | Compose Material 3, WorkManager |
 | `:core:search` | Pure JVM, no Android: Hebrew/English normalization, prefixes, stop words, synonyms, FTS query building, vector math, Reciprocal Rank Fusion, face grouping (Chinese whispers), evaluation metrics | none (fast unit tests) |
-| `:core:data` | Room database (v10, migrations 1→10), DAO, `StickerRepository` (search, edits, sharing edits), `SemanticSearch` | Room, KSP |
+| `:core:data` | Room database (v11, migrations 1→11), DAO, `StickerRepository` (search, edits, sharing edits), `SemanticSearch` | Room, KSP |
 | `:core:index` | Folder access (SAF), scanner, `StickerIndexer`, sticker-pack metadata reader, workers for indexing, picture tags, faces and embeddings, power/battery policy | WorkManager |
 | `:core:ocr` | Tesseract OCR (heb+eng, `tessdata_fast`), text cleanup, installs bundled language files | Tesseract4Android |
 | `:core:vision` | SigLIP 2 image encoder and picture-tag labels; face detection (ML Kit) + alignment + SFace embeddings | LiteRT, ML Kit face detection |
@@ -89,6 +89,7 @@ erDiagram
     stickers ||--o| sticker_image_vectors : "picture vector"
     stickers ||--o{ sticker_faces : "faces found"
     people ||--o{ sticker_faces : "grouped as"
+    stickers ||--o{ search_picks : "picked after"
 
     stickers {
         long id PK
@@ -205,7 +206,7 @@ sequenceDiagram
     E-->>S: 768-d vector
     S->>S: cosine scan over in-memory vector index
     S-->>R: meaning hits ≥ similarity cut-off
-    R->>R: Reciprocal Rank Fusion (k = 60) + small boost for starred / often used
+    R->>R: Reciprocal Rank Fusion (k = 60): keyword + meaning + past picks (2×), small boost for starred / often used
     R-->>UI: merged results, duplicates removed
 ```
 
@@ -215,8 +216,17 @@ sequenceDiagram
 - **Meaning side.** The vector index is loaded into memory once and reloaded only when the table's
   signature (count + checksum) changes. The similarity cut-off can be tuned from the in-app search
   quality test.
-- **Fusion.** Rank-based, so the two sides don't need comparable scores. Without an embedding model
-  the search is keyword-only.
+- **Keyword relevance.** The index returns matches unranked, so they're ordered by
+  `KeywordRelevance`: how many query words match, weighted by field (own tags, names and description
+  3; picture and learned tags, pack name and printed text 2; emoji words 1), with starred and
+  often-used stickers breaking ties. "Any word" fallbacks look at 3× more matches before ranking,
+  so a long message from the keyboard doesn't surface stickers matching one filler word.
+- **Learning from picks.** Sending a sticker after a search stores (search, sticker) in
+  `search_picks`. `PickRanking` ranks stickers picked for the same search, a prefix of it, or mostly
+  the same words, fading with a 60-day half-life; the keyboard only learns from searches typed on its
+  own keys. Clearable from About.
+- **Fusion.** Rank-based, so the lists don't need comparable scores: keyword, meaning, and picks
+  (weighted 2×). Without an embedding model the search is keyword and picks only.
 
 **Similar stickers (sticker details).** "Looks similar" uses nearest picture vectors, "same context"
 nearest meaning vectors, "same person" shared face groups, "same pack" the pack name. An edit shared
