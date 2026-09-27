@@ -192,8 +192,11 @@ class MemoryBudgetTest {
     private companion object {
         const val TAG = "MemoryBudget"
 
-        /** Any one pass, garbage included; measured at +22 to +38 MB. */
-        const val MAX_PEAK_MB = 48L
+        /**
+         * Any one pass. Garbage is included, so the same pass varies by 15 MB between runs
+         * (+22 to +40 MB measured); every pass peaked above this before (+57 to +74 MB).
+         */
+        const val MAX_PEAK_MB = 56L
 
         /** The cached meaning index: 10,206 packed vectors are under 8 MB. */
         const val MAX_INDEX_MB = 12L
