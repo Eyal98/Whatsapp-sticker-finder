@@ -63,16 +63,25 @@ abstract class StickerDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun upsertVector(vector: StickerVector)
 
-    @Query("SELECT stickerId, model, fingerprint FROM sticker_vectors")
+    @Query("SELECT stickerId, facet, model, fingerprint FROM sticker_vectors")
     abstract suspend fun vectorStates(): List<StickerVectorState>
 
-    @Query("SELECT stickerId, vector FROM sticker_vectors WHERE model = :model")
-    abstract suspend fun vectors(model: String): List<StickerVectorRow>
+    @Query("DELETE FROM sticker_vectors WHERE stickerId = :stickerId AND facet = :facet")
+    abstract suspend fun deleteVector(stickerId: Long, facet: Int)
+
+    /** Meaning vectors with their sticker's pack, in (sticker, facet) order, a page at a time. */
+    @Query(
+        "SELECT v.stickerId, v.facet, v.vector, s.packName FROM sticker_vectors v JOIN stickers s ON s.id = v.stickerId " +
+            "WHERE v.model = :model AND (v.stickerId > :afterId OR (v.stickerId = :afterId AND v.facet > :afterFacet)) " +
+            "ORDER BY v.stickerId, v.facet LIMIT :limit",
+    )
+    abstract suspend fun meaningIndexPage(model: String, afterId: Long, afterFacet: Int, limit: Int): List<MeaningIndexRow>
 
     @Query("SELECT COUNT(*) AS count, TOTAL(fingerprint) + TOTAL(stickerId) AS total FROM sticker_vectors")
     abstract suspend fun vectorSignature(): VectorSignature
 
-    @Query("SELECT COUNT(*) FROM sticker_vectors")
+    /** Stickers with at least one meaning vector. */
+    @Query("SELECT COUNT(DISTINCT stickerId) FROM sticker_vectors")
     abstract fun observeVectorCount(): Flow<Int>
 
     /** Counts only, for the diagnostics report; no sticker content. */
@@ -99,7 +108,7 @@ abstract class StickerDao {
             "(SELECT COUNT(*) FROM sticker_faces WHERE personId IS NOT NULL) AS groupedFaces, " +
             "(SELECT COUNT(*) FROM people) AS people, " +
             "(SELECT COUNT(*) FROM people WHERE name IS NOT NULL) AS namedPeople, " +
-            "(SELECT COUNT(*) FROM sticker_vectors) AS vectors " +
+            "(SELECT COUNT(DISTINCT stickerId) FROM sticker_vectors) AS vectors " +
             "FROM stickers",
     )
     abstract suspend fun diagnosticCounts(version: Int): DiagnosticCounts
@@ -266,15 +275,19 @@ abstract class StickerDao {
     @Query("UPDATE stickers SET removedImageTags = :removed WHERE id = :id")
     abstract suspend fun setRemovedImageTags(id: Long, removed: String?)
 
-    @Query("SELECT * FROM sticker_vectors WHERE stickerId = :id")
+    /** The sticker's meaning vector for "same context": what it shows if it has one, else what it says. */
+    @Query(
+        "SELECT * FROM sticker_vectors WHERE stickerId = :id " +
+            "ORDER BY CASE facet WHEN 2 THEN 0 WHEN 1 THEN 1 ELSE 2 END LIMIT 1",
+    )
     abstract suspend fun meaningVector(id: Long): StickerVector?
 
-    /** Meaning vectors in id order, a page at a time. */
+    /** Meaning vectors of one facet in id order, a page at a time. */
     @Query(
-        "SELECT stickerId, vector FROM sticker_vectors WHERE model = :model AND stickerId > :after " +
+        "SELECT stickerId, vector FROM sticker_vectors WHERE model = :model AND facet = :facet AND stickerId > :after " +
             "ORDER BY stickerId LIMIT :limit",
     )
-    abstract suspend fun meaningVectorPage(model: String, after: Long, limit: Int): List<StickerVectorRow>
+    abstract suspend fun meaningVectorPage(model: String, facet: Int, after: Long, limit: Int): List<StickerVectorRow>
 
     /** Other stickers with a face from the same group as a face on sticker [id]. */
     @Query(

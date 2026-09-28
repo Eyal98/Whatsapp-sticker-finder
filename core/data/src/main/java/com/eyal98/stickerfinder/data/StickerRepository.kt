@@ -152,7 +152,7 @@ class StickerRepository(
      */
     suspend fun contextAlikes(id: Long, limit: Int = LOOK_ALIKE_LIMIT): List<LookAlike> {
         val target = dao.meaningVector(id) ?: return emptyList()
-        return nearest(id, target.vector, limit) { after -> dao.meaningVectorPage(target.model, after, VECTOR_PAGE) }
+        return nearest(id, target.vector, limit) { after -> dao.meaningVectorPage(target.model, target.facet, after, VECTOR_PAGE) }
     }
 
     private suspend fun nearest(

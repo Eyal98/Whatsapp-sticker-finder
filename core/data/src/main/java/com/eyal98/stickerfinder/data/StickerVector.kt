@@ -3,10 +3,14 @@ package com.eyal98.stickerfinder.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-/** A sticker's meaning vector (see [com.eyal98.stickerfinder.search.Vectors]). */
-@Entity(tableName = "sticker_vectors")
+/**
+ * One of a sticker's meaning vectors (see [com.eyal98.stickerfinder.search.Vectors]): what it
+ * says or what it shows ([facet], a [com.eyal98.stickerfinder.search.Facet] code).
+ */
+@Entity(tableName = "sticker_vectors", primaryKeys = ["stickerId", "facet"])
 class StickerVector(
-    @PrimaryKey val stickerId: Long,
+    val stickerId: Long,
+    val facet: Int,
     /** Vectors from different models can't be compared, so each one records its model. */
     val model: String,
     /** Fingerprint of the text that was embedded; a different value means it's out of date. */
@@ -17,7 +21,10 @@ class StickerVector(
 
 class StickerVectorRow(val stickerId: Long, val vector: ByteArray)
 
-data class StickerVectorState(val stickerId: Long, val model: String, val fingerprint: Long)
+data class StickerVectorState(val stickerId: Long, val facet: Int, val model: String, val fingerprint: Long)
+
+/** A meaning vector with its sticker's pack, for building the search index. */
+class MeaningIndexRow(val stickerId: Long, val facet: Int, val vector: ByteArray, val packName: String?)
 
 /** Changes whenever any vector is added, replaced or removed. */
 data class VectorSignature(val count: Int, val total: Double)

@@ -12,7 +12,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         StickerEntity::class, StickerFts::class, StickerVector::class, StickerImageVector::class,
         StickerFace::class, Person::class, SearchPick::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 abstract class StickerDatabase : RoomDatabase() {
@@ -25,7 +25,7 @@ abstract class StickerDatabase : RoomDatabase() {
         // TODO(Phase 4): encrypt at rest with SQLCipher, key wrapped by Android Keystore.
         fun create(context: Context): StickerDatabase =
             Room.databaseBuilder(context.applicationContext, StickerDatabase::class.java, NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13)
                 .build()
 
         /** Adds [StickerEntity.indexVersion]; existing rows start at 0 so they get OCR'd. */
@@ -136,6 +136,26 @@ abstract class StickerDatabase : RoomDatabase() {
         val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE search_picks ADD COLUMN tagged INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        /**
+         * Meaning vectors per facet (what a sticker says, what it shows). Existing vectors are kept
+         * as facet 0 (combined) so search keeps working until each sticker is embedded again.
+         */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `sticker_vectors_new` (`stickerId` INTEGER NOT NULL, `facet` INTEGER NOT NULL, " +
+                        "`model` TEXT NOT NULL, `fingerprint` INTEGER NOT NULL, `vector` BLOB NOT NULL, " +
+                        "PRIMARY KEY(`stickerId`, `facet`))",
+                )
+                db.execSQL(
+                    "INSERT INTO sticker_vectors_new (stickerId, facet, model, fingerprint, vector) " +
+                        "SELECT stickerId, 0, model, fingerprint, vector FROM sticker_vectors",
+                )
+                db.execSQL("DROP TABLE sticker_vectors")
+                db.execSQL("ALTER TABLE sticker_vectors_new RENAME TO sticker_vectors")
             }
         }
     }

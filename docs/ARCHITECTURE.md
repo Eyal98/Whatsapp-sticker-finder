@@ -70,7 +70,7 @@ flowchart TD
 |---|---|---|
 | `:app` | Screens (search, sticker details, Smart search, People, keyboard setup, quality test, About), the sticker keyboard, diagnostics, theme and branding | Compose Material 3, WorkManager |
 | `:core:search` | Pure JVM, no Android: Hebrew/English normalization, prefixes, stop words, synonyms, FTS query building, vector math, Reciprocal Rank Fusion, face grouping (Chinese whispers), evaluation metrics | none (fast unit tests) |
-| `:core:data` | Room database (v11, migrations 1→11), DAO, `StickerRepository` (search, edits, sharing edits), `SemanticSearch` | Room, KSP |
+| `:core:data` | Room database (v13, migrations 1→13), DAO, `StickerRepository` (search, edits, sharing edits), `SemanticSearch` | Room, KSP |
 | `:core:index` | Folder access (SAF), scanner, `StickerIndexer`, sticker-pack metadata reader, workers for indexing, picture tags, faces and embeddings, power/battery policy | WorkManager |
 | `:core:ocr` | Tesseract OCR (heb+eng, `tessdata_fast`), text cleanup, installs bundled language files | Tesseract4Android |
 | `:core:vision` | SigLIP 2 image encoder and picture-tag labels; face detection (ML Kit) + alignment + SFace embeddings | LiteRT, ML Kit face detection |
@@ -85,7 +85,7 @@ about models or workers, and only `:app` and `:core:index` assemble the pieces.
 ```mermaid
 erDiagram
     stickers ||--o| sticker_fts : "search terms"
-    stickers ||--o| sticker_vectors : "meaning vector"
+    stickers ||--o{ sticker_vectors : "meaning vectors (says / shows)"
     stickers ||--o| sticker_image_vectors : "picture vector"
     stickers ||--o{ sticker_faces : "faces found"
     people ||--o{ sticker_faces : "grouped as"
@@ -139,8 +139,11 @@ erDiagram
 - **`sticker_fts`** (FTS4) holds one normalized term string per sticker, rebuilt by
   `IndexTerms.build(...)` from OCR text, visible picture tags, user tags, pack name, emoji words,
   people names and the user's description.
-- **`sticker_vectors`** stores the meaning vector with the model id and a fingerprint of the text
-  it was made from, so a vector is recomputed only when that text or the model changes.
+- **`sticker_vectors`** stores up to two meaning vectors per sticker (`facet`: what it *says*, its
+  printed text; what it *shows*: picture and learned tags, own tags, description, people's names,
+  emoji words), each with the model id and a fingerprint of its text, so a vector is recomputed only
+  when that text or the model changes. The pack name isn't embedded: in every vector it pulled whole
+  packs together. Vectors from before v13 stay as facet 0 until the sticker is embedded again.
 - **`sticker_image_vectors`** powers "looks similar" when editing a sticker.
 - **Faces and people** are separate tables so deleting all face data is a simple wipe.
 - **Versioning.** `IndexVersion` marks how far each sticker was processed (basic, OCR, pack
@@ -221,9 +224,14 @@ sequenceDiagram
 - **Keyword side.** `QueryParser` and `FtsQueryBuilder` normalize the query the same way the
   index was built: niqqud removed, Hebrew prefixes (ו, ה, ב, ל, מ, ש, כ) expanded, synonyms and
   common slang added, stop words dropped.
-- **Meaning side.** The vector index is loaded into memory once and reloaded only when the table's
-  signature (count + checksum) changes. The similarity cut-off can be tuned from the in-app search
-  quality test.
+- **Meaning side.** The vectors are loaded into memory a page at a time as 8-bit values with a scale
+  per vector (`MeaningIndex`, about a quarter of float memory), reloaded only when the table's
+  signature (count + checksum) changes. A sticker's score is its best facet. Matches are chosen per
+  search (`MeaningSelection`): a sticker must stand out from all stickers' scores for that search by
+  3 robust standard deviations (median + 3 × 1.4826 × MAD, so a big group of real matches doesn't
+  hide itself), clear the minimum similarity (tunable from the in-app search quality test), and at
+  most 5 come from one pack. A vague search then adds few meaning results instead of a hundred weak
+  ones.
 - **Keyword relevance.** The index returns matches unranked, so they're ordered by
   `KeywordRelevance`: how many query words match, weighted by field (own tags, names and description
   3; picture and learned tags, pack name and printed text 2; emoji words 1), with starred and
