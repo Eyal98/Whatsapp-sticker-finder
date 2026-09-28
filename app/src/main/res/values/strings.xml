@@ -198,4 +198,25 @@
     <string name="suggestions_section_body">Your tags, suggested on look-alike stickers. Approve them in groups instead of tagging one by one.</string>
     <string name="suggestions_open">Review suggestions</string>
     <string name="suggestions_waiting">Tag suggestions to review: %1$d</string>
+    <string name="ok">OK</string>
+    <string name="backup_title">Backup and restore</string>
+    <string name="backup_body">Save what you made (tags, descriptions, stars, hidden picture tags, search history, test searches) to a file, and restore it on another phone. Printed text, picture tags and meaning search are rebuilt there by themselves. The app has no internet: save the file wherever you like, like Drive or Downloads.</string>
+    <string name="backup_button">Back up</string>
+    <string name="restore_button">Restore</string>
+    <string name="backup_working">Working…</string>
+    <string name="backup_people">Include people\'s names</string>
+    <string name="backup_people_note">So the new phone can put the names back on the right faces, this saves one face fingerprint per named person: biometric data. Only tick it for a file you keep safe, ideally with a password.</string>
+    <string name="backup_password">Password (optional)</string>
+    <string name="backup_password_again">Password again</string>
+    <string name="backup_password_note">With a password the file is encrypted and can\'t be restored without it. There\'s no way to recover a forgotten password.</string>
+    <string name="backup_save">Choose where to save</string>
+    <string name="backup_saved">Backup saved.</string>
+    <string name="backup_failed">The backup couldn\'t be saved there. Try another place.</string>
+    <string name="restore_wrong_password">Wrong password, or the file is damaged.</string>
+    <string name="restore_not_backup">That file isn\'t a Peel-It backup.</string>
+    <string name="restore_waiting">From a restore, still waiting to be found: %1$d stickers, %2$d people. They\'re restored by themselves as the app finds them.</string>
+    <string name="restore_done">Restored: %1$d stickers\' tags and settings, %2$d searches from your history, %3$d test searches.</string>
+    <string name="restore_stickers_waiting">%1$d stickers aren\'t on this phone yet, or haven\'t been read yet. They\'ll be restored by themselves as the app finds them.</string>
+    <string name="restore_people_named">%1$d people got their names back.</string>
+    <string name="restore_people_waiting">%1$d people\'s names wait for their faces: turn on People (Smart search) if it\'s off, and the names come back once the faces are grouped.</string>
 </resources>

@@ -246,6 +246,29 @@ abstract class StickerDao {
     @Query("SELECT * FROM search_picks")
     abstract suspend fun allPicks(): List<SearchPick>
 
+    /** Restoring a backup: keeps the higher use count and the later last use. */
+    @Query(
+        "UPDATE stickers SET useCount = MAX(useCount, :count), " +
+            "lastUsedAt = CASE WHEN :lastUsedAt IS NULL THEN lastUsedAt ELSE MAX(COALESCE(lastUsedAt, 0), :lastUsedAt) END " +
+            "WHERE id = :id",
+    )
+    abstract suspend fun mergeUse(id: Long, count: Int, lastUsedAt: Long?)
+
+    /** Restoring a backup: adds a pick, keeping the higher count and the later time if it's known. */
+    @Transaction
+    open suspend fun mergePick(queryKey: String, stickerId: Long, count: Int, lastAt: Long) {
+        val old = pick(queryKey, stickerId)
+        upsertPick(
+            SearchPick(
+                queryKey, stickerId, maxOf(old?.count ?: 0, count), maxOf(old?.lastAt ?: 0, lastAt),
+                tagged = old?.tagged ?: false,
+            ),
+        )
+    }
+
+    @Query("SELECT * FROM people")
+    abstract suspend fun people(): List<Person>
+
     @Query("DELETE FROM search_picks")
     abstract suspend fun clearPicks()
 

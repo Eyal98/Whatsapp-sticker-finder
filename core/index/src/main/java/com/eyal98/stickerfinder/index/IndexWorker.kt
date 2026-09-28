@@ -13,6 +13,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.eyal98.stickerfinder.index.WorkBudget.Companion.continueSoon
+import com.eyal98.stickerfinder.index.backup.Backup
 import com.eyal98.stickerfinder.data.IndexVersion
 import com.eyal98.stickerfinder.data.StickerDao
 import com.eyal98.stickerfinder.data.StickerDatabase
@@ -66,6 +67,8 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
             IndexStats.record(applicationContext, progress.processed, System.currentTimeMillis() - start, textReaders.size, foreground)
             // New printed text changes what stickers mean for semantic search.
             if (progress.processed > 0) {
+                // Newly found stickers may be ones a restored backup is waiting for.
+                Backup.applyPending(applicationContext, dao, host.repository)
                 EmbedWorker.runNow(applicationContext)
                 ImageTagWorker.runNow(applicationContext)
                 FaceWorker.runNow(applicationContext)

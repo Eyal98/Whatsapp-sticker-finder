@@ -21,6 +21,15 @@ Peel-It is built so that nothing you do in it can leave your phone.
   searches typed on its own keys, never from text it read from the chat box. If you send the same
   sticker twice for the same short search, that search becomes one of the sticker's tags, which you
   can see and remove in the sticker's details.
+- **Your own backups.** About → Back up saves what you made (tags, descriptions, stars, hidden
+  picture tags, how often you used each sticker, search history, test searches and the search
+  setting) to a file you choose, to restore on another phone. It's never made by itself and never
+  sent anywhere: you pick where it goes. With a password it's encrypted (AES-256-GCM, key from the
+  password with PBKDF2); without one, anyone with the file can read it. People's names are only
+  included if you tick the box, and then with one face fingerprint per named person (biometric
+  data) so the new phone can match names to faces. What a restore can't match yet waits in the
+  app's private storage until the stickers or faces are found; "Delete all face data" also deletes
+  waiting face fingerprints.
 - **Keyboard.** The sticker keyboard reads at most 100 characters already in the chat box, only
   when you open it, never in password fields, and never saves them.
 - **Problem reports.** "Build report" makes a text report of counts, versions and error messages,

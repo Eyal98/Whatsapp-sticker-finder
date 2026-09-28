@@ -254,6 +254,22 @@ nearest meaning vectors, "same person" shared face groups, "same pack" the pack 
 with them applies only what changed in that edit: tags added or removed, picture tags hidden or
 restored, and the description.
 
+## 6b. Backup and restore
+
+`Backup` (`:core:index`) writes what can't be rebuilt: per sticker with user data its tags,
+description, star, hidden picture tags and use count; search picks; the quality test's searches;
+the similarity setting; and, if the user opts in, each named person's face centroid. Stickers are
+keyed by their perceptual hash (as hex), falling back to file name and size, since document URIs
+differ between phones. `BackupFile` packs the JSON: `PEELIT`, version, mode, then gzip, or
+AES-256-GCM over it with a PBKDF2 key and the header as associated data.
+
+Restore merges without losing anything on the new phone: tags and hidden tags are added, a
+description only fills an empty one, stars are set, use counts and picks keep the higher value.
+Entries whose sticker isn't found yet (a new phone indexes for hours) wait in
+`noBackupFilesDir/restore/pending.json` and are applied after each indexing run; saved people are
+matched to the new phone's face groups after grouping (`PeopleNames`: centroid cosine ≥ 0.5 and
+0.05 ahead of the next person, one group per name).
+
 ## 7. Sticker keyboard
 
 ```mermaid
@@ -301,7 +317,8 @@ only way for a third-party app to send a real sticker. Files are exposed through
 | Area | Measure |
 |---|---|
 | Network | No `INTERNET` permission; `scripts/check-apk-permissions.sh` fails CI on any permission outside an allowlist |
-| Storage | App-private storage only; backups and device transfer excluded (`allowBackup=false`, data extraction rules) |
+| Storage | App-private storage only; Android backups and device transfer excluded (`allowBackup=false`, data extraction rules) |
+| Backup files | Only when the user asks (About → Back up), to a file they choose; optional password: AES-256-GCM, PBKDF2-HMAC-SHA256 (200,000 rounds), header authenticated; people's face fingerprints only if opted in |
 | Folder access | Read-only Storage Access Framework grant for the folder the user picks |
 | Exported components | Launcher activity and the keyboard service (protected by `BIND_INPUT_METHOD`); the `FileProvider` is not exported |
 | Keyboard | Reads at most 100 characters before the cursor, only when opened, never in password fields, never stored |

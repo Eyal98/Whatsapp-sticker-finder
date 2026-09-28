@@ -9,6 +9,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.eyal98.stickerfinder.index.backup.Backup
 import com.eyal98.stickerfinder.index.WorkBudget.Companion.continueSoon
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.vision.StickerFaces
@@ -31,7 +32,8 @@ class FaceWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         FaceGrouper.migrateVectors(context, dao)
         val pending = dao.observeFaceScanPendingCount().first()
         if (pending == 0) {
-            if (FaceGrouper.regroup(context, dao) > 0) EmbedWorker.runNow(context)
+            val renamed = FaceGrouper.regroup(context, dao) + Backup.applyPeople(context, dao)
+            if (renamed > 0) EmbedWorker.runNow(context)
             return Result.success()
         }
         val foreground = tryForeground(pending)
@@ -51,7 +53,8 @@ class FaceWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                 if (foreground && done % NOTIFY_EVERY == 0) tryForeground(dao.observeFaceScanPendingCount().first())
             }
             // Group what was found so far, even if the run stopped early: groups show up sooner.
-            val renamed = FaceGrouper.regroup(context, dao)
+            // Names from a restored backup go on the groups that match them.
+            val renamed = FaceGrouper.regroup(context, dao) + Backup.applyPeople(context, dao)
             if (renamed > 0) EmbedWorker.runNow(context)
             if (progress.finished) Result.success() else Result.retry()
         } finally {

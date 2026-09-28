@@ -141,6 +141,9 @@ fun AboutScreen(onBack: () -> Unit) {
             }
 
             HorizontalDivider()
+            BackupSection()
+
+            HorizontalDivider()
             Text(stringResource(R.string.about_models_title), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.about_models_body), style = MaterialTheme.typography.bodyMedium)
             for (model in MODELS) {

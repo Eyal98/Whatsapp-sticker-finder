@@ -198,4 +198,25 @@
     <string name="suggestions_section_body">התגיות שלך, מוצעות על מדבקות דומות. מאשרים בקבוצות במקום לתייג אחת-אחת.</string>
     <string name="suggestions_open">לבדיקת ההצעות</string>
     <string name="suggestions_waiting">הצעות תגיות לבדיקה: %1$d</string>
+    <string name="ok">אישור</string>
+    <string name="backup_title">גיבוי ושחזור</string>
+    <string name="backup_body">שמירה של מה שיצרת (תגיות, תיאורים, כוכבים, תגיות תמונה מוסתרות, היסטוריית חיפוש, חיפושי בדיקה) לקובץ, ושחזור שלו בטלפון אחר. טקסט מודפס, תגיות תמונה וחיפוש לפי משמעות נבנים שם מעצמם. לאפליקציה אין אינטרנט: שומרים את הקובץ איפה שרוצים, למשל בדרייב או בהורדות.</string>
+    <string name="backup_button">גיבוי</string>
+    <string name="restore_button">שחזור</string>
+    <string name="backup_working">עובד…</string>
+    <string name="backup_people">כולל שמות של אנשים</string>
+    <string name="backup_people_note">כדי שהטלפון החדש יוכל להחזיר את השמות לפנים הנכונות, נשמרת טביעת פנים אחת לכל אדם עם שם: מידע ביומטרי. כדאי לסמן רק לקובץ שנשמר במקום בטוח, ורצוי עם סיסמה.</string>
+    <string name="backup_password">סיסמה (לא חובה)</string>
+    <string name="backup_password_again">הסיסמה שוב</string>
+    <string name="backup_password_note">עם סיסמה הקובץ מוצפן ואי אפשר לשחזר אותו בלעדיה. אין דרך לשחזר סיסמה שנשכחה.</string>
+    <string name="backup_save">בחירת מקום לשמירה</string>
+    <string name="backup_saved">הגיבוי נשמר.</string>
+    <string name="backup_failed">לא ניתן היה לשמור את הגיבוי שם. אפשר לנסות מקום אחר.</string>
+    <string name="restore_wrong_password">סיסמה שגויה, או שהקובץ פגום.</string>
+    <string name="restore_not_backup">הקובץ הזה אינו גיבוי של Peel-It.</string>
+    <string name="restore_waiting">משחזור, עדיין ממתינים שיימצאו: %1$d מדבקות, %2$d אנשים. הם ישוחזרו מעצמם כשהאפליקציה תמצא אותם.</string>
+    <string name="restore_done">שוחזרו: תגיות והגדרות של %1$d מדבקות, %2$d חיפושים מההיסטוריה, %3$d חיפושי בדיקה.</string>
+    <string name="restore_stickers_waiting">%1$d מדבקות עדיין לא בטלפון הזה, או שעוד לא נקראו. הן ישוחזרו מעצמן כשהאפליקציה תמצא אותן.</string>
+    <string name="restore_people_named">%1$d אנשים קיבלו את השמות שלהם בחזרה.</string>
+    <string name="restore_people_waiting">השמות של %1$d אנשים ממתינים לפנים שלהם: אם \"אנשים\" (בחיפוש חכם) כבוי, צריך להפעיל אותו, והשמות יחזרו אחרי שהפנים יקובצו.</string>
 </resources>
