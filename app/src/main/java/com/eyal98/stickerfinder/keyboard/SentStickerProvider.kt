@@ -26,7 +26,8 @@ class SentStickerProvider : FileProvider() {
 
     private inline fun <T> record(uri: Uri, kind: String, mode: String?, block: () -> T): T {
         val context = context
-        val file = uri.lastPathSegment.orEmpty()
+        // Each sticker's copy is in its own folder (see StickerSender): the folder names it.
+        val file = uri.pathSegments.let { if (it.size >= 3) it[it.size - 2] else it.lastOrNull() }.orEmpty()
         return try {
             block().also { if (context != null) log { SendLog.accessed(context, file, kind, mode, null) } }
         } catch (e: Exception) {

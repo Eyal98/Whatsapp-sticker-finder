@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Only copies of stickers sent from the keyboard are shared from here, each named after its own
-     content and kept for a while, since WhatsApp may read an animated sticker again later. The
-     old cache path stays so links WhatsApp got from earlier builds still resolve. -->
+<!-- Only copies of stickers sent from the keyboard are shared from here: each in its own folder
+     named after its content, as "sticker.webp", kept for a while, since WhatsApp may read an
+     animated sticker again later. The old cache path stays so links WhatsApp got from earlier
+     builds still resolve. -->
 <paths>
     <files-path name="sent" path="sent/" />
     <cache-path name="send" path="send/" />

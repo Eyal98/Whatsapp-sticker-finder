@@ -112,10 +112,10 @@ object StickerSender {
             -1
         }
         SendLog.started(
-            context, file.name, animated, mimeType, file.length(), targetUid, copy.shrink, copy.originalBytes,
+            context, keyOf(file), animated, mimeType, file.length(), targetUid, copy.shrink, copy.originalBytes,
             copy.original?.describe(), copy.sent?.describe(),
         )
-        return Prepared(InputContentInfoCompat(contentUri, ClipDescription("sticker", arrayOf(mimeType)), null), mimeType, file.name)
+        return Prepared(InputContentInfoCompat(contentUri, ClipDescription("sticker", arrayOf(mimeType)), null), mimeType, keyOf(file))
     }
 
     /** Inserts a prepared sticker. Call on the keyboard's main thread. */
@@ -162,9 +162,9 @@ object StickerSender {
         val info = if (!asPng && animated) StickerShrinker.info(bytes) else null
         if (info != null && info.animated && info.needsFitting) {
             val size = bytes.size.toLong()
-            val fitted = File(dir, "$name-fit.webp")
+            val fitted = shared(dir, "$name-fit", "webp")
             if (fitted.isFile && fitted.length() in 1..StickerShrinker.MAX_ANIMATED_BYTES) {
-                fitted.setLastModified(System.currentTimeMillis())
+                touch(fitted)
                 return Copy(fitted, Shrink.CACHED, size, info, StickerShrinker.info(fitted.readBytes()))
             }
             onFitting()
@@ -174,33 +174,58 @@ object StickerSender {
                 return Copy(fitted, Shrink.SHRUNK, size, info, StickerShrinker.info(shrunk))
             }
             // Sent as it is: it may still go through.
-            return Copy(save(dir, File(dir, "$name.webp"), bytes), Shrink.FAILED, size, info)
+            return Copy(save(dir, shared(dir, name, "webp"), bytes), Shrink.FAILED, size, info)
         }
-        return Copy(save(dir, File(dir, "$name.${if (asPng) "png" else "webp"}"), bytes), Shrink.NOT_NEEDED, bytes.size.toLong(), info)
+        return Copy(save(dir, shared(dir, name, if (asPng) "png" else "webp"), bytes), Shrink.NOT_NEEDED, bytes.size.toLong(), info)
     }
+
+    /**
+     * Where a sticker's copy is shared from: its own folder named after its content ([key]), and
+     * in it a file always called "sticker". The receiving app sees that plain name, as it did
+     * before sent copies got unique file names (animated stickers went through then); the folder
+     * keeps each sticker's link its own.
+     */
+    private fun shared(dir: File, key: String, extension: String) = File(File(dir, key), "sticker.$extension")
+
+    /** The copy's key, as [SentStickerProvider] sees it: its folder's name. */
+    fun keyOf(file: File): String = file.parentFile?.name ?: file.name
 
     /** Writes [bytes] to [target] (via a temporary file), unless it already holds them. */
     private fun save(dir: File, target: File, bytes: ByteArray): File {
+        val folder = target.parentFile ?: dir
+        folder.mkdirs()
         if (target.isFile && target.length() == bytes.size.toLong()) {
-            target.setLastModified(System.currentTimeMillis())
+            touch(target)
         } else {
-            val tmp = File(dir, "${target.name}.tmp")
+            val tmp = File(folder, "${target.name}.tmp")
             tmp.writeBytes(bytes)
             if (!tmp.renameTo(target)) throw IOException("Could not save the sticker to send")
+            touch(target)
         }
         return target
     }
 
-    /** Removes copies older than [KEEP_SENT_MILLIS], then the oldest until under [MAX_SENT_BYTES]. */
+    /** Marks a copy (and its folder, which [trim] goes by) as just used. */
+    private fun touch(file: File) {
+        val now = System.currentTimeMillis()
+        file.setLastModified(now)
+        file.parentFile?.setLastModified(now)
+    }
+
+    /**
+     * Removes copies older than [KEEP_SENT_MILLIS], then the oldest until under [MAX_SENT_BYTES].
+     * Each entry is a sticker's folder (or a single file from before they had folders).
+     */
     private fun trim(dir: File) {
         val now = System.currentTimeMillis()
-        val files = dir.listFiles().orEmpty().sortedBy { it.lastModified() }.toMutableList()
-        files.filter { now - it.lastModified() > KEEP_SENT_MILLIS }.forEach { it.delete(); files.remove(it) }
-        var total = files.sumOf { it.length() }
-        for (f in files) {
+        fun size(entry: File): Long = if (entry.isDirectory) entry.listFiles().orEmpty().sumOf { it.length() } else entry.length()
+        val entries = dir.listFiles().orEmpty().sortedBy { it.lastModified() }.toMutableList()
+        entries.filter { now - it.lastModified() > KEEP_SENT_MILLIS }.forEach { it.deleteRecursively(); entries.remove(it) }
+        var total = entries.sumOf(::size)
+        for (entry in entries) {
             if (total <= MAX_SENT_BYTES) break
-            total -= f.length()
-            f.delete()
+            total -= size(entry)
+            entry.deleteRecursively()
         }
     }
 }
