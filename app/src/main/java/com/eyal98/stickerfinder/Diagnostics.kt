@@ -17,6 +17,7 @@ import com.eyal98.stickerfinder.index.IndexStats
 import com.eyal98.stickerfinder.index.IndexWorker
 import com.eyal98.stickerfinder.index.LearnedTagger
 import com.eyal98.stickerfinder.index.StickerFolder
+import com.eyal98.stickerfinder.keyboard.SendLog
 import com.eyal98.stickerfinder.keyboard.StickerKeyboardService
 import com.eyal98.stickerfinder.ml.BundledEmbedding
 import com.eyal98.stickerfinder.ml.DeviceCapability
@@ -129,6 +130,10 @@ object Diagnostics {
                         appendLine(it)
                     }
                 }
+            }
+            // How the receiving app read the last stickers sent from the keyboard: counts and times only.
+            section("Keyboard sends") {
+                appendLine(SendLog.describe(app))
             }
             section("Last crash") {
                 appendLine(CrashLog.read(app) ?: "none recorded")

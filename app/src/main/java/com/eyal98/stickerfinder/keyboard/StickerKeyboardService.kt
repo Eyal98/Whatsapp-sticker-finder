@@ -59,6 +59,9 @@ class StickerKeyboardService :
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var searchJob: Job? = null
 
+    /** The last sticker sent (its shared copy's name), to note in [SendLog] when the keyboard goes away. */
+    private var lastSent: String? = null
+
     override val lifecycle: Lifecycle get() = lifecycleRegistry
     override val viewModelStore: ViewModelStore get() = store
     override val savedStateRegistry: SavedStateRegistry get() = savedStateController.savedStateRegistry
@@ -128,6 +131,7 @@ class StickerKeyboardService :
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
+        lastSent?.let { SendLog.keyboardLeft(this, it) }
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
     }
 
@@ -226,9 +230,13 @@ class StickerKeyboardService :
         val learnable = provenance.learnable
         scope.launch {
             val prepared = withContext(Dispatchers.IO) {
-                StickerSender.prepare(this@StickerKeyboardService, mimeType, Uri.parse(sticker.documentUri), info.packageName)
+                StickerSender.prepare(this@StickerKeyboardService, mimeType, Uri.parse(sticker.documentUri), info.packageName, sticker.isAnimated)
             }
             val result = prepared?.let { StickerSender.commit(info, connection, it) } ?: StickerSender.Result.Failed
+            prepared?.let {
+                lastSent = it.fileName
+                SendLog.committed(this@StickerKeyboardService, it.fileName, result is StickerSender.Result.Sent)
+            }
             if (result is StickerSender.Result.Sent) {
                 if (removeFromField) removeQueryText(query)
                 app.repository.recordUse(sticker.id)

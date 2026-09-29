@@ -3,6 +3,7 @@ package com.eyal98.stickerfinder.keyboard
 import android.content.ClipDescription
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -57,13 +58,13 @@ object StickerSender {
     }
 
     /** A sticker copied where the receiving app can read it. */
-    class Prepared(val content: InputContentInfoCompat, val mimeType: String)
+    class Prepared(val content: InputContentInfoCompat, val mimeType: String, val fileName: String)
 
     /**
      * Copies the sticker for sending to [targetPackage] (the app being typed in). Does file I/O:
      * call off the main thread.
      */
-    fun prepare(context: Context, mimeType: String, stickerUri: Uri, targetPackage: String?): Prepared? {
+    fun prepare(context: Context, mimeType: String, stickerUri: Uri, targetPackage: String?, animated: Boolean): Prepared? {
         val file = try {
             copyToShareable(context, stickerUri, asPng = mimeType == PNG)
         } catch (e: IOException) {
@@ -82,7 +83,13 @@ object StickerSender {
                 // The keyboard's own grant still applies.
             }
         }
-        return Prepared(InputContentInfoCompat(contentUri, ClipDescription("sticker", arrayOf(mimeType)), null), mimeType)
+        val targetUid = try {
+            targetPackage?.let { context.packageManager.getPackageUid(it, 0) } ?: -1
+        } catch (e: PackageManager.NameNotFoundException) {
+            -1
+        }
+        SendLog.started(context, file.name, animated, mimeType, file.length(), targetUid)
+        return Prepared(InputContentInfoCompat(contentUri, ClipDescription("sticker", arrayOf(mimeType)), null), mimeType, file.name)
     }
 
     /** Inserts a prepared sticker. Call on the keyboard's main thread. */

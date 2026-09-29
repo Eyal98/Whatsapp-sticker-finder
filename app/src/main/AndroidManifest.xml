@@ -59,7 +59,7 @@
 
         <!-- Serves the sticker being sent to the app it's sent to, and nothing else. -->
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name=".keyboard.SentStickerProvider"
             android:authorities="${applicationId}.stickers"
             android:exported="false"
             android:grantUriPermissions="true">
