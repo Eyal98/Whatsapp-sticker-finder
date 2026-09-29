@@ -36,6 +36,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -154,6 +155,14 @@ fun SearchScreen(
                 ),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             )
+            // For new users: what to try next, and Pili's tips while the stickers are being read.
+            if (state.isQueryBlank) {
+                val keyboardOn = remember { isKeyboardEnabled(context) }
+                Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    GettingStarted(keyboardEnabled = keyboardOn)
+                    if (state.pending > 0 || state.imageTags.left > 0) PiliTip()
+                }
+            }
             when {
                 state.total == 0 && state.pending == 0 -> Message(stringResource(R.string.empty_folder))
                 state.results.isEmpty() && !state.isQueryBlank -> Message(stringResource(R.string.no_results))

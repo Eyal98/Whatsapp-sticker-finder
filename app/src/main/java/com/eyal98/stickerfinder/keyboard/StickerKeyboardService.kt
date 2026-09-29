@@ -24,6 +24,7 @@ import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.data.StickerEntity
 import com.eyal98.stickerfinder.index.EmbedWorker
 import com.eyal98.stickerfinder.search.TextNormalizer
+import com.eyal98.stickerfinder.ui.Onboarding
 import com.eyal98.stickerfinder.ui.StickerFinderTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -208,6 +209,7 @@ class StickerKeyboardService :
             if (result is StickerSender.Result.Sent) {
                 if (removeFromField) removeQueryText(query)
                 app.repository.recordUse(sticker.id)
+                Onboarding.complete(app, Onboarding.Step.SEND)
                 // Search learns from picks, but only for searches typed on this keyboard's keys:
                 // text read from the chat box is never saved.
                 if (!removeFromField && app.repository.recordPick(query, sticker.id)) EmbedWorker.runForEdit(app)

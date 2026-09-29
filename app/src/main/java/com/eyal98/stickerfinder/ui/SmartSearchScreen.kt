@@ -97,6 +97,8 @@ fun SmartSearchScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             ScreenHeader(stringResource(R.string.smart_search), onBack)
+            LaunchedEffect(Unit) { Onboarding.complete(context, Onboarding.Step.SMART) }
+            FirstTimeHint(Onboarding.Hint.SMART_SEARCH)
             Text(stringResource(R.string.smart_search_intro), style = MaterialTheme.typography.bodyLarge)
 
             // Picture tags: the model is part of the app, so there's nothing to install.

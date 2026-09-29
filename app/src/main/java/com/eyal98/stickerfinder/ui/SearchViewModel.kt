@@ -144,9 +144,13 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
 
     fun onQueryChange(value: String) {
         _query.value = value
+        if (value.isNotBlank()) Onboarding.complete(app, Onboarding.Step.SEARCH)
     }
 
-    fun toggleStar(sticker: StickerEntity) = edit { repository.setStarred(sticker.id, !sticker.starred) }
+    fun toggleStar(sticker: StickerEntity) = edit {
+        repository.setStarred(sticker.id, !sticker.starred)
+        if (!sticker.starred) Onboarding.complete(app, Onboarding.Step.STAR)
+    }
 
     /** Runs the current search again, e.g. after a sticker was edited. */
     fun refresh() {
@@ -155,6 +159,7 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
 
     /** Counts the use, and remembers the pick for this search so search learns from it. */
     fun onSent(sticker: StickerEntity) = edit {
+        Onboarding.complete(app, Onboarding.Step.SEND)
         repository.recordUse(sticker.id)
         // Sent twice for one search: the search may have become a tag on it.
         if (repository.recordPick(_query.value, sticker.id)) EmbedWorker.runForEdit(app)

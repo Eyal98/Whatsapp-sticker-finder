@@ -97,6 +97,7 @@ private fun Overview(state: PeopleUiState, viewModel: PeopleViewModel, onBack: (
         item(span = { GridItemSpan(maxLineSpan) }) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 ScreenHeader(stringResource(R.string.people_title), onBack)
+                FirstTimeHint(Onboarding.Hint.PEOPLE)
                 Text(stringResource(R.string.people_intro), style = MaterialTheme.typography.bodyLarge)
                 Text(stringResource(R.string.people_privacy), style = MaterialTheme.typography.bodyMedium)
                 when {

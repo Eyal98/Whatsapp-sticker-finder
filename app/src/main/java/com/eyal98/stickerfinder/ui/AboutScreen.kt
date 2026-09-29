@@ -143,6 +143,12 @@ fun AboutScreen(onBack: () -> Unit) {
             HorizontalDivider()
             BackupSection()
 
+            // Brings back the "Getting started" card and every screen's first-time hint.
+            var tipsBack by remember { mutableStateOf(false) }
+            OutlinedButton(onClick = { Onboarding.reset(context); tipsBack = true }, enabled = !tipsBack) {
+                Text(stringResource(if (tipsBack) R.string.about_tips_back else R.string.about_show_tips))
+            }
+
             HorizontalDivider()
             Text(stringResource(R.string.about_models_title), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.about_models_body), style = MaterialTheme.typography.bodyMedium)

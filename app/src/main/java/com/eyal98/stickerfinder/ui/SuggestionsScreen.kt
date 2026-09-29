@@ -55,6 +55,7 @@ fun SuggestionsScreen(onBack: () -> Unit, viewModel: SuggestionsViewModel = view
             item(span = { GridItemSpan(maxLineSpan) }) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     ScreenHeader(stringResource(R.string.suggestions_title), onBack)
+                    FirstTimeHint(Onboarding.Hint.SUGGESTIONS)
                     Text(stringResource(R.string.suggestions_intro), style = MaterialTheme.typography.bodyMedium)
                     if (!state.loading && state.groups.isEmpty()) {
                         Text(stringResource(R.string.suggestions_none), style = MaterialTheme.typography.bodyLarge)

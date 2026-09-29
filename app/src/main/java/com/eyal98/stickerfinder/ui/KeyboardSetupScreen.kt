@@ -51,6 +51,7 @@ fun KeyboardSetupScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             ScreenHeader(stringResource(R.string.keyboard_setup_title), onBack)
+            FirstTimeHint(Onboarding.Hint.KEYBOARD)
             Text(stringResource(R.string.keyboard_setup_body), style = MaterialTheme.typography.bodyLarge)
             Text(
                 stringResource(if (enabled) R.string.keyboard_status_on else R.string.keyboard_status_off),
@@ -70,7 +71,7 @@ fun KeyboardSetupScreen(onBack: () -> Unit) {
     }
 }
 
-private fun isKeyboardEnabled(context: Context): Boolean {
+internal fun isKeyboardEnabled(context: Context): Boolean {
     val ours = ComponentName(context, StickerKeyboardService::class.java)
     return context.getSystemService(InputMethodManager::class.java)
         .enabledInputMethodList
