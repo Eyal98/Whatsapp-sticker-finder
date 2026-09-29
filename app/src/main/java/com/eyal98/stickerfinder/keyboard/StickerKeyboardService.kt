@@ -24,6 +24,7 @@ import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.data.StickerEntity
 import com.eyal98.stickerfinder.data.StickerRepository
 import com.eyal98.stickerfinder.index.EmbedWorker
+import com.eyal98.stickerfinder.search.QueryProvenance
 import com.eyal98.stickerfinder.search.TextNormalizer
 import com.eyal98.stickerfinder.ui.Onboarding
 import com.eyal98.stickerfinder.ui.StickerFinderTheme
@@ -66,7 +67,7 @@ class StickerKeyboardService :
     private val state = mutableStateOf(KeyboardUiState())
 
     /** Whether the current search came from the text box (and should be removed after sending). */
-    private var queryFromField = false
+    private val provenance = QueryProvenance()
 
     private val app get() = application as StickerFinderApp
     private val prefs get() = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -109,7 +110,7 @@ class StickerKeyboardService :
         super.onStartInputView(info, restarting)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
         val fieldText = if (isPassword(info)) "" else currentFieldText()
-        queryFromField = fieldText.isNotEmpty()
+        provenance.opened(fieldText)
         val savedLayout = prefs.getString(KEY_LAYOUT, null)?.let { name -> KeyLayout.entries.firstOrNull { it.name == name } }
         state.value = KeyboardUiState(
             query = fieldText,
@@ -162,9 +163,9 @@ class StickerKeyboardService :
     }
 
     private fun editQuery(query: String) {
-        // Once the search is edited here, it no longer matches what's in the text box, which is
-        // then left alone after sending.
-        queryFromField = false
+        // Once edited here, the search no longer matches the text box, which is then left alone
+        // after sending; but chat text in it is still never learned from (see QueryProvenance).
+        provenance.edited(query)
         state.value = state.value.copy(query = query, message = null)
         search(immediately = false)
     }
@@ -225,7 +226,8 @@ class StickerKeyboardService :
             return
         }
         val query = state.value.query
-        val removeFromField = queryFromField
+        val removeFromField = provenance.isFieldText
+        val learnable = provenance.learnable
         scope.launch {
             val prepared = withContext(Dispatchers.IO) {
                 StickerSender.prepare(this@StickerKeyboardService, mimeType, Uri.parse(sticker.documentUri), info.packageName)
@@ -237,7 +239,7 @@ class StickerKeyboardService :
                 Onboarding.complete(app, Onboarding.Step.SEND)
                 // Search learns from picks, but only for searches typed on this keyboard's keys:
                 // text read from the chat box is never saved.
-                if (!removeFromField && app.repository.recordPick(query, sticker.id)) EmbedWorker.runForEdit(app)
+                if (learnable && app.repository.recordPick(query, sticker.id)) EmbedWorker.runForEdit(app)
                 if (sticker.isAnimated) {
                     // WhatsApp reads an animated sticker more than once: to send it, then again for
                     // its own copy and preview. Its permission to read the file can end as soon as
