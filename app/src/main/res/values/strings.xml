@@ -219,4 +219,24 @@
     <string name="restore_stickers_waiting">%1$d stickers aren\'t on this phone yet, or haven\'t been read yet. They\'ll be restored by themselves as the app finds them.</string>
     <string name="restore_people_named">%1$d people got their names back.</string>
     <string name="restore_people_waiting">%1$d people\'s names wait for their faces: turn on People (Smart search) if it\'s off, and the names come back once the faces are grouped.</string>
+
+    <!-- Learn from your chats -->
+    <string name="chats_title">Learn from your chats</string>
+    <string name="chats_body">Peel-It can learn what you use each sticker for from the messages written just before it was sent. Then searching \"late\" finds the stickers you send when someone is running late, even if nothing on them says so. In WhatsApp, open a chat, tap ⋮ → More → Export chat → Include media, and share it to Peel-It, or save it and import it here. The more chats you import, the better it gets.</string>
+    <string name="chats_privacy">It all happens on this phone. Peel-It keeps only numbers that sum up what was said before each sticker, never the messages, names or phone numbers, and doesn\'t keep the export. An export also holds the other person\'s messages, so use it for your own chats.</string>
+    <string name="chats_import">Import a chat export</string>
+    <string name="chats_no_model">This needs the meaning-search model, which isn\'t available on this phone right now.</string>
+    <string name="chats_reading">Reading the chat…</string>
+    <string name="chats_reading_percent">Reading the chat… %1$d%%</string>
+    <string name="chats_learning">Learning: %1$d of %2$d stickers</string>
+    <string name="chats_result">%1$d stickers sent, %2$d matched, %3$d learned; %4$d not in your library.</string>
+    <string name="chats_result_no_context">%1$d were sent with no message just before them, so there was nothing to learn from.</string>
+    <string name="chats_no_sends">The export has stickers, but Peel-It couldn\'t tell when they were sent. Its chat format may be one the app doesn\'t read yet.</string>
+    <string name="chats_none_matched">None of this chat\'s stickers are in your library. If Peel-It is still reading your stickers, import the chat again when it\'s done.</string>
+    <string name="chats_already">This chat export was already imported, so nothing changed.</string>
+    <string name="chats_not_a_chat">This file doesn\'t look like a WhatsApp chat export (a .zip with the chat\'s .txt file).</string>
+    <string name="chats_no_media">This export has no stickers in it. Export the chat again and choose Include media.</string>
+    <string name="chats_failed">The import didn\'t work. Try exporting the chat again.</string>
+    <string name="chats_totals">Learned from %1$d chats; %2$d stickers have a meaning from your chats.</string>
+    <string name="chats_forget">Forget imported chats</string>
 </resources>

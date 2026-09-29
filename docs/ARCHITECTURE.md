@@ -69,9 +69,9 @@ flowchart TD
 | Module | Responsibility | Notable dependencies |
 |---|---|---|
 | `:app` | Screens (search, sticker details, Smart search, People, keyboard setup, quality test, About), the sticker keyboard, diagnostics, theme and branding | Compose Material 3, WorkManager |
-| `:core:search` | Pure JVM, no Android: Hebrew/English normalization, prefixes, stop words, synonyms, FTS query building, vector math, Reciprocal Rank Fusion, face grouping (Chinese whispers), evaluation metrics | none (fast unit tests) |
-| `:core:data` | Room database (v13, migrations 1→13), DAO, `StickerRepository` (search, edits, sharing edits), `SemanticSearch` | Room, KSP |
-| `:core:index` | Folder access (SAF), scanner, `StickerIndexer`, sticker-pack metadata reader, workers for indexing, picture tags, faces and embeddings, power/battery policy | WorkManager |
+| `:core:search` | Pure JVM, no Android: Hebrew/English normalization, prefixes, stop words, synonyms, FTS query building, vector math, Reciprocal Rank Fusion, face grouping (Chinese whispers), chat export parsing, evaluation metrics | none (fast unit tests) |
+| `:core:data` | Room database (v14, migrations 1→14), DAO, `StickerRepository` (search, edits, sharing edits), `SemanticSearch` | Room, KSP |
+| `:core:index` | Folder access (SAF), scanner, `StickerIndexer`, sticker-pack metadata reader, workers for indexing, picture tags, faces and embeddings, chat import, power/battery policy | WorkManager |
 | `:core:ocr` | Tesseract OCR (heb+eng, `tessdata_fast`), text cleanup, installs bundled language files | Tesseract4Android |
 | `:core:vision` | SigLIP 2 image encoder and picture-tag labels; face detection (ML Kit) + alignment + SFace embeddings | LiteRT, ML Kit face detection |
 | `:core:embed` | Granite multilingual text embedder, one instance per process (`EmbedderHolder`) | LiteRT-LM |
@@ -90,6 +90,7 @@ erDiagram
     stickers ||--o{ sticker_faces : "faces found"
     people ||--o{ sticker_faces : "grouped as"
     stickers ||--o{ search_picks : "picked after"
+    stickers ||--o| sticker_contexts : "used for (from chats)"
 
     stickers {
         long id PK
@@ -115,6 +116,16 @@ erDiagram
         string model
         long fingerprint "hash of the embedded text"
         blob vector "768 floats"
+    }
+    sticker_contexts {
+        long stickerId PK
+        string model
+        int uses "sends averaged"
+        blob vector "running average"
+    }
+    imported_chats {
+        string hash PK "SHA-256 of the chat text"
+        long importedAt
     }
     sticker_image_vectors {
         long stickerId PK
@@ -145,6 +156,10 @@ erDiagram
   when that text or the model changes. The pack name isn't embedded: in every vector it pulled whole
   packs together. Vectors from before v13 stay as facet 0 until the sticker is embedded again.
 - **`sticker_image_vectors`** powers "looks similar" when editing a sticker.
+- **`sticker_contexts`** holds what a sticker is used for, learned from imported chats (§6c): a
+  running average vector and how many sends it covers. A table of its own, since the embedding pass
+  deletes `sticker_vectors` facets it didn't produce. **`imported_chats`** remembers imported
+  chats by a hash of their text only.
 - **Faces and people** are separate tables so deleting all face data is a simple wipe.
 - **Versioning.** `IndexVersion` marks how far each sticker was processed (basic, OCR, pack
   metadata…). Raising a version re-processes only what that step needs.
@@ -270,6 +285,37 @@ Entries whose sticker isn't found yet (a new phone indexes for hours) wait in
 matched to the new phone's face groups after grouping (`PeopleNames`: centroid cosine ≥ 0.5 and
 0.05 ahead of the next person, one group per name).
 
+## 6c. Learning from chats
+
+A sticker's text and picture say what it *is*; how the user sends it says what it's *for*.
+"Learn from your chats" (Smart search, or WhatsApp's Export chat → share to Peel-It) reads an
+exported chat (.zip with the chat's .txt and media) and learns that, on the phone, only when the
+user imports.
+
+1. **Read** (`ChatImporter`, `:core:index`): one `ZipInputStream` pass over the content URI,
+   never extracted. The chat .txt is kept in memory (up to 48 MB); each `.webp` (up to 3 MB) is
+   decoded and hashed exactly like the indexer (`StickerBitmaps.perceptualHash`); other media are
+   skipped.
+2. **Parse** (`ChatParser`, `:core:search`): Android and iOS formats, day- or month-first dates
+   (told apart from the dates themselves), 12/24-hour times, direction marks, multi-line messages.
+   Attachment notes are localized, so a message is a sticker send when it names a `.webp` that is
+   in the export. Senders aren't kept.
+3. **Context** (`ChatContext`): up to 3 text messages from anyone within 10 minutes before each
+   send, newest first, links removed, 300 characters.
+4. **Match**: by perceptual hash, exact or else the closest within 3 bits (`PerceptualMatch`).
+5. **Learn** (`ContextLearning`): a sticker's contexts from this chat are grouped into texts of up
+   to 600 characters (its 6 newest groups), embedded as documents, averaged by sends, and folded
+   into its running average in `sticker_contexts`, with the chat's hash, in one transaction. A
+   chat that taught nothing isn't remembered, so it can be imported again once the library is read.
+
+`SemanticSearch` adds each context vector to the in-memory `MeaningIndex` as one more vector of
+its sticker (same model only), with its similarity weighted ×1.05; the per-search selection applies
+as usual. The index reloads when the contexts' signature changes, right away rather than after the
+usual 30-second grace. The import runs in the app's process scope (`ChatImports`), not a
+WorkManager job: the shared URI is only readable while the grant lasts, and a job would need the
+chat copied to storage. Chat text is never stored or logged; diagnostics show counts only; backups
+leave contexts out; "Forget imported chats" deletes both tables.
+
 ## 7. Sticker keyboard
 
 ```mermaid
@@ -320,7 +366,8 @@ only way for a third-party app to send a real sticker. Files are exposed through
 | Storage | App-private storage only; Android backups and device transfer excluded (`allowBackup=false`, data extraction rules) |
 | Backup files | Only when the user asks (About → Back up), to a file they choose; optional password: AES-256-GCM, PBKDF2-HMAC-SHA256 (200,000 rounds), header authenticated; people's face fingerprints only if opted in |
 | Folder access | Read-only Storage Access Framework grant for the folder the user picks |
-| Exported components | Launcher activity and the keyboard service (protected by `BIND_INPUT_METHOD`); the `FileProvider` is not exported |
+| Exported components | Launcher activity (also a share target for chat exports, `application/zip`) and the keyboard service (protected by `BIND_INPUT_METHOD`); the `FileProvider` is not exported |
+| Chat imports | Read in memory on the phone, only when the user imports; only averaged vectors, counts and a hash of each chat are kept; one tap forgets them |
 | Keyboard | Reads at most 100 characters before the cursor, only when opened, never in password fields, never stored |
 | Faces | Opt-in, on-device, deletable in one tap; explained in the app as biometric data |
 | Diagnostics | Redacted report (no stickers, file names, text, tags, names or searches), shown in full before the user shares it; includes the last crash and the latest freeze trace |

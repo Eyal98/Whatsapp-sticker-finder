@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.AP
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.eyal98.stickerfinder.ChatImports
 import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.index.EmbedWorker
 import com.eyal98.stickerfinder.index.ImageTagStatus
@@ -76,6 +77,17 @@ data class SmartSearchUiState(
         ModelSlot.entries.firstNotNullOfOrNull { s -> slots[s]?.pending?.let { s to it } }
 }
 
+/** "Learn from your chats": the running or last import, and what was learned so far. */
+data class ChatLearningUiState(
+    val state: ChatImports.State = ChatImports.State.Idle,
+    /** Chat exports learned from. */
+    val chats: Int = 0,
+    /** Stickers with a meaning learned from chats. */
+    val stickers: Int = 0,
+    /** False when there's no embedding model to learn with. */
+    val available: Boolean = true,
+)
+
 private data class Background(
     val turnedOff: Set<String>,
     val imageTags: ImageTagStatus,
@@ -145,6 +157,19 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
             embeddingMemoryOk = memoryOk(slots, ModelSlot.EMBEDDING),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SmartSearchUiState())
+
+    val chatLearning: StateFlow<ChatLearningUiState> = combine(
+        app.chatImports.state,
+        app.database.stickerDao().observeImportedChatCount(),
+        app.database.stickerDao().observeContextCount(),
+    ) { state, chats, stickers ->
+        ChatLearningUiState(state, chats, stickers, available = withContext(Dispatchers.IO) { app.embedders.isAvailable() })
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ChatLearningUiState())
+
+    /** Learns from a chat export the user picked or shared (see [ChatImports]). */
+    fun importChat(uri: Uri) = app.chatImports.start(uri)
+
+    fun forgetChats() = app.chatImports.forget()
 
     private fun memoryOk(slots: Map<ModelSlot, SlotUiState>, slot: ModelSlot): Boolean {
         val s = slots[slot]

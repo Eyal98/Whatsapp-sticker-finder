@@ -54,7 +54,7 @@ class MeaningIndex private constructor(
     private val scales: FloatArray,
     private val dims: Int,
 ) {
-    /** Vectors held (a sticker can have several, one per [Facet]). */
+    /** Vectors held (a sticker can have several: one per [Facet], and one learned from chats). */
     val size: Int get() = stickerIds.size
 
     class Builder(private val dims: Int) {
@@ -64,8 +64,12 @@ class MeaningIndex private constructor(
         private var scales = FloatArray(256)
         private var n = 0
 
-        /** Adds one of [stickerId]'s vectors ([Vectors.prepare]d); [pack] groups stickers of one pack (-1: none). */
-        fun add(stickerId: Long, vector: FloatArray, pack: Int) {
+        /**
+         * Adds one of [stickerId]'s vectors ([Vectors.prepare]d); [pack] groups stickers of one pack
+         * (-1: none). Its similarities are multiplied by [weight], to favor one kind of vector a
+         * little.
+         */
+        fun add(stickerId: Long, vector: FloatArray, pack: Int, weight: Float = 1f) {
             if (vector.size != dims) return
             if (n == ids.size) {
                 val grown = ids.size * 2
@@ -81,7 +85,7 @@ class MeaningIndex private constructor(
             for (i in 0 until dims) codes[offset + i] = kotlin.math.round(vector[i] / scale).toInt().toByte()
             ids[n] = stickerId
             packs[n] = pack
-            scales[n] = scale
+            scales[n] = scale * weight
             n++
         }
 

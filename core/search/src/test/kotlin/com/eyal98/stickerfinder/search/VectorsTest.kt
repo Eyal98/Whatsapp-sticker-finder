@@ -47,6 +47,18 @@ class VectorsTest {
         sims.mapIndexed { i, s -> MeaningSelection.Scored(i.toLong(), s, pack(i)) }
 
     @Test
+    fun `a weighted vector scores a little higher`() {
+        val v = Vectors.prepare(floatArrayOf(1f, 0f, 0f))
+        val index = MeaningIndex.Builder(3).apply {
+            add(1L, v, pack = -1)
+            add(2L, v, pack = -1, weight = 1.1f)
+        }.build()
+        val scores = index.scores(v).associate { it.stickerId to it.similarity }
+        assertEquals(1f, scores.getValue(1L), 0.01f)
+        assertEquals(1.1f, scores.getValue(2L), 0.01f)
+    }
+
+    @Test
     fun `only stickers that stand out from the rest are matches`() {
         // 100 unrelated stickers around 0.30, two real matches.
         val noise = FloatArray(100) { 0.28f + (it % 5) * 0.01f }

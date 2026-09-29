@@ -31,8 +31,9 @@ import java.util.Base64
  * Only what can't be worked out again is saved: tags, descriptions, stars, hidden picture tags,
  * how often each sticker was used, search history, the quality test's searches and the search
  * setting; with the user's say-so, the names they gave people. Printed text, picture tags, meaning
- * vectors and faces are rebuilt by the new phone. Stickers are recognized by their picture's
- * fingerprint (file locations differ between phones), falling back to file name and size.
+ * vectors and faces are rebuilt by the new phone. What was learned from imported chats stays out:
+ * it came from other people's messages too, so it doesn't travel. Stickers are recognized by their
+ * picture's fingerprint (file locations differ between phones), falling back to file name and size.
  *
  * A new phone reads its stickers over hours, so whatever doesn't match yet waits in app storage and
  * is applied as indexing finds more ([applyPending]); people's names wait for face grouping.

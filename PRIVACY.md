@@ -6,7 +6,7 @@ Peel-It is built so that nothing you do in it can leave your phone.
   doesn't let it connect to anything. Every build is checked for this in CI
   (`scripts/check-apk-permissions.sh`).
 - **What it reads.** Only the stickers folder you pick (usually WhatsApp's), through Android's
-  folder picker. Nothing else on the phone.
+  folder picker, and chat exports you choose to import (below). Nothing else on the phone.
 - **What it stores.** An index of your stickers (printed text, picture tags, pack names), your own
   tags, stars and edits, meaning-search vectors and, if you turn on People, face data. All of it
   stays in the app's private storage and is left out of cloud backups and phone-to-phone
@@ -21,6 +21,16 @@ Peel-It is built so that nothing you do in it can leave your phone.
   searches typed on its own keys, never from text it read from the chat box. If you send the same
   sticker twice for the same short search, that search becomes one of the sticker's tags, which you
   can see and remove in the sticker's details.
+- **Learning from your chats (optional).** If you import a WhatsApp chat export (Smart search →
+  Learn from your chats, or share it from WhatsApp's Export chat), the app reads the chat's text
+  and its sticker files, on the phone, to learn what you use each sticker for from the messages
+  written just before it was sent. It keeps only a set of numbers per sticker (an average of what
+  those messages meant) and how many sends it's based on, plus a fingerprint (hash) of each
+  imported chat so the same export isn't counted twice. It never keeps the messages, names, phone
+  numbers or the export itself, doesn't log them, and leaves what it learned out of backups and
+  problem reports (which show only how many chats and stickers). An export holds the other
+  person's messages too, so only import your own chats. **Forget imported chats** on the same
+  screen deletes everything learned from chats.
 - **Your own backups.** About → Back up saves what you made (tags, descriptions, stars, hidden
   picture tags, how often you used each sticker, search history, test searches and the search
   setting) to a file you choose, to restore on another phone. It's never made by itself and never

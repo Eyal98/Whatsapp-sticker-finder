@@ -32,6 +32,7 @@ class StickerFinderApp : Application(), StickerIndexHost {
     }
     override val repository: StickerRepository by lazy { StickerRepository(database.stickerDao(), semanticSearch) }
     val goldenSet: GoldenSetStore by lazy { GoldenSetStore(this) }
+    val chatImports: ChatImports by lazy { ChatImports(this, appScope) }
     val evaluator: SearchEvaluator by lazy {
         SearchEvaluator(database.stickerDao(), repository, semanticSearch, searchSettings)
     }

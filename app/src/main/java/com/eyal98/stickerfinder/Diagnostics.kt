@@ -93,6 +93,11 @@ object Diagnostics {
                 appendLine("with learned tags ${app.database.stickerDao().countWithLearnedTags()}")
                 // How many search → sticker picks search learns from; never the searches themselves.
                 appendLine("remembered picks ${app.database.stickerDao().pickCount()}")
+                // Learn from your chats: counts only, nothing about the chats.
+                appendLine(
+                    "chats imported ${app.database.stickerDao().importedChatTotal()}, " +
+                        "stickers with chat context ${app.database.stickerDao().contextCount()}",
+                )
                 LearnedTagger.stats(app)?.let(::appendLine)
                 IndexStats.describe(app)?.let(::appendLine)
             }

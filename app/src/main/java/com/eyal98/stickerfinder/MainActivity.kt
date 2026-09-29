@@ -1,9 +1,13 @@
 package com.eyal98.stickerfinder
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -28,10 +32,15 @@ private enum class Screen { SEARCH, SMART_SEARCH, QUALITY_TEST, PEOPLE, KEYBOARD
 
 class MainActivity : ComponentActivity() {
 
+    /** Set when a chat export is shared to the app: Smart search shows its import. */
+    private val openSmartSearch = mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val hadFolder = StickerFolder.current(this) != null
         if (hadFolder) startIndexing()
+        // Only the first time: after a rotation the same intent comes back.
+        if (savedInstanceState == null) importSharedChat(intent)
 
         setContent {
             StickerFinderTheme {
@@ -39,6 +48,14 @@ class MainActivity : ComponentActivity() {
                 var screen by rememberSaveable { mutableStateOf(Screen.SEARCH) }
                 // A sticker's details, opened from search with a long press.
                 var details by rememberSaveable { mutableStateOf<Long?>(null) }
+                val sharedChat by openSmartSearch
+                LaunchedEffect(sharedChat) {
+                    if (sharedChat) {
+                        screen = Screen.SMART_SEARCH
+                        details = null
+                        openSmartSearch.value = false
+                    }
+                }
                 val openDetails = details
                 if (hasFolder && openDetails != null) {
                     StickerDetailsScreen(openDetails, onBack = { details = null })
@@ -74,6 +91,30 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        importSharedChat(intent)
+    }
+
+    /**
+     * A chat export shared from WhatsApp's Export chat: starts learning from it right away, while
+     * the app holds the permission to read it that came with the share.
+     */
+    private fun importSharedChat(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_SEND) return
+        val uri = if (Build.VERSION.SDK_INT >= 33) {
+            intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+        } ?: return
+        // Without a stickers folder there's nothing to recognize the chat's stickers in yet.
+        if (StickerFolder.current(this) == null) return
+        (application as StickerFinderApp).chatImports.start(uri)
+        openSmartSearch.value = true
     }
 
     private fun startIndexing() {

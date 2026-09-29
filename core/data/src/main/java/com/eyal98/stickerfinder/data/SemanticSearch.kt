@@ -16,7 +16,8 @@ interface EmbedderAccess {
 
 /**
  * Finds stickers whose meaning is close to the query, in either language. Each sticker has up to
- * two vectors (what it says, what it shows) and matches by the closer one; only stickers that
+ * two vectors (what it says, what it shows), plus one for what it's used for if it was learned
+ * from the user's chats, and matches by the closest one; only stickers that
  * clearly stand out for this query count (see [MeaningSelection]). Vectors are held compactly in
  * memory ([MeaningIndex]) and reloaded only when the table changes.
  */
@@ -26,7 +27,13 @@ class SemanticSearch(
     private val minSimilarity: () -> Float = { SearchSettings.DEFAULT_MIN_SIMILARITY },
 ) {
     private val lock = Mutex()
-    private class Cached(val model: String, val signature: VectorSignature, val index: MeaningIndex, val builtAt: Long)
+    private class Cached(
+        val model: String,
+        val signature: VectorSignature,
+        val contexts: VectorSignature,
+        val index: MeaningIndex,
+        val builtAt: Long,
+    )
 
     private var cached: Cached? = null
 
@@ -70,12 +77,14 @@ class SemanticSearch(
 
     private suspend fun index(model: String, dims: Int): MeaningIndex = lock.withLock {
         val signature = dao.vectorSignature()
+        val contexts = dao.contextSignature()
         val now = System.currentTimeMillis()
         cached?.let { c ->
-            if (c.model == model && c.signature == signature) return c.index
+            if (c.model == model && c.signature == signature && c.contexts == contexts) return c.index
             // While vectors are being (re)computed the table changes every few seconds; reloading
-            // them all each time made searching stutter. A slightly stale index is fine meanwhile.
-            if (c.model == model && now - c.builtAt < MIN_REBUILD_MILLIS) return c.index
+            // them all each time made searching stutter. A slightly stale index is fine meanwhile,
+            // but not after a chat import: the user is about to try what it learned.
+            if (c.model == model && c.contexts == contexts && now - c.builtAt < MIN_REBUILD_MILLIS) return c.index
         }
         // Drop the old index first: holding both at once doubles the memory for a moment.
         cached = null
@@ -94,9 +103,21 @@ class SemanticSearch(
                 afterId = page.last().stickerId
                 afterFacet = page.last().facet
             }
+            // What stickers are used for, learned from chats: one more vector each, favored a little
+            // since it reflects how the user actually uses the sticker.
+            var afterContext = -1L
+            while (true) {
+                val page = dao.contextIndexPage(model, afterContext, PAGE)
+                if (page.isEmpty()) break
+                for (row in page) {
+                    val pack = row.packName?.let { name -> packs.getOrPut(name) { packs.size } } ?: -1
+                    builder.add(row.stickerId, Vectors.prepare(Vectors.decode(row.vector), dims), pack, CONTEXT_WEIGHT)
+                }
+                afterContext = page.last().stickerId
+            }
         }
         val index = builder.build()
-        cached = Cached(model, signature, index, now)
+        cached = Cached(model, signature, contexts, index, now)
         index
     }
 
@@ -105,5 +126,8 @@ class SemanticSearch(
         private const val QUERY_CACHE_SIZE = 64
         private const val PAGE = 500
         private const val MIN_REBUILD_MILLIS = 30_000L
+
+        /** How much a context vector's similarity counts, relative to the sticker's own vectors. */
+        private const val CONTEXT_WEIGHT = 1.05f
     }
 }

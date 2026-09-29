@@ -48,9 +48,11 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import com.eyal98.stickerfinder.ChatImports
 import com.eyal98.stickerfinder.Diagnostics
 import com.eyal98.stickerfinder.R
 import com.eyal98.stickerfinder.StickerFinderApp
+import com.eyal98.stickerfinder.index.ChatImporter
 import com.eyal98.stickerfinder.index.ImageTagStatus
 import com.eyal98.stickerfinder.ml.ModelCrashGuard
 import com.eyal98.stickerfinder.ml.PendingModel
@@ -70,6 +72,10 @@ fun SmartSearchScreen(
         val slot = pickingFor
         if (uri != null && slot != null) viewModel.import(slot, uri)
         pickingFor = null
+    }
+    val chatLearning by viewModel.chatLearning.collectAsStateWithLifecycle()
+    val pickChat = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) viewModel.importChat(uri)
     }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -159,6 +165,14 @@ fun SmartSearchScreen(
             OutlinedButton(onClick = onOpenPeople) { Text(stringResource(R.string.people_open)) }
             HorizontalDivider()
 
+            // Learn from your chats: what stickers are used for, from exported WhatsApp chats.
+            ChatLearningSection(
+                chatLearning,
+                onImport = { pickChat.launch(CHAT_EXPORT_TYPES) },
+                onForget = viewModel::forgetChats,
+            )
+            HorizontalDivider()
+
             HorizontalDivider()
 
             // Meaning search
@@ -197,6 +211,74 @@ fun SmartSearchScreen(
             onConfirm = { viewModel.confirmPending(slot) },
             onDismiss = { viewModel.discardPending(slot) },
         )
+    }
+}
+
+/** What a WhatsApp chat export (.zip) may be labeled as by the app that saved it. */
+private val CHAT_EXPORT_TYPES = arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream")
+
+/**
+ * "Learn from your chats": how to export a chat, what's kept, the import with its progress and
+ * result, and what was learned so far with a way to forget it.
+ */
+@Composable
+private fun ChatLearningSection(state: ChatLearningUiState, onImport: () -> Unit, onForget: () -> Unit) {
+    Text(stringResource(R.string.chats_title), style = MaterialTheme.typography.titleLarge)
+    Text(stringResource(R.string.chats_body), style = MaterialTheme.typography.bodyMedium)
+    Text(stringResource(R.string.chats_privacy), style = MaterialTheme.typography.bodySmall)
+    val importState = state.state
+    val running = importState is ChatImports.State.Running
+    when {
+        importState is ChatImports.State.Running -> ChatImportProgress(importState.progress)
+        !state.available -> ErrorText(stringResource(R.string.chats_no_model))
+        else -> Button(onClick = onImport) { Text(stringResource(R.string.chats_import)) }
+    }
+    when (importState) {
+        is ChatImports.State.Done -> when (val outcome = importState.outcome) {
+            is ChatImporter.Outcome.Learned -> {
+                val s = outcome.summary
+                Text(stringResource(R.string.chats_result, s.sent, s.matched, s.learned, s.notInLibrary))
+                if (s.withoutContext > 0) {
+                    Text(stringResource(R.string.chats_result_no_context, s.withoutContext), style = MaterialTheme.typography.bodySmall)
+                }
+                when {
+                    s.sent == 0 -> ErrorText(stringResource(R.string.chats_no_sends))
+                    s.matched == 0 -> Text(stringResource(R.string.chats_none_matched), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            ChatImporter.Outcome.AlreadyImported -> Text(stringResource(R.string.chats_already))
+            ChatImporter.Outcome.NotAChat -> ErrorText(stringResource(R.string.chats_not_a_chat))
+            ChatImporter.Outcome.NoMedia -> ErrorText(stringResource(R.string.chats_no_media))
+            ChatImporter.Outcome.NoModel -> ErrorText(stringResource(R.string.chats_no_model))
+        }
+        ChatImports.State.Failed -> ErrorText(stringResource(R.string.chats_failed))
+        ChatImports.State.Idle, is ChatImports.State.Running -> Unit
+    }
+    if (state.chats > 0 || state.stickers > 0) {
+        Text(stringResource(R.string.chats_totals, state.chats, state.stickers), style = MaterialTheme.typography.bodyMedium)
+        OutlinedButton(onClick = onForget, enabled = !running) { Text(stringResource(R.string.chats_forget)) }
+    }
+}
+
+@Composable
+private fun ChatImportProgress(progress: ChatImporter.Progress?) {
+    when {
+        progress != null && progress.step == ChatImporter.Step.LEARNING -> {
+            Text(stringResource(R.string.chats_learning, progress.done.toInt(), progress.total.toInt()))
+            LinearProgressIndicator(
+                progress = { if (progress.total > 0) progress.done.toFloat() / progress.total else 0f },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        progress != null && progress.total > 0 -> {
+            val fraction = (progress.done.toFloat() / progress.total).coerceIn(0f, 1f)
+            Text(stringResource(R.string.chats_reading_percent, (fraction * 100).toInt()))
+            LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth())
+        }
+        else -> {
+            Text(stringResource(R.string.chats_reading))
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
     }
 }
 

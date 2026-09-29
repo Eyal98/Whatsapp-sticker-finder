@@ -131,7 +131,7 @@ class StickerIndexer(
         if (decode && bytes != null) {
             runCatchingIo { StickerBitmaps.decode(bytes) }?.let { bitmap ->
                 try {
-                    hash = perceptualHash(bitmap)
+                    hash = StickerBitmaps.perceptualHash(bitmap)
                     if (runOcr && textReader != null) text = readText(textReader, bitmap)
                 } finally {
                     bitmap.recycle()
@@ -206,19 +206,6 @@ class StickerIndexer(
             }
             buffer.copyOf(read)
         }
-    }
-
-    private fun perceptualHash(bitmap: Bitmap): Long {
-        val w = ImageFingerprint.HASH_WIDTH
-        val h = ImageFingerprint.HASH_HEIGHT
-        val small = Bitmap.createScaledBitmap(bitmap, w, h, true)
-        val pixels = IntArray(w * h)
-        try {
-            small.getPixels(pixels, 0, w, 0, 0, w, h)
-        } finally {
-            if (small !== bitmap) small.recycle()
-        }
-        return ImageFingerprint.dHash(pixels)
     }
 
     private inline fun <T> runCatchingIo(block: () -> T): T? =

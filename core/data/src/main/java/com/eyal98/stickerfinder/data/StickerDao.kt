@@ -5,7 +5,9 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
+import com.eyal98.stickerfinder.search.ContextLearning
 import com.eyal98.stickerfinder.search.IndexTerms
+import com.eyal98.stickerfinder.search.Vectors
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -40,6 +42,9 @@ abstract class StickerDao {
     @Query("DELETE FROM sticker_faces WHERE stickerId IN (:ids)")
     abstract suspend fun deleteFacesOf(ids: List<Long>)
 
+    @Query("DELETE FROM sticker_contexts WHERE stickerId IN (:ids)")
+    abstract suspend fun deleteContexts(ids: List<Long>)
+
     /** Deletes stickers together with their search index rows, vectors and faces. */
     @Transaction
     open suspend fun deleteWithFts(ids: List<Long>) {
@@ -49,6 +54,7 @@ abstract class StickerDao {
             deleteVectors(it)
             deleteImageVectors(it)
             deleteFacesOf(it)
+            deleteContexts(it)
             deleteStickers(it)
         }
         deleteEmptyPeople()
@@ -79,6 +85,75 @@ abstract class StickerDao {
 
     @Query("SELECT COUNT(*) AS count, TOTAL(fingerprint) + TOTAL(stickerId) AS total FROM sticker_vectors")
     abstract suspend fun vectorSignature(): VectorSignature
+
+    /** Changes whenever a chat import adds to a context vector, or they're forgotten. */
+    @Query("SELECT COUNT(*) AS count, TOTAL(uses) * 1000003 + TOTAL(stickerId) AS total FROM sticker_contexts")
+    abstract suspend fun contextSignature(): VectorSignature
+
+    /** Context vectors learned from chats, with their sticker's pack, in id order, a page at a time. */
+    @Query(
+        "SELECT c.stickerId, c.vector, s.packName FROM sticker_contexts c JOIN stickers s ON s.id = c.stickerId " +
+            "WHERE c.model = :model AND c.stickerId > :afterId ORDER BY c.stickerId LIMIT :limit",
+    )
+    abstract suspend fun contextIndexPage(model: String, afterId: Long, limit: Int): List<ContextIndexRow>
+
+    /** Every decoded sticker's perceptual hash, to recognize stickers in a chat export. */
+    @Query("SELECT id, perceptualHash FROM stickers WHERE perceptualHash IS NOT NULL")
+    abstract suspend fun perceptualHashes(): List<StickerHashRow>
+
+    @Query("SELECT * FROM sticker_contexts WHERE stickerId = :id")
+    abstract suspend fun stickerContext(id: Long): StickerContext?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun upsertContext(context: StickerContext)
+
+    @Query("SELECT COUNT(*) FROM imported_chats WHERE hash = :hash")
+    abstract suspend fun importedChatCount(hash: String): Int
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    abstract suspend fun insertImportedChat(chat: ImportedChat)
+
+    /**
+     * Folds one chat's lessons into each sticker's running average (see [ContextLearning.fold])
+     * and remembers the chat, in one transaction so a chat never counts half or twice. A vector
+     * from another model is replaced rather than averaged with.
+     */
+    @Transaction
+    open suspend fun saveChatLearning(chat: ImportedChat, model: String, updates: List<ContextUpdate>) {
+        if (importedChatCount(chat.hash) > 0) return
+        for (u in updates) {
+            val old = stickerContext(u.stickerId)?.takeIf { it.model == model }
+            val oldUses = old?.uses ?: 0
+            val mean = ContextLearning.fold(old?.let { Vectors.decode(it.vector) }, oldUses, u.mean, u.uses)
+            upsertContext(StickerContext(u.stickerId, model, oldUses + u.uses, Vectors.encode(mean)))
+        }
+        insertImportedChat(chat)
+    }
+
+    @Query("DELETE FROM sticker_contexts")
+    abstract suspend fun deleteAllContexts()
+
+    @Query("DELETE FROM imported_chats")
+    abstract suspend fun deleteImportedChats()
+
+    /** Deletes everything learned from chats, and which chats those were. */
+    @Transaction
+    open suspend fun forgetChats() {
+        deleteAllContexts()
+        deleteImportedChats()
+    }
+
+    @Query("SELECT COUNT(*) FROM imported_chats")
+    abstract fun observeImportedChatCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM sticker_contexts")
+    abstract fun observeContextCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM imported_chats")
+    abstract suspend fun importedChatTotal(): Int
+
+    @Query("SELECT COUNT(*) FROM sticker_contexts")
+    abstract suspend fun contextCount(): Int
 
     /** Stickers with at least one meaning vector. */
     @Query("SELECT COUNT(DISTINCT stickerId) FROM sticker_vectors")

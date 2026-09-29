@@ -219,4 +219,24 @@
     <string name="restore_stickers_waiting">%1$d מדבקות עדיין לא בטלפון הזה, או שעוד לא נקראו. הן ישוחזרו מעצמן כשהאפליקציה תמצא אותן.</string>
     <string name="restore_people_named">%1$d אנשים קיבלו את השמות שלהם בחזרה.</string>
     <string name="restore_people_waiting">השמות של %1$d אנשים ממתינים לפנים שלהם: אם \"אנשים\" (בחיפוש חכם) כבוי, צריך להפעיל אותו, והשמות יחזרו אחרי שהפנים יקובצו.</string>
+
+    <!-- Learn from your chats -->
+    <string name="chats_title">ללמוד מהצ\'אטים שלכם</string>
+    <string name="chats_body">Peel-It יכולה ללמוד לְמה אתם משתמשים בכל מדבקה מתוך ההודעות שנכתבו רגע לפני ששלחתם אותה. אז חיפוש \"מאחר\" ימצא את המדבקות ששלחתם כשמישהו איחר, גם אם לא כתוב עליהן כלום. בוואטסאפ, פותחים צ\'אט, מקישים על ⋮ ← עוד ← ייצוא צ\'אט ← כולל מדיה, ומשתפים ל-Peel-It, או שומרים את הקובץ ומייבאים אותו כאן. ככל שמייבאים יותר צ\'אטים, התוצאות משתפרות.</string>
+    <string name="chats_privacy">הכול קורה בטלפון הזה. Peel-It שומרת רק מספרים שמסכמים את מה שנאמר לפני כל מדבקה, אף פעם לא את ההודעות, השמות או מספרי הטלפון, ולא שומרת את קובץ הייצוא. בייצוא יש גם את ההודעות של הצד השני, אז השתמשו בזה לצ\'אטים שלכם.</string>
+    <string name="chats_import">ייבוא צ\'אט מיוצא</string>
+    <string name="chats_no_model">צריך בשביל זה את מודל החיפוש לפי משמעות, והוא לא זמין בטלפון הזה כרגע.</string>
+    <string name="chats_reading">קוראת את הצ\'אט…</string>
+    <string name="chats_reading_percent">קוראת את הצ\'אט… %1$d%%</string>
+    <string name="chats_learning">לומדת: %1$d מתוך %2$d מדבקות</string>
+    <string name="chats_result">נשלחו %1$d מדבקות, %2$d זוהו, %3$d נלמדו; %4$d לא נמצאות אצלכם.</string>
+    <string name="chats_result_no_context">%1$d נשלחו בלי הודעה ממש לפניהן, אז לא היה ממה ללמוד.</string>
+    <string name="chats_no_sends">יש בייצוא מדבקות, אבל Peel-It לא הצליחה להבין מתי הן נשלחו. ייתכן שפורמט הצ\'אט עוד לא נתמך באפליקציה.</string>
+    <string name="chats_none_matched">אף אחת מהמדבקות בצ\'אט הזה לא נמצאת אצלכם. אם Peel-It עדיין קוראת את המדבקות שלכם, ייבאו את הצ\'אט שוב כשהיא תסיים.</string>
+    <string name="chats_already">הצ\'אט הזה כבר יובא, אז שום דבר לא השתנה.</string>
+    <string name="chats_not_a_chat">הקובץ הזה לא נראה כמו ייצוא צ\'אט מוואטסאפ (קובץ ‎.zip עם קובץ ה-‎.txt של הצ\'אט).</string>
+    <string name="chats_no_media">אין מדבקות בייצוא הזה. ייצאו את הצ\'אט שוב ובחרו \"כולל מדיה\".</string>
+    <string name="chats_failed">הייבוא לא הצליח. נסו לייצא את הצ\'אט שוב.</string>
+    <string name="chats_totals">נלמד מ-%1$d צ\'אטים; ל-%2$d מדבקות יש משמעות מהצ\'אטים שלכם.</string>
+    <string name="chats_forget">שכחו את הצ\'אטים שיובאו</string>
 </resources>

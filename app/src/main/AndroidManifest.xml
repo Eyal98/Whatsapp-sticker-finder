@@ -31,6 +31,16 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!--
+                WhatsApp's Export chat share sheet: a chat export (.zip) to learn from. It's read
+                once, in memory; nothing from the chat but averaged vectors is kept.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/zip" />
+                <data android:mimeType="application/x-zip-compressed" />
+            </intent-filter>
         </activity>
 
         <!-- The sticker keyboard. BIND_INPUT_METHOD means only the system can bind to it. -->
