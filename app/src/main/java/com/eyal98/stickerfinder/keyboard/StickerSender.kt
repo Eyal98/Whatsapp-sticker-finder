@@ -2,6 +2,7 @@ package com.eyal98.stickerfinder.keyboard
 
 import android.content.ClipDescription
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -11,9 +12,10 @@ import androidx.core.content.FileProvider
 import androidx.core.view.inputmethod.EditorInfoCompat
 import androidx.core.view.inputmethod.InputConnectionCompat
 import androidx.core.view.inputmethod.InputContentInfoCompat
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
-import java.util.UUID
+import java.security.MessageDigest
 
 /**
  * Hands a sticker to the app being typed in, the way keyboards insert stickers and GIFs
@@ -26,8 +28,15 @@ object StickerSender {
     private const val WEBP = "image/webp"
     private const val PNG = "image/png"
 
-    /** How long a sent copy stays readable: enough for the receiver to read it once. */
-    private const val KEEP_SENT_MILLIS = 10 * 60 * 1000L
+    /**
+     * How long a sent copy is kept. WhatsApp doesn't always copy a sticker at once: for animated
+     * ones it keeps the link and reads the file again later (its preview, its own copy), and a
+     * copy deleted after ten minutes showed as "doesn't exist on your internal storage".
+     */
+    private const val KEEP_SENT_MILLIS = 30L * 24 * 60 * 60 * 1000
+
+    /** Sent copies are also trimmed, oldest first, to stay under this. */
+    private const val MAX_SENT_BYTES = 100L * 1024 * 1024
 
     sealed interface Result {
         data class Sent(val mimeType: String) : Result
@@ -50,8 +59,11 @@ object StickerSender {
     /** A sticker copied where the receiving app can read it. */
     class Prepared(val content: InputContentInfoCompat, val mimeType: String)
 
-    /** Copies the sticker for sending. Does file I/O: call off the main thread. */
-    fun prepare(context: Context, mimeType: String, stickerUri: Uri): Prepared? {
+    /**
+     * Copies the sticker for sending to [targetPackage] (the app being typed in). Does file I/O:
+     * call off the main thread.
+     */
+    fun prepare(context: Context, mimeType: String, stickerUri: Uri, targetPackage: String?): Prepared? {
         val file = try {
             copyToShareable(context, stickerUri, asPng = mimeType == PNG)
         } catch (e: IOException) {
@@ -60,6 +72,16 @@ object StickerSender {
             return null
         }
         val contentUri = FileProvider.getUriForFile(context, "${context.packageName}.stickers", file)
+        // The keyboard's grant (commit below) can end when the keyboard closes, while WhatsApp may
+        // come back to an animated sticker later: give that app its own lasting read access to
+        // this one file.
+        if (!targetPackage.isNullOrEmpty()) {
+            try {
+                context.grantUriPermission(targetPackage, contentUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } catch (e: SecurityException) {
+                // The keyboard's own grant still applies.
+            }
+        }
         return Prepared(InputContentInfoCompat(contentUri, ClipDescription("sticker", arrayOf(mimeType)), null), mimeType)
     }
 
@@ -79,25 +101,48 @@ object StickerSender {
     }
 
     /**
-     * Copies the sticker into our own cache, served by our FileProvider, under a new random name
-     * for every send. A receiving app keeps its read grant for as long as it holds the content,
-     * so a reused name would let an app that got an earlier sticker read a later one meant for
-     * someone else. Earlier copies are removed once they're old enough that no receiver is still
-     * reading them.
+     * Copies the sticker into app storage, served by our FileProvider, named after its content
+     * (SHA-256). A name can then only ever hold that one sticker: an app that was sent it before
+     * and still has access can't read a different sticker sent later to someone else. The same
+     * sticker sent again reuses its file. Copies are kept [KEEP_SENT_MILLIS] (WhatsApp may read
+     * them again) and trimmed to [MAX_SENT_BYTES].
      */
     private fun copyToShareable(context: Context, source: Uri, asPng: Boolean): File {
-        val dir = File(context.cacheDir, "send").apply { mkdirs() }
-        val now = System.currentTimeMillis()
-        dir.listFiles()?.filter { now - it.lastModified() > KEEP_SENT_MILLIS }?.forEach { it.delete() }
-        val target = File(dir, "${UUID.randomUUID()}.${if (asPng) "png" else "webp"}")
-        if (asPng) {
+        val dir = File(context.filesDir, "sent").apply { mkdirs() }
+        trim(dir)
+        val bytes = if (asPng) {
             val bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, source))
-            target.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-            bitmap.recycle()
+            try {
+                ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }.toByteArray()
+            } finally {
+                bitmap.recycle()
+            }
         } else {
             val input = context.contentResolver.openInputStream(source) ?: throw IOException("Cannot open sticker")
-            input.use { inStream -> target.outputStream().use { inStream.copyTo(it) } }
+            input.use { it.readBytes() }
+        }
+        val name = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }.take(40)
+        val target = File(dir, "$name.${if (asPng) "png" else "webp"}")
+        if (target.isFile && target.length() == bytes.size.toLong()) {
+            target.setLastModified(System.currentTimeMillis())
+        } else {
+            val tmp = File(dir, "$name.tmp")
+            tmp.writeBytes(bytes)
+            if (!tmp.renameTo(target)) throw IOException("Could not save the sticker to send")
         }
         return target
+    }
+
+    /** Removes copies older than [KEEP_SENT_MILLIS], then the oldest until under [MAX_SENT_BYTES]. */
+    private fun trim(dir: File) {
+        val now = System.currentTimeMillis()
+        val files = dir.listFiles().orEmpty().sortedBy { it.lastModified() }.toMutableList()
+        files.filter { now - it.lastModified() > KEEP_SENT_MILLIS }.forEach { it.delete(); files.remove(it) }
+        var total = files.sumOf { it.length() }
+        for (f in files) {
+            if (total <= MAX_SENT_BYTES) break
+            total -= f.length()
+            f.delete()
+        }
     }
 }

@@ -228,7 +228,7 @@ class StickerKeyboardService :
         val removeFromField = queryFromField
         scope.launch {
             val prepared = withContext(Dispatchers.IO) {
-                StickerSender.prepare(this@StickerKeyboardService, mimeType, Uri.parse(sticker.documentUri))
+                StickerSender.prepare(this@StickerKeyboardService, mimeType, Uri.parse(sticker.documentUri), info.packageName)
             }
             val result = prepared?.let { StickerSender.commit(info, connection, it) } ?: StickerSender.Result.Failed
             if (result is StickerSender.Result.Sent) {

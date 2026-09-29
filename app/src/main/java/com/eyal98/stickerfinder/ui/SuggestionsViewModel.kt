@@ -10,6 +10,7 @@ import com.eyal98.stickerfinder.data.ImageTagFilter
 import com.eyal98.stickerfinder.data.StickerEntity
 import com.eyal98.stickerfinder.data.TagSuggestions
 import com.eyal98.stickerfinder.index.EmbedWorker
+import com.eyal98.stickerfinder.search.StableOrder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -51,10 +52,32 @@ class SuggestionsViewModel(private val app: StickerFinderApp) : ViewModel() {
         skipped,
         lastDiscard,
     ) { stickers, busy, later, discard ->
-        val groups = TagSuggestions.group(stickers)
-            .sortedBy { g -> later.indexOf(g.tag.lowercase()) }
-        SuggestionsUiState(loading = false, groups = groups, saving = busy, lastDiscard = discard)
+        SuggestionsUiState(loading = false, groups = steady(TagSuggestions.group(stickers), later), saving = busy, lastDiscard = discard)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SuggestionsUiState())
+
+    /** The order groups were first shown in, and each group's stickers in the order shown. */
+    private val groupOrder = mutableListOf<String>()
+    private val shownStickers = HashMap<String, List<StickerEntity>>()
+
+    /**
+     * Keeps the screen still while the user works through it: groups stay where they were first
+     * shown (removing a sticker shrinks a group, which used to move it), new groups go last, and
+     * a group's stickers keep their places. Only "Later" moves a group, to the end.
+     */
+    private fun steady(groups: List<TagSuggestions.Group>, later: List<String>): List<TagSuggestions.Group> {
+        for (g in groups) {
+            val key = g.tag.lowercase()
+            if (key !in groupOrder) groupOrder += key
+        }
+        return groups
+            .map { g ->
+                val key = g.tag.lowercase()
+                val stickers = StableOrder.merge(shownStickers[key].orEmpty(), g.stickers) { it.id }
+                shownStickers[key] = stickers
+                g.copy(stickers = stickers)
+            }
+            .sortedWith(compareBy({ later.indexOf(it.tag.lowercase()) }, { groupOrder.indexOf(it.tag.lowercase()) }))
+    }
 
     /** Not this one: [sticker] (and its copies) won't be suggested for [tag] again. */
     fun discard(tag: String, sticker: StickerEntity) = viewModelScope.launch {
