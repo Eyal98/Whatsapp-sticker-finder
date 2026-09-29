@@ -642,3 +642,16 @@ abstract class StickerDao {
     @Query("DELETE FROM folder_stickers WHERE folderId = :folderId AND stickerId = :stickerId")
     abstract suspend fun removeFromFolder(folderId: Long, stickerId: Long)
 }
+
+/** What the indexer found for one sticker; see [StickerDao.saveIndexResult]. */
+data class IndexResult(
+    val id: Long,
+    val isAnimated: Boolean,
+    val perceptualHash: Long?,
+    val ocrText: String?,
+    val packName: String?,
+    val packPublisher: String?,
+    val emojiWords: String?,
+    val indexedAt: Long,
+    val indexVersion: Int,
+)
