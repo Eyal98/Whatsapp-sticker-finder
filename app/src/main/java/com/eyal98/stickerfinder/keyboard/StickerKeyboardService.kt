@@ -22,6 +22,7 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.data.StickerEntity
+import com.eyal98.stickerfinder.data.StickerRepository
 import com.eyal98.stickerfinder.index.EmbedWorker
 import com.eyal98.stickerfinder.search.TextNormalizer
 import com.eyal98.stickerfinder.ui.Onboarding
@@ -74,6 +75,15 @@ class StickerKeyboardService :
         super.onCreate()
         savedStateController.performRestore(null)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        // The folder chips follow the user's folders; a deleted folder can't stay selected.
+        scope.launch {
+            app.repository.folders.collect { folders ->
+                val selected = state.value.selectedFolder?.takeIf { id -> folders.any { it.id == id } }
+                val changed = selected != state.value.selectedFolder
+                state.value = state.value.copy(folders = folders, selectedFolder = selected)
+                if (changed) search(immediately = true)
+            }
+        }
     }
 
     override fun onCreateInputView(): View {
@@ -109,6 +119,9 @@ class StickerKeyboardService :
                 else -> savedLayout ?: KeyLayout.HEBREW
             },
             canSend = StickerSender.chooseMimeType(info) != null,
+            // The folder browsed last time stays open.
+            folders = state.value.folders,
+            selectedFolder = state.value.selectedFolder,
         )
         search(immediately = true)
     }
@@ -137,6 +150,11 @@ class StickerKeyboardService :
         val next = if (state.value.layout == KeyLayout.HEBREW) KeyLayout.ENGLISH else KeyLayout.HEBREW
         prefs.edit { putString(KEY_LAYOUT, next.name) }
         state.value = state.value.copy(layout = next)
+    }
+
+    override fun onSelectFolder(id: Long?) {
+        state.value = state.value.copy(selectedFolder = id, message = null)
+        search(immediately = true)
     }
 
     override fun onSwitchKeyboard() {
@@ -173,19 +191,26 @@ class StickerKeyboardService :
     private fun search(immediately: Boolean) {
         searchJob?.cancel()
         val query = state.value.query
+        val folder = state.value.selectedFolder
         state.value = state.value.copy(loading = true)
         searchJob = scope.launch {
             // Wait for a pause in typing before searching.
             if (!immediately) delay(TYPING_PAUSE_MS)
-            val results = if (query.isBlank()) {
-                app.repository.browse(BROWSE_LIMIT).first()
-            } else {
-                // Keyword results first (instant), then the merged ranking once it's ready.
-                state.value = state.value.copy(results = app.repository.searchKeywords(query))
-                // The meaning search runs the embedding model: only once typing pauses (a new
-                // keystroke cancels this job).
-                if (!immediately) delay(MEANING_PAUSE_MS)
-                app.repository.search(query)
+            // In a folder, a search keeps only that folder's stickers, looking further down the ranking.
+            val inFolder = folder?.let { app.repository.folderStickerIds(it) }
+            val limit = if (inFolder == null) StickerRepository.SEARCH_LIMIT else FOLDER_SEARCH_LIMIT
+            fun keep(list: List<StickerEntity>) = if (inFolder == null) list else list.filter { it.id in inFolder }
+            val results = when {
+                query.isBlank() && folder != null -> app.repository.folderStickers(folder).first()
+                query.isBlank() -> app.repository.browse(BROWSE_LIMIT).first()
+                else -> {
+                    // Keyword results first (instant), then the merged ranking once it's ready.
+                    state.value = state.value.copy(results = keep(app.repository.searchKeywords(query, limit)))
+                    // The meaning search runs the embedding model: only once typing pauses (a new
+                    // keystroke cancels this job).
+                    if (!immediately) delay(MEANING_PAUSE_MS)
+                    keep(app.repository.search(query, limit))
+                }
             }
             state.value = state.value.copy(results = results, loading = false)
         }
@@ -235,6 +260,7 @@ class StickerKeyboardService :
     private companion object {
         const val MAX_QUERY_CHARS = 100
         const val BROWSE_LIMIT = 200
+        const val FOLDER_SEARCH_LIMIT = 500
         const val TYPING_PAUSE_MS = 250L
         const val MEANING_PAUSE_MS = 250L
         const val PREFS = "sticker_keyboard"

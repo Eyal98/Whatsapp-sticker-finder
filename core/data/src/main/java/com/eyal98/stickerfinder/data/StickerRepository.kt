@@ -99,6 +99,30 @@ class StickerRepository(
     /** Stickers with learned tags (suggested from look-alikes), as they change. */
     fun withLearnedTags(): Flow<List<StickerEntity>> = dao.observeWithLearnedTags()
 
+    // --- Folders ------------------------------------------------------------------------------
+
+    val folders: Flow<List<FolderSummary>> = dao.observeFolders()
+
+    fun folderStickers(folderId: Long): Flow<List<StickerEntity>> = dao.observeFolderStickers(folderId)
+
+    fun foldersOf(stickerId: Long): Flow<List<Long>> = dao.observeFoldersOf(stickerId)
+
+    suspend fun folderStickerIds(folderId: Long): Set<Long> = dao.folderStickerIds(folderId).toSet()
+
+    /** Makes a folder named [name] (trimmed) and returns its id. */
+    suspend fun createFolder(name: String): Long = dao.insertFolder(Folder(name = name.trim(), createdAt = System.currentTimeMillis()))
+
+    suspend fun renameFolder(id: Long, name: String) = dao.renameFolder(id, name.trim())
+
+    suspend fun deleteFolder(id: Long) = dao.deleteFolder(id)
+
+    suspend fun addToFolder(folderId: Long, stickerIds: Collection<Long>) {
+        val now = System.currentTimeMillis()
+        dao.addToFolder(stickerIds.map { FolderSticker(folderId, it, now) })
+    }
+
+    suspend fun removeFromFolder(folderId: Long, stickerId: Long) = dao.removeFromFolder(folderId, stickerId)
+
     /** Forgets everything search learned from the user's picks. */
     suspend fun clearSearchHistory() = dao.clearPicks()
 

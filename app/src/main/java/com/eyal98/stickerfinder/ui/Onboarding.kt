@@ -216,4 +216,5 @@ private val TIPS = listOf(
     R.string.tip_chats,
     R.string.tip_offline,
     R.string.tip_description,
+    R.string.tip_folders,
 )

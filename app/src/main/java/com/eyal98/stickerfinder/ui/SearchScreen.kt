@@ -36,7 +36,9 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,6 +53,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.eyal98.stickerfinder.R
 import com.eyal98.stickerfinder.WhatsAppSender
+import com.eyal98.stickerfinder.data.FolderSummary
 import com.eyal98.stickerfinder.data.StickerEntity
 import com.eyal98.stickerfinder.index.ImageTagStatus
 
@@ -155,8 +158,30 @@ fun SearchScreen(
                 ),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             )
+            // Folders the user made: tap to browse one (searching then stays inside it).
+            var newFolder by remember { mutableStateOf(false) }
+            var folderOptions by remember { mutableStateOf<FolderSummary?>(null) }
+            FolderChips(
+                folders = state.folders,
+                selected = state.selectedFolder,
+                onSelect = viewModel::selectFolder,
+                onLongPress = { folderOptions = it },
+                onNew = { newFolder = true },
+                modifier = Modifier.padding(bottom = 8.dp),
+            )
+            if (newFolder) {
+                FolderNameDialog(onDone = { viewModel.createFolder(it); newFolder = false }, onDismiss = { newFolder = false })
+            }
+            folderOptions?.let { f ->
+                FolderOptionsDialog(
+                    f,
+                    onRename = { viewModel.renameFolder(f.id, it) },
+                    onDelete = { viewModel.deleteFolder(f.id) },
+                    onDismiss = { folderOptions = null },
+                )
+            }
             // For new users: what to try next, and Pili's tips while the stickers are being read.
-            if (state.isQueryBlank) {
+            if (state.isQueryBlank && state.selectedFolder == null) {
                 val keyboardOn = remember { isKeyboardEnabled(context) }
                 Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     GettingStarted(keyboardEnabled = keyboardOn)
@@ -165,6 +190,8 @@ fun SearchScreen(
             }
             when {
                 state.total == 0 && state.pending == 0 -> Message(stringResource(R.string.empty_folder))
+                state.results.isEmpty() && state.selectedFolder != null && state.isQueryBlank ->
+                    Message(stringResource(R.string.folders_empty))
                 state.results.isEmpty() && !state.isQueryBlank -> Message(stringResource(R.string.no_results))
                 else -> StickerGrid(
                     stickers = state.results,

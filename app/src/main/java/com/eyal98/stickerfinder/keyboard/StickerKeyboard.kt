@@ -34,7 +34,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eyal98.stickerfinder.R
+import com.eyal98.stickerfinder.data.FolderSummary
 import com.eyal98.stickerfinder.data.StickerEntity
+import com.eyal98.stickerfinder.ui.FolderChips
 import com.eyal98.stickerfinder.ui.StickerThumbnail
 
 enum class KeyboardMessage { NOT_ACCEPTED, FAILED }
@@ -52,6 +54,9 @@ data class KeyboardUiState(
     /** Whether the text box accepts inserted images at all. */
     val canSend: Boolean = true,
     val message: KeyboardMessage? = null,
+    /** The user's folders, and the one being browsed (null: all stickers). */
+    val folders: List<FolderSummary> = emptyList(),
+    val selectedFolder: Long? = null,
 )
 
 interface KeyboardActions {
@@ -61,6 +66,7 @@ interface KeyboardActions {
     fun onToggleLayout()
     fun onSend(sticker: StickerEntity)
     fun onSwitchKeyboard()
+    fun onSelectFolder(id: Long?)
 }
 
 /**
@@ -74,6 +80,16 @@ fun StickerKeyboard(state: KeyboardUiState, actions: KeyboardActions) {
         // navigation bar (back / switch keyboard) instead of under it.
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 4.dp)) {
             SearchBar(state, actions)
+            // The user's folders, to browse one by hand.
+            if (state.folders.isNotEmpty()) {
+                FolderChips(
+                    state.folders,
+                    state.selectedFolder,
+                    actions::onSelectFolder,
+                    compact = true,
+                    modifier = Modifier.padding(vertical = 4.dp),
+                )
+            }
             Box(Modifier.fillMaxWidth().height(RESULTS_HEIGHT)) {
                 when {
                     !state.canSend -> Centered(stringResource(R.string.keyboard_not_accepted))

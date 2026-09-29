@@ -60,6 +60,9 @@ object Backup {
     suspend fun create(context: Context, dao: StickerDao, includePeople: Boolean): String = withContext(Dispatchers.IO) {
         val stickers = dao.allStickers()
         val byId = stickers.associateBy { it.id }
+        // Which folders each sticker is in, by name: names survive the move, ids don't.
+        val folderNames = dao.folders().associate { it.id to it.name }
+        val foldersOf = dao.folderStickers().groupBy({ it.stickerId }, { folderNames[it.folderId] }).mapValues { it.value.filterNotNull() }
         val json = JSONObject()
             .put("format", FORMAT)
             .put("version", VERSION)
@@ -68,8 +71,9 @@ object Backup {
         json.put(
             "stickers",
             JSONArray(
-                stickers.filter(::hasUserData).map { s ->
+                stickers.filter { hasUserData(it) || it.id in foldersOf }.map { s ->
                     key(s)
+                        .put("folders", JSONArray(foldersOf[s.id].orEmpty()))
                         .put("tags", JSONArray(UserTags.parse(s.userTags)))
                         .putOpt("description", s.userDescription)
                         .put("starred", s.starred)
@@ -92,6 +96,8 @@ object Backup {
         val golden = ByteArrayOutputStream().also { GoldenSetStore.write(GoldenSetStore(context).load(), it) }
         json.put("testSearches", JSONObject(golden.toString(Charsets.UTF_8.name())))
         json.put("settings", JSONObject().put("minSimilarity", SearchSettings(context).minSimilarity.toDouble()))
+        // Every folder, empty ones too.
+        json.put("folders", JSONArray(folderNames.values.toList()))
         if (includePeople) json.put("people", peopleJson(dao))
         json.toString()
     }
@@ -122,6 +128,11 @@ object Backup {
             backup.optJSONObject("settings")?.optDouble("minSimilarity")?.takeUnless { it.isNaN() }?.let {
                 SearchSettings(context).minSimilarity = it.toFloat()
             }
+
+            // Folders by name, so even empty ones come back.
+            val existingFolders = dao.folders().map { it.name.lowercase() }.toSet()
+            backup.optJSONArray("folders").strings().filter { it.lowercase() !in existingFolders }.distinctBy { it.lowercase() }
+                .forEach { repository.createFolder(it) }
 
             // Stickers and search history: added to whatever already waits from an earlier restore.
             val pending = readPending(context)
@@ -212,6 +223,11 @@ object Backup {
             return byFile[entry.optString("name") to entry.optLong("size", -1)].orEmpty()
         }
 
+        // Folders by name (ignoring case), made on first use.
+        val folderIds = dao.folders().associate { it.name.lowercase() to it.id }.toMutableMap()
+        suspend fun folderId(name: String): Long =
+            folderIds.getOrPut(name.lowercase()) { repository.createFolder(name) }
+
         var restored = 0
         val waitingStickers = mutableListOf<JSONObject>()
         for (entry in stickers) {
@@ -231,6 +247,7 @@ object Backup {
                 if (empty.isNotEmpty()) repository.setDescription(empty, description)
             }
             if (entry.optBoolean("starred")) ids.forEach { repository.setStarred(it, true) }
+            for (folder in entry.optJSONArray("folders").strings()) repository.addToFolder(folderId(folder), ids)
             val useCount = entry.optInt("useCount")
             val lastUsed = if (entry.has("lastUsedAt")) entry.optLong("lastUsedAt") else null
             if (useCount > 0 || lastUsed != null) ids.forEach { dao.mergeUse(it, useCount, lastUsed) }

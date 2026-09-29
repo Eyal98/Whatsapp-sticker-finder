@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.eyal98.stickerfinder.StickerFinderApp
+import com.eyal98.stickerfinder.data.FolderSummary
 import com.eyal98.stickerfinder.data.StickerEntity
 import com.eyal98.stickerfinder.data.StickerRepository
 import com.eyal98.stickerfinder.data.TagSuggestions
@@ -41,6 +42,9 @@ data class SearchUiState(
     val imageTags: ImageTagStatus = ImageTagStatus(ImageTagStatus.Phase.DONE, 0, 0),
     /** Tags suggested on look-alike stickers, waiting for review. */
     val suggestedTags: Int = 0,
+    val folders: List<FolderSummary> = emptyList(),
+    /** The folder being browsed (and searched in), or null for all stickers. */
+    val selectedFolder: Long? = null,
 )
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
@@ -66,7 +70,7 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
         BACKGROUND,
     }
 
-    private class Run(val query: String, val why: Why)
+    private class Run(val query: String, val why: Why, val folder: Long?)
 
     /**
      * Background work finishing more stickers (printed text, picture tags, meaning vectors). While
@@ -88,34 +92,48 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
     private var shown: List<StickerEntity> = emptyList()
     private var shownQuery = ""
 
+    private val selectedFolder = MutableStateFlow<Long?>(null)
+
     private val runs = merge(
-        searched.map { Run(it, Why.QUERY) },
+        searched.map { Run(it, Why.QUERY, selectedFolder.value) },
+        // Opening or leaving a folder: the same search, in the new place.
+        selectedFolder.drop(1).map { Run(shownQuery, Why.QUERY, it) },
         // The search on screen, not text still being typed.
-        refresh.drop(1).map { Run(shownQuery, Why.EDIT) },
-        indexChanges.map { Run(shownQuery, Why.BACKGROUND) },
+        refresh.drop(1).map { Run(shownQuery, Why.EDIT, selectedFolder.value) },
+        indexChanges.map { Run(shownQuery, Why.BACKGROUND, selectedFolder.value) },
     )
-        // With no search, the browse list follows the database by itself.
+        // With no search, the browse list (or the folder) follows the database by itself.
         .filter { it.why == Why.QUERY || it.query.isNotBlank() }
 
     private val results = runs
         .flatMapLatest { run ->
             val q = run.query
+            val folder = run.folder
             shownQuery = q
+            // Searching in a folder: search everything, keep what's in the folder. Looks further
+            // down the ranking, since most results won't be in it.
+            val limit = if (folder == null) StickerRepository.SEARCH_LIMIT else FOLDER_SEARCH_LIMIT
+            suspend fun search(keywordsOnly: Boolean): List<StickerEntity> {
+                val all = if (keywordsOnly) repository.searchKeywords(q, limit) else repository.search(q, limit)
+                if (folder == null) return all
+                val ids = repository.folderStickerIds(folder)
+                return all.filter { it.id in ids }
+            }
             when {
+                q.isBlank() && folder != null -> repository.folderStickers(folder)
                 q.isBlank() -> repository.browse()
                 run.why == Why.QUERY -> flow {
                     // Keyword results are instant; the merged ranking follows once the query
                     // has been embedded (the first query also loads the model).
-                    val keyword = repository.searchKeywords(q)
-                    emit(keyword)
+                    emit(search(keywordsOnly = true))
                     // The meaning search runs the embedding model: only once typing pauses.
                     // A new keystroke cancels this flow before it gets there.
                     delay(MEANING_PAUSE_MS)
-                    emit(repository.search(q))
+                    emit(search(keywordsOnly = false))
                 }
-                run.why == Why.EDIT -> flow { emit(repository.search(q)) }
+                run.why == Why.EDIT -> flow { emit(search(keywordsOnly = false)) }
                 // Never reshuffle what the user is looking at: stickers on screen keep their place.
-                else -> flow { emit(StableOrder.merge(shown, repository.search(q)) { it.id }) }
+                else -> flow { emit(StableOrder.merge(shown, search(keywordsOnly = false)) { it.id }) }
             }
         }
         .distinctUntilChanged()
@@ -130,17 +148,38 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
             combine(
                 ImageTagStatus.observe(app, app.database.stickerDao()),
                 repository.withLearnedTags().map { TagSuggestions.group(it).size }.distinctUntilChanged(),
-            ) { tags, suggested -> tags to suggested },
-        ) { r, total, pending, q, (tags, suggested) ->
+                repository.folders,
+                selectedFolder,
+            ) { tags, suggested, folders, folder -> Extras(tags, suggested, folders, folder) },
+        ) { r, total, pending, q, extras ->
             SearchUiState(
                 results = r,
                 total = total,
                 pending = pending,
                 isQueryBlank = q.isBlank(),
-                imageTags = tags,
-                suggestedTags = suggested,
+                imageTags = extras.tags,
+                suggestedTags = extras.suggested,
+                folders = extras.folders,
+                // A deleted folder can't stay selected.
+                selectedFolder = extras.folder?.takeIf { id -> extras.folders.any { it.id == id } },
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SearchUiState())
+
+    private class Extras(val tags: ImageTagStatus, val suggested: Int, val folders: List<FolderSummary>, val folder: Long?)
+
+    fun selectFolder(id: Long?) {
+        selectedFolder.value = id
+    }
+
+    /** Makes a folder and opens it, ready to fill from stickers' details. */
+    fun createFolder(name: String) = viewModelScope.launch { selectedFolder.value = repository.createFolder(name) }
+
+    fun renameFolder(id: Long, name: String) = viewModelScope.launch { repository.renameFolder(id, name) }
+
+    fun deleteFolder(id: Long) = viewModelScope.launch {
+        repository.deleteFolder(id)
+        if (selectedFolder.value == id) selectedFolder.value = null
+    }
 
     fun onQueryChange(value: String) {
         _query.value = value
@@ -175,6 +214,7 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
     companion object {
         private const val DEBOUNCE_MS = 150L
         private const val MEANING_PAUSE_MS = 350L
+        private const val FOLDER_SEARCH_LIMIT = 500
         /** Background updates at most this often: each one runs the full search again. */
         private const val INDEX_CHANGE_SAMPLE_MS = 10_000L
 

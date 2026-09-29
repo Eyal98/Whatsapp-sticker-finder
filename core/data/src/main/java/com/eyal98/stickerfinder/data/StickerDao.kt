@@ -45,6 +45,9 @@ abstract class StickerDao {
     @Query("DELETE FROM sticker_contexts WHERE stickerId IN (:ids)")
     abstract suspend fun deleteContexts(ids: List<Long>)
 
+    @Query("DELETE FROM folder_stickers WHERE stickerId IN (:ids)")
+    abstract suspend fun deleteFromFolders(ids: List<Long>)
+
     /** Deletes stickers together with their search index rows, vectors and faces. */
     @Transaction
     open suspend fun deleteWithFts(ids: List<Long>) {
@@ -55,6 +58,7 @@ abstract class StickerDao {
             deleteImageVectors(it)
             deleteFacesOf(it)
             deleteContexts(it)
+            deleteFromFolders(it)
             deleteStickers(it)
         }
         deleteEmptyPeople()
@@ -584,17 +588,57 @@ abstract class StickerDao {
         resetFaceScans()
         syncPeopleNames()
     }
-}
 
-/** What the indexer found for one sticker; see [StickerDao.saveIndexResult]. */
-data class IndexResult(
-    val id: Long,
-    val isAnimated: Boolean,
-    val perceptualHash: Long?,
-    val ocrText: String?,
-    val packName: String?,
-    val packPublisher: String?,
-    val emojiWords: String?,
-    val indexedAt: Long,
-    val indexVersion: Int,
-)
+    // --- Folders ------------------------------------------------------------------------------
+
+    @Query(
+        "SELECT f.id AS id, f.name AS name, COUNT(fs.stickerId) AS count FROM folders f " +
+            "LEFT JOIN folder_stickers fs ON fs.folderId = f.id GROUP BY f.id ORDER BY f.name COLLATE NOCASE",
+    )
+    abstract fun observeFolders(): Flow<List<FolderSummary>>
+
+    @Query("SELECT * FROM folders ORDER BY name COLLATE NOCASE")
+    abstract suspend fun folders(): List<Folder>
+
+    /** A folder's stickers, most recently added first. */
+    @Query(
+        "SELECT s.* FROM stickers s JOIN folder_stickers fs ON fs.stickerId = s.id " +
+            "WHERE fs.folderId = :folderId ORDER BY fs.addedAt DESC",
+    )
+    abstract fun observeFolderStickers(folderId: Long): Flow<List<StickerEntity>>
+
+    @Query("SELECT stickerId FROM folder_stickers WHERE folderId = :folderId")
+    abstract suspend fun folderStickerIds(folderId: Long): List<Long>
+
+    /** Every folder membership, for backups. */
+    @Query("SELECT * FROM folder_stickers")
+    abstract suspend fun folderStickers(): List<FolderSticker>
+
+    @Query("SELECT folderId FROM folder_stickers WHERE stickerId = :stickerId")
+    abstract fun observeFoldersOf(stickerId: Long): Flow<List<Long>>
+
+    @Insert
+    abstract suspend fun insertFolder(folder: Folder): Long
+
+    @Query("UPDATE folders SET name = :name WHERE id = :id")
+    abstract suspend fun renameFolder(id: Long, name: String)
+
+    @Query("DELETE FROM folders WHERE id = :id")
+    abstract suspend fun deleteFolderRow(id: Long)
+
+    @Query("DELETE FROM folder_stickers WHERE folderId = :folderId")
+    abstract suspend fun emptyFolder(folderId: Long)
+
+    /** Deletes a folder; its stickers stay where they are, only the grouping goes. */
+    @Transaction
+    open suspend fun deleteFolder(id: Long) {
+        emptyFolder(id)
+        deleteFolderRow(id)
+    }
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    abstract suspend fun addToFolder(items: List<FolderSticker>)
+
+    @Query("DELETE FROM folder_stickers WHERE folderId = :folderId AND stickerId = :stickerId")
+    abstract suspend fun removeFromFolder(folderId: Long, stickerId: Long)
+}

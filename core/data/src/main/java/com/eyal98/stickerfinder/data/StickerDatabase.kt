@@ -11,8 +11,9 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     entities = [
         StickerEntity::class, StickerFts::class, StickerVector::class, StickerImageVector::class,
         StickerFace::class, Person::class, SearchPick::class, StickerContext::class, ImportedChat::class,
+        Folder::class, FolderSticker::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
 )
 abstract class StickerDatabase : RoomDatabase() {
@@ -25,7 +26,7 @@ abstract class StickerDatabase : RoomDatabase() {
         // TODO(Phase 4): encrypt at rest with SQLCipher, key wrapped by Android Keystore.
         fun create(context: Context): StickerDatabase =
             Room.databaseBuilder(context.applicationContext, StickerDatabase::class.java, NAME)
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
                 .build()
 
         /** Adds [StickerEntity.indexVersion]; existing rows start at 0 so they get OCR'd. */
@@ -170,6 +171,21 @@ abstract class StickerDatabase : RoomDatabase() {
                     "CREATE TABLE IF NOT EXISTS `imported_chats` (`hash` TEXT NOT NULL, `importedAt` INTEGER NOT NULL, " +
                         "PRIMARY KEY(`hash`))",
                 )
+            }
+        }
+
+        /** Adds folders the user makes and names, and which stickers are in them. */
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `folders` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`name` TEXT NOT NULL, `createdAt` INTEGER NOT NULL)",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `folder_stickers` (`folderId` INTEGER NOT NULL, `stickerId` INTEGER NOT NULL, " +
+                        "`addedAt` INTEGER NOT NULL, PRIMARY KEY(`folderId`, `stickerId`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_folder_stickers_stickerId` ON `folder_stickers` (`stickerId`)")
             }
         }
     }

@@ -32,8 +32,8 @@ Peel-It is built so that nothing you do in it can leave your phone.
   person's messages too, so only import your own chats. **Forget imported chats** on the same
   screen deletes everything learned from chats.
 - **Your own backups.** About → Back up saves what you made (tags, descriptions, stars, hidden
-  picture tags, how often you used each sticker, search history, test searches and the search
-  setting) to a file you choose, to restore on another phone. It's never made by itself and never
+  picture tags, folders, how often you used each sticker, search history, test searches and the
+  search setting) to a file you choose, to restore on another phone. It's never made by itself and never
   sent anywhere: you pick where it goes. With a password it's encrypted (AES-256-GCM, key from the
   password with PBKDF2); without one, anyone with the file can read it. People's names are only
   included if you tick the box, and then with one face fingerprint per named person (biometric

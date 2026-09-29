@@ -269,10 +269,18 @@ nearest meaning vectors, "same person" shared face groups, "same pack" the pack 
 with them applies only what changed in that edit: tags added or removed, picture tags hidden or
 restored, and the description.
 
+## 6a. Folders
+
+Users group stickers into folders they name (`folders`, `folder_stickers`; DB v15), from a
+sticker's details. A row of folder chips on the main screen and in the keyboard browses one
+folder (most recently added first); a search with a folder selected searches everything, looks
+500 results deep, and keeps that folder's stickers. Deleting a sticker's file removes it from its
+folders; deleting a folder leaves its stickers alone.
+
 ## 6b. Backup and restore
 
 `Backup` (`:core:index`) writes what can't be rebuilt: per sticker with user data its tags,
-description, star, hidden picture tags and use count; search picks; the quality test's searches;
+description, star, hidden picture tags, use count and folders (by name); search picks; the quality test's searches;
 the similarity setting; and, if the user opts in, each named person's face centroid. Stickers are
 keyed by their perceptual hash (as hex), falling back to file name and size, since document URIs
 differ between phones. `BackupFile` packs the JSON: `PEELIT`, version, mode, then gzip, or

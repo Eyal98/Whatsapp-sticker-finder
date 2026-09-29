@@ -278,4 +278,14 @@
     <string name="hint_suggestions">I spotted stickers that look like ones you tagged. Untick my mistakes, then add the tag to the rest in one tap. Each yes makes me smarter.</string>
     <string name="about_show_tips">Show Pili\'s tips again</string>
     <string name="about_tips_back">Tips are back</string>
+    <string name="folders_title">Folders</string>
+    <string name="folders_all">All</string>
+    <string name="folders_new_chip">＋ New folder</string>
+    <string name="folders_new_title">New folder</string>
+    <string name="folders_rename">Rename</string>
+    <string name="folders_name_hint">Like \"Family\" or \"Good morning\"</string>
+    <string name="folders_delete">Delete folder</string>
+    <string name="folders_delete_confirm">Delete the folder \"%1$s\"? Its stickers stay; only the folder goes.</string>
+    <string name="folders_empty">This folder is empty. Long-press a sticker and tap this folder under Folders to put it here.</string>
+    <string name="tip_folders">Make folders for the stickers you keep coming back to, like \"Good morning\" or \"Mom\". They show up in the keyboard too. Tidy trunk, tidy mind.</string>
 </resources>

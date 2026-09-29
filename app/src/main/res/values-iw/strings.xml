@@ -278,4 +278,14 @@
     <string name="hint_suggestions">מצאתי מדבקות שנראות כמו אלה שתייגת. מבטלים את הטעויות שלי, ומוסיפים את התגית לשאר בלחיצה אחת. כל \"כן\" מחכים אותי.</string>
     <string name="about_show_tips">להציג שוב את הטיפים של פילי</string>
     <string name="about_tips_back">הטיפים חזרו</string>
+    <string name="folders_title">תיקיות</string>
+    <string name="folders_all">הכול</string>
+    <string name="folders_new_chip">＋ תיקייה חדשה</string>
+    <string name="folders_new_title">תיקייה חדשה</string>
+    <string name="folders_rename">שינוי שם</string>
+    <string name="folders_name_hint">למשל \"משפחה\" או \"בוקר טוב\"</string>
+    <string name="folders_delete">מחיקת התיקייה</string>
+    <string name="folders_delete_confirm">למחוק את התיקייה \"%1$s\"? המדבקות נשארות, רק התיקייה נמחקת.</string>
+    <string name="folders_empty">התיקייה ריקה. לחיצה ארוכה על מדבקה, ובחירת התיקייה הזו תחת \"תיקיות\", שמה אותה כאן.</string>
+    <string name="tip_folders">אפשר ליצור תיקיות למדבקות שחוזרים אליהן, כמו \"בוקר טוב\" או \"אמא\". הן מופיעות גם במקלדת. חדק מסודר, ראש מסודר.</string>
 </resources>

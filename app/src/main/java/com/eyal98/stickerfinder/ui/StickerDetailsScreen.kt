@@ -25,8 +25,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -41,6 +43,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,8 +57,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.eyal98.stickerfinder.R
+import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.data.ImageTagFilter
 import com.eyal98.stickerfinder.data.StickerFaceInfo
+import kotlinx.coroutines.launch
 
 private enum class Picker { LOOKS, CONTEXT }
 
@@ -201,6 +206,8 @@ fun StickerDetailsScreen(
                 }
             }
 
+            StickerFolders(stickerId)
+
             if (faces.isNotEmpty()) {
                 Text(stringResource(R.string.details_people), style = MaterialTheme.typography.titleSmall)
                 for (face in faces) FaceRow(face, viewModel)
@@ -327,3 +334,41 @@ private fun SharePicker(title: String, set: ShareSet, onToggle: (Long) -> Unit, 
         confirmButton = { TextButton(onClick = onDone) { Text(stringResource(R.string.details_done, set.selected.size)) } },
     )
 }
+
+/** Which of the user's folders this sticker is in: tap a chip to put it in or take it out. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun StickerFolders(stickerId: Long) {
+    val context = LocalContext.current
+    val repository = (context.applicationContext as StickerFinderApp).repository
+    val folders by repository.folders.collectAsStateWithLifecycle(emptyList())
+    val inFolders by remember(stickerId) { repository.foldersOf(stickerId) }.collectAsStateWithLifecycle(emptyList())
+    val scope = rememberCoroutineScope()
+    var naming by remember { mutableStateOf(false) }
+    Text(stringResource(R.string.folders_title), style = MaterialTheme.typography.titleSmall)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        for (folder in folders) {
+            val inIt = folder.id in inFolders
+            FilterChip(
+                selected = inIt,
+                onClick = {
+                    scope.launch {
+                        if (inIt) repository.removeFromFolder(folder.id, stickerId) else repository.addToFolder(folder.id, listOf(stickerId))
+                    }
+                },
+                label = { Text(folder.name) },
+            )
+        }
+        AssistChip(onClick = { naming = true }, label = { Text(stringResource(R.string.folders_new_chip)) })
+    }
+    if (naming) {
+        FolderNameDialog(
+            onDone = { name ->
+                naming = false
+                scope.launch { repository.addToFolder(repository.createFolder(name), listOf(stickerId)) }
+            },
+            onDismiss = { naming = false },
+        )
+    }
+}
+
