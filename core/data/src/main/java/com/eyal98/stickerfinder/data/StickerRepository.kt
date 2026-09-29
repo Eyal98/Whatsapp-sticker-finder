@@ -96,6 +96,10 @@ class StickerRepository(
         return true
     }
 
+    /** [ids] with every other copy of the same pictures. */
+    suspend fun withCopies(ids: Collection<Long>): List<Long> =
+        ids.chunked(400).flatMap { dao.withCopies(it) }.distinct()
+
     /** Stickers with learned tags (suggested from look-alikes), as they change. */
     fun withLearnedTags(): Flow<List<StickerEntity>> = dao.observeWithLearnedTags()
 

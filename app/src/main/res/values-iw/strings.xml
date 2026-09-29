@@ -189,9 +189,9 @@
     <string name="about_clear_history">מחיקת היסטוריית החיפוש</string>
     <string name="about_history_cleared">היסטוריית החיפוש נמחקה</string>
     <string name="suggestions_title">הצעות תגיות</string>
-    <string name="suggestions_intro">התגיות שלך, מוצעות על מדבקות שנראות כמו אלה שתייגת. אפשר לבטל את הסימון של מה שלא מתאים, ולהוסיף את התגית לכל השאר בלחיצה אחת. כל אישור מלמד את האפליקציה את התגית שלך טוב יותר, כך שגם ההצעות הבאות משתפרות.</string>
+    <string name="suggestions_intro">התגיות שלך, מוצעות על מדבקות שנראות כמו אלה שתייגת. לחיצה על מה שלא מתאים מסירה אותו לתמיד, ואז מוסיפים את התגית לכל השאר בלחיצה אחת. כל אישור מלמד את האפליקציה את התגית שלך טוב יותר, כך שגם ההצעות הבאות משתפרות.</string>
     <string name="suggestions_none">אין מה לבדוק כרגע. הצעות יופיעו אחרי שתתייגו כמה מדבקות שנראות דומה.</string>
-    <string name="suggestions_group_hint">%1$d מדבקות נראות כמו שלך. לחיצה על מדבקה מבטלת את הסימון.</string>
+    <string name="suggestions_group_hint">%1$d מדבקות נראות כמו שלך. לחיצה על מדבקה שלא מתאימה מסירה אותה, והיא לא תוצע שוב לתגית הזו.</string>
     <string name="suggestions_add">הוספה ל-%1$d</string>
     <string name="suggestions_none_fit">אף אחת מאלה</string>
     <string name="suggestions_later">אחר כך</string>
@@ -275,7 +275,7 @@
     <string name="hint_keyboard">מפעילים את המקלדת של Peel-It פעם אחת. ואז בצ\'אט: מקלידים את החיפוש כרגיל, עוברים אליי ולוחצים על מדבקה. היא נשלחת כמדבקה אמיתית, והמקלדת הרגילה חוזרת מיד.</string>
     <string name="hint_smart_search">ברוכים הבאים לחדר המכונות! כל מה שכאן רץ בטלפון שלך: תגיות תמונה, חיפוש לפי משמעות, אנשים. רוב זה עובד לבד, הכי טוב בזמן טעינה.</string>
     <string name="hint_people">כאן אני מקבצת פנים שאני רואה במדבקות. נותנים לקבוצה שם ומחפשים אותו. זה כבוי עד שמפעילים, ולחיצה אחת מוחקת הכול.</string>
-    <string name="hint_suggestions">מצאתי מדבקות שנראות כמו אלה שתייגת. מבטלים את הטעויות שלי, ומוסיפים את התגית לשאר בלחיצה אחת. כל \"כן\" מחכים אותי.</string>
+    <string name="hint_suggestions">מצאתי מדבקות שנראות כמו אלה שתייגת. לחיצה על הטעויות שלי מסירה אותן (והן לא יחזרו), ואז מוסיפים את התגית לשאר בלחיצה אחת. כל \"כן\" מחכים אותי.</string>
     <string name="about_show_tips">להציג שוב את הטיפים של פילי</string>
     <string name="about_tips_back">הטיפים חזרו</string>
     <string name="folders_title">תיקיות</string>
@@ -289,4 +289,6 @@
     <string name="folders_empty">התיקייה ריקה. לחיצה ארוכה על מדבקה, ובחירת התיקייה הזו תחת \"תיקיות\", שמה אותה כאן.</string>
     <string name="tip_folders">אפשר ליצור תיקיות למדבקות שחוזרים אליהן, כמו \"בוקר טוב\" או \"אמא\". הן מופיעות גם במקלדת. חדק מסודר, ראש מסודר.</string>
     <string name="keyboard_sent_animated">נשלח ✓ נותנים לוואטסאפ לסיים עם האנימציה…</string>
+    <string name="suggestions_discarded">הבנתי, זו לא \"%1$s\". לא אציע אותה שוב לתגית הזו.</string>
+    <string name="suggestions_undo">ביטול</string>
 </resources>

@@ -12,7 +12,7 @@ object TagSuggestions {
 
     /**
      * Groups [stickers]' learned tags by tag (ignoring case), leaving out tags a sticker already
-     * has or that the user hid on it. Biggest groups first.
+     * has or that the user hid on it, and showing copies of one picture once. Biggest groups first.
      */
     fun group(stickers: List<StickerEntity>): List<Group> {
         val byTag = LinkedHashMap<String, MutableList<StickerEntity>>()
@@ -25,7 +25,8 @@ object TagSuggestions {
                 if (key in own || key in hidden) continue
                 spelling.putIfAbsent(key, tag)
                 val list = byTag.getOrPut(key) { mutableListOf() }
-                if (list.none { it.id == s.id }) list += s
+                // Copies of one picture (WhatsApp keeps several) show once.
+                if (list.none { it.id == s.id || StickerRepository.imageKey(it) == StickerRepository.imageKey(s) }) list += s
             }
         }
         return byTag.map { (key, list) -> Group(spelling.getValue(key), list) }

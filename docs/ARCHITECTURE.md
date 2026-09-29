@@ -207,9 +207,9 @@ nothing alike ("funny") are skipped, a tag on a single sticker spreads only to n
 and each tag reaches at most 40 stickers, each sticker gets at most 3. Learned tags are
 searchable like picture tags; in the sticker's details the user can make one their own (which
 makes it an example too) or hide it for good. The **Tag suggestions** screen (`TagSuggestions`)
-turns them around per tag: the user unticks the misses and approves the rest in one tap, so the
-approved stickers become examples and the next round spreads further, while unticked ones are
-hidden there for good.
+turns them around per tag: the user taps away the misses (hidden for that tag at once, on every
+copy of the picture, so they never come back; Undo for the last one) and approves the rest in one
+tap, so the approved stickers become examples and the next round spreads further.
 
 **Sticker-pack metadata.** WhatsApp stickers carry a JSON note in the WebP EXIF chunk with the
 pack name, publisher and emojis. `StickerMetadata` parses it without a JSON library, and

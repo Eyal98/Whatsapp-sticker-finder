@@ -589,6 +589,13 @@ abstract class StickerDao {
         syncPeopleNames()
     }
 
+    /** Every sticker showing the same picture as one of [ids] (WhatsApp keeps copies), and [ids] themselves. */
+    @Query(
+        "SELECT id FROM stickers WHERE id IN (:ids) OR perceptualHash IN " +
+            "(SELECT perceptualHash FROM stickers WHERE id IN (:ids) AND perceptualHash IS NOT NULL)",
+    )
+    abstract suspend fun withCopies(ids: List<Long>): List<Long>
+
     // --- Folders ------------------------------------------------------------------------------
 
     @Query(

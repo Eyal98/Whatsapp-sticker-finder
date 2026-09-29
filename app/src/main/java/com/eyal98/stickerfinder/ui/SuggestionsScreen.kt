@@ -28,7 +28,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -57,6 +56,12 @@ fun SuggestionsScreen(onBack: () -> Unit, viewModel: SuggestionsViewModel = view
                     ScreenHeader(stringResource(R.string.suggestions_title), onBack)
                     FirstTimeHint(Onboarding.Hint.SUGGESTIONS)
                     Text(stringResource(R.string.suggestions_intro), style = MaterialTheme.typography.bodyMedium)
+                    // The last sticker tapped away, in case it was a mistake.
+                    state.lastDiscard?.let { d ->
+                        PiliSays(stringResource(R.string.suggestions_discarded, d.tag)) {
+                            TextButton(onClick = viewModel::undoDiscard) { Text(stringResource(R.string.suggestions_undo)) }
+                        }
+                    }
                     if (!state.loading && state.groups.isEmpty()) {
                         Text(stringResource(R.string.suggestions_none), style = MaterialTheme.typography.bodyLarge)
                     }
@@ -64,7 +69,6 @@ fun SuggestionsScreen(onBack: () -> Unit, viewModel: SuggestionsViewModel = view
             }
             for (group in state.groups) {
                 val key = group.tag.lowercase()
-                val off = state.unticked[key].orEmpty()
                 val busy = state.saving != null
                 item(key = "h:$key", span = { GridItemSpan(maxLineSpan) }) {
                     Column(Modifier.padding(top = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -78,29 +82,19 @@ fun SuggestionsScreen(onBack: () -> Unit, viewModel: SuggestionsViewModel = view
                     }
                 }
                 items(group.stickers, key = { "s:$key:${it.id}" }) { s ->
-                    val picked = s.id !in off
+                    // Tap: not this one. It's gone from this tag's suggestions for good (Undo above).
                     Box(
                         Modifier
                             .aspectRatio(1f)
-                            .border(
-                                width = if (picked) 3.dp else 1.dp,
-                                color = if (picked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                                shape = RoundedCornerShape(8.dp),
-                            )
-                            .clickable { viewModel.toggle(group.tag, s.id) },
+                            .border(width = 2.dp, color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(8.dp))
+                            .clickable(enabled = !busy) { viewModel.discard(group.tag, s) },
                     ) {
-                        StickerThumbnail(
-                            s.documentUri,
-                            null,
-                            Modifier.fillMaxSize().padding(4.dp).alpha(if (picked) 1f else 0.4f),
-                        )
-                        if (picked) {
-                            Text("✓", color = MaterialTheme.colorScheme.primary, modifier = Modifier.align(Alignment.TopEnd).padding(end = 6.dp))
-                        }
+                        StickerThumbnail(s.documentUri, null, Modifier.fillMaxSize().padding(4.dp))
+                        Text("✕", color = MaterialTheme.colorScheme.error, modifier = Modifier.align(Alignment.TopEnd).padding(end = 6.dp))
                     }
                 }
                 item(key = "a:$key", span = { GridItemSpan(maxLineSpan) }) {
-                    val count = group.stickers.count { it.id !in off }
+                    val count = group.stickers.size
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = { viewModel.accept(group) }, enabled = !busy && count > 0) {
                             Text(stringResource(R.string.suggestions_add, count))

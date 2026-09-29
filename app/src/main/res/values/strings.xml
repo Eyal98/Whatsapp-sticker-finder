@@ -189,9 +189,9 @@
     <string name="about_clear_history">Clear search history</string>
     <string name="about_history_cleared">Search history cleared</string>
     <string name="suggestions_title">Tag suggestions</string>
-    <string name="suggestions_intro">Your own tags, suggested on stickers that look like the ones you gave them. Untick any that don\'t fit, then add the tag to the rest in one tap. Each approval teaches the app your tag better, so the next suggestions get better too.</string>
+    <string name="suggestions_intro">Your own tags, suggested on stickers that look like the ones you gave them. Tap any that don\'t fit to remove them for good, then add the tag to the rest in one tap. Each approval teaches the app your tag better, so the next suggestions get better too.</string>
     <string name="suggestions_none">Nothing to review right now. Suggestions appear after you tag a few stickers that look alike.</string>
-    <string name="suggestions_group_hint">%1$d stickers look like yours. Tap a sticker to untick it.</string>
+    <string name="suggestions_group_hint">%1$d stickers look like yours. Tap one that doesn\'t fit to remove it; it won\'t be suggested for this tag again.</string>
     <string name="suggestions_add">Add to %1$d</string>
     <string name="suggestions_none_fit">None of these</string>
     <string name="suggestions_later">Later</string>
@@ -275,7 +275,7 @@
     <string name="hint_keyboard">Turn on the Peel-It keyboard once. Then in a chat: type your search as usual, switch to me, tap a sticker. It lands as a real sticker, and your usual keyboard comes right back.</string>
     <string name="hint_smart_search">Welcome to the engine room! Everything here runs on your phone: picture tags, meaning search, People. Most of it works by itself, best while charging.</string>
     <string name="hint_people">Here I group faces I see on your stickers. Give a group a name and search for it. It\'s off until you turn it on, and one tap deletes it all.</string>
-    <string name="hint_suggestions">I spotted stickers that look like ones you tagged. Untick my mistakes, then add the tag to the rest in one tap. Each yes makes me smarter.</string>
+    <string name="hint_suggestions">I spotted stickers that look like ones you tagged. Tap my mistakes away (they won\'t come back), then add the tag to the rest in one tap. Each yes makes me smarter.</string>
     <string name="about_show_tips">Show Pili\'s tips again</string>
     <string name="about_tips_back">Tips are back</string>
     <string name="folders_title">Folders</string>
@@ -289,4 +289,6 @@
     <string name="folders_empty">This folder is empty. Long-press a sticker and tap this folder under Folders to put it here.</string>
     <string name="tip_folders">Make folders for the stickers you keep coming back to, like \"Good morning\" or \"Mom\". They show up in the keyboard too. Tidy trunk, tidy mind.</string>
     <string name="keyboard_sent_animated">Sent ✓ Letting WhatsApp finish the animation…</string>
+    <string name="suggestions_discarded">Got it, that one\'s not \"%1$s\". I won\'t suggest it for that tag again.</string>
+    <string name="suggestions_undo">Undo</string>
 </resources>

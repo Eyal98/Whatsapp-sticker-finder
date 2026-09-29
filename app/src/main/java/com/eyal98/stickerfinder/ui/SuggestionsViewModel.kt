@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.eyal98.stickerfinder.StickerFinderApp
+import com.eyal98.stickerfinder.data.ImageTagFilter
+import com.eyal98.stickerfinder.data.StickerEntity
 import com.eyal98.stickerfinder.data.TagSuggestions
 import com.eyal98.stickerfinder.index.EmbedWorker
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,66 +21,81 @@ import kotlinx.coroutines.launch
 data class SuggestionsUiState(
     val loading: Boolean = true,
     val groups: List<TagSuggestions.Group> = emptyList(),
-    /** Per tag (lower case), the stickers the user unticked: they don't get the tag. */
-    val unticked: Map<String, Set<Long>> = emptyMap(),
     /** A tag being saved: its buttons are off until it's done. */
     val saving: String? = null,
+    /** The last sticker taken out of a tag's suggestions, which Undo puts back. */
+    val lastDiscard: Discard? = null,
 )
+
+/** A sticker (with its copies, [ids]) taken out of [tag]'s suggestions for good. */
+data class Discard(val tag: String, val ids: List<Long>)
 
 /**
  * The tag suggestions screen: the user's own tags suggested on look-alike stickers, one group per
  * tag, to approve at once. Approved tags become the stickers' own tags (more examples, so the next
- * round of suggestions is better); unticked and rejected ones are hidden on those stickers, so
- * they aren't suggested there again.
+ * round of suggestions is better). A sticker tapped away is hidden for that tag right away, on
+ * every copy of its picture, so it isn't suggested for that tag again; Undo brings it back.
  */
 class SuggestionsViewModel(private val app: StickerFinderApp) : ViewModel() {
 
     private val repository = app.repository
-    private val unticked = MutableStateFlow<Map<String, Set<Long>>>(emptyMap())
     private val saving = MutableStateFlow<String?>(null)
+    private val lastDiscard = MutableStateFlow<Discard?>(null)
 
     /** Tags skipped for now: moved to the end of the list. */
     private val skipped = MutableStateFlow<List<String>>(emptyList())
 
     val state: StateFlow<SuggestionsUiState> = combine(
         repository.withLearnedTags(),
-        unticked,
         saving,
         skipped,
-    ) { stickers, off, busy, later ->
+        lastDiscard,
+    ) { stickers, busy, later, discard ->
         val groups = TagSuggestions.group(stickers)
             .sortedBy { g -> later.indexOf(g.tag.lowercase()) }
-        SuggestionsUiState(loading = false, groups = groups, unticked = off, saving = busy)
+        SuggestionsUiState(loading = false, groups = groups, saving = busy, lastDiscard = discard)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SuggestionsUiState())
 
-    fun toggle(tag: String, stickerId: Long) = unticked.update { all ->
-        val key = tag.lowercase()
-        val set = all[key].orEmpty()
-        all + (key to if (stickerId in set) set - stickerId else set + stickerId)
+    /** Not this one: [sticker] (and its copies) won't be suggested for [tag] again. */
+    fun discard(tag: String, sticker: StickerEntity) = viewModelScope.launch {
+        // Copies that already had this tag hidden stay hidden after an undo.
+        val ids = repository.withCopies(listOf(sticker.id))
+        val already = app.database.stickerDao().byIds(ids)
+            .filter { s -> ImageTagFilter.split(s.removedImageTags).any { it.equals(tag, ignoreCase = true) } }
+            .map { it.id }.toSet()
+        repository.editHiddenImageTags(ids, hide = listOf(tag), show = emptyList())
+        lastDiscard.value = Discard(tag, ids - already)
+        // Learned tags are recomputed without it (hidden tags are never suggested again).
+        EmbedWorker.runForEdit(app)
     }
 
-    /** Adds [group]'s tag to the ticked stickers, and hides it on the unticked ones. */
-    fun accept(group: TagSuggestions.Group) = save(group) { ids, off ->
-        repository.addTags(ids - off, listOf(group.tag))
-        repository.editHiddenImageTags(off, hide = listOf(group.tag), show = emptyList())
+    fun undoDiscard() = viewModelScope.launch {
+        val discard = lastDiscard.value ?: return@launch
+        lastDiscard.value = null
+        repository.editHiddenImageTags(discard.ids, hide = emptyList(), show = listOf(discard.tag))
+        EmbedWorker.runForEdit(app)
     }
 
-    /** None of them: the tag is hidden on all of [group]'s stickers. */
-    fun reject(group: TagSuggestions.Group) = save(group) { ids, _ ->
+    /** Adds [group]'s tag to its stickers (and their copies). */
+    fun accept(group: TagSuggestions.Group) = save(group) { ids ->
+        repository.addTags(ids, listOf(group.tag))
+    }
+
+    /** None of them: the tag is hidden on all of [group]'s stickers (and their copies). */
+    fun reject(group: TagSuggestions.Group) = save(group) { ids ->
         repository.editHiddenImageTags(ids, hide = listOf(group.tag), show = emptyList())
     }
 
     fun skip(group: TagSuggestions.Group) = skipped.update { (it - group.tag.lowercase()) + group.tag.lowercase() }
 
-    private fun save(group: TagSuggestions.Group, block: suspend (Set<Long>, Set<Long>) -> Unit) {
+    private fun save(group: TagSuggestions.Group, block: suspend (List<Long>) -> Unit) {
         if (saving.value != null) return
         val key = group.tag.lowercase()
         saving.value = key
+        lastDiscard.value = null
         viewModelScope.launch {
             try {
-                val ids = group.stickers.map { it.id }.toSet()
-                block(ids, unticked.value[key].orEmpty() intersect ids)
-                unticked.update { it - key }
+                block(repository.withCopies(group.stickers.map { it.id }))
                 // New examples: learned tags (and meaning vectors) are brought up to date.
                 EmbedWorker.runForEdit(app)
             } finally {

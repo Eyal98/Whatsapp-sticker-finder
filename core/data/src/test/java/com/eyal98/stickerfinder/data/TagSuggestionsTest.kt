@@ -5,10 +5,16 @@ import org.junit.Test
 
 class TagSuggestionsTest {
 
-    private fun sticker(id: Long, learned: String?, own: String = "", hidden: String? = null) = StickerEntity(
+    private fun sticker(id: Long, learned: String?, own: String = "", hidden: String? = null, hash: Long? = null) = StickerEntity(
         id = id, documentUri = "u$id", displayName = "d", sizeBytes = 1, lastModified = 1,
-        userTags = own, learnedTags = learned, removedImageTags = hidden,
+        userTags = own, learnedTags = learned, removedImageTags = hidden, perceptualHash = hash,
     )
+
+    @Test
+    fun `copies of one picture show once`() {
+        val groups = TagSuggestions.group(listOf(sticker(1, "Kermit", hash = 42), sticker(2, "Kermit", hash = 42), sticker(3, "Kermit", hash = 7)))
+        assertEquals(listOf(1L, 3L), groups.single().stickers.map { it.id })
+    }
 
     @Test
     fun `stickers are grouped by suggested tag, biggest group first`() {
