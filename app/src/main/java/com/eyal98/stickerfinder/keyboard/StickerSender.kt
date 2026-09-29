@@ -57,11 +57,20 @@ object StickerSender {
         }
     }
 
-    /** Whether the copy had to be made smaller for WhatsApp, and how it went. */
+    /** Whether the copy had to be made to fit WhatsApp's rules, and how it went. */
     enum class Shrink { NOT_NEEDED, SHRUNK, CACHED, FAILED }
 
-    /** The copy to share, how it was made, and the sticker's own size. */
-    private class Copy(val file: File, val shrink: Shrink, val originalBytes: Long)
+    /**
+     * The copy to share, how it was made, the sticker's own size, and what the sticker and the
+     * copy hold (for the problem report; numbers only).
+     */
+    private class Copy(
+        val file: File,
+        val shrink: Shrink,
+        val originalBytes: Long,
+        val original: StickerShrinker.Info? = null,
+        val sent: StickerShrinker.Info? = null,
+    )
 
     /** A sticker copied where the receiving app can read it. */
     class Prepared(val content: InputContentInfoCompat, val mimeType: String, val fileName: String)
@@ -70,9 +79,16 @@ object StickerSender {
      * Copies the sticker for sending to [targetPackage] (the app being typed in). Does file I/O:
      * call off the main thread.
      */
-    fun prepare(context: Context, mimeType: String, stickerUri: Uri, targetPackage: String?, animated: Boolean): Prepared? {
+    fun prepare(
+        context: Context,
+        mimeType: String,
+        stickerUri: Uri,
+        targetPackage: String?,
+        animated: Boolean,
+        onFitting: () -> Unit = {},
+    ): Prepared? {
         val copy = try {
-            copyToShareable(context, stickerUri, asPng = mimeType == PNG, animated = animated)
+            copyToShareable(context, stickerUri, asPng = mimeType == PNG, animated = animated, onFitting = onFitting)
         } catch (e: IOException) {
             return null
         } catch (e: SecurityException) {
@@ -95,7 +111,10 @@ object StickerSender {
         } catch (e: PackageManager.NameNotFoundException) {
             -1
         }
-        SendLog.started(context, file.name, animated, mimeType, file.length(), targetUid, copy.shrink, copy.originalBytes)
+        SendLog.started(
+            context, file.name, animated, mimeType, file.length(), targetUid, copy.shrink, copy.originalBytes,
+            copy.original?.describe(), copy.sent?.describe(),
+        )
         return Prepared(InputContentInfoCompat(contentUri, ClipDescription("sticker", arrayOf(mimeType)), null), mimeType, file.name)
     }
 
@@ -121,7 +140,7 @@ object StickerSender {
      * sticker sent again reuses its file. Copies are kept [KEEP_SENT_MILLIS] (WhatsApp may read
      * them again) and trimmed to [MAX_SENT_BYTES].
      */
-    private fun copyToShareable(context: Context, source: Uri, asPng: Boolean, animated: Boolean): Copy {
+    private fun copyToShareable(context: Context, source: Uri, asPng: Boolean, animated: Boolean, onFitting: () -> Unit): Copy {
         val dir = File(context.filesDir, "sent").apply { mkdirs() }
         trim(dir)
         val bytes = if (asPng) {
@@ -137,23 +156,27 @@ object StickerSender {
         }
         val name = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }.take(40)
 
-        // Too big for WhatsApp to take as an animated sticker: send a smaller copy, made once
-        // and kept like the others (so sending it again is instant).
-        if (!asPng && animated && StickerShrinker.needed(bytes.size.toLong())) {
-            val small = File(dir, "$name-small.webp")
-            if (small.isFile && small.length() in 1..StickerShrinker.MAX_ANIMATED_BYTES) {
-                small.setLastModified(System.currentTimeMillis())
-                return Copy(small, Shrink.CACHED, bytes.size.toLong())
+        // Breaks WhatsApp's rules for animated stickers (too big, not 512 x 512, too long, frames
+        // too short): send a copy that fits, made once and kept like the others (so sending it
+        // again is instant).
+        val info = if (!asPng && animated) StickerShrinker.info(bytes) else null
+        if (info != null && info.animated && info.needsFitting) {
+            val size = bytes.size.toLong()
+            val fitted = File(dir, "$name-fit.webp")
+            if (fitted.isFile && fitted.length() in 1..StickerShrinker.MAX_ANIMATED_BYTES) {
+                fitted.setLastModified(System.currentTimeMillis())
+                return Copy(fitted, Shrink.CACHED, size, info, StickerShrinker.info(fitted.readBytes()))
             }
+            onFitting()
             val shrunk = StickerShrinker.shrink(bytes)
             if (shrunk != null) {
-                save(dir, small, shrunk)
-                return Copy(small, Shrink.SHRUNK, bytes.size.toLong())
+                save(dir, fitted, shrunk)
+                return Copy(fitted, Shrink.SHRUNK, size, info, StickerShrinker.info(shrunk))
             }
             // Sent as it is: it may still go through.
-            return Copy(save(dir, File(dir, "$name.webp"), bytes), Shrink.FAILED, bytes.size.toLong())
+            return Copy(save(dir, File(dir, "$name.webp"), bytes), Shrink.FAILED, size, info)
         }
-        return Copy(save(dir, File(dir, "$name.${if (asPng) "png" else "webp"}"), bytes), Shrink.NOT_NEEDED, bytes.size.toLong())
+        return Copy(save(dir, File(dir, "$name.${if (asPng) "png" else "webp"}"), bytes), Shrink.NOT_NEEDED, bytes.size.toLong(), info)
     }
 
     /** Writes [bytes] to [target] (via a temporary file), unless it already holds them. */

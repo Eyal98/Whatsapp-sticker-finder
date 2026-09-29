@@ -32,6 +32,9 @@ object SendLog {
         targetUid: Int,
         shrink: StickerSender.Shrink,
         originalBytes: Long,
+        /** What the sticker and the sent copy hold: sizes, frames and timing only. */
+        original: String?,
+        sent: String?,
     ) {
         val entries = load(context).filterNot { it.optString("file") == file }.toMutableList()
         entries += JSONObject()
@@ -43,6 +46,8 @@ object SendLog {
             .put("targetUid", targetUid)
             .put("shrink", shrink.name.lowercase())
             .put("originalBytes", originalBytes)
+            .putOpt("original", original)
+            .putOpt("sent", sent)
         save(context, entries.takeLast(KEEP))
     }
 
@@ -85,9 +90,9 @@ object SendLog {
                 append(if (e.optBoolean("animated")) " animated" else " static")
                 append(", ").append(e.optString("mime")).append(", ").append(e.optLong("bytes") / 1024).append(" KB")
                 when (e.optString("shrink")) {
-                    "shrunk" -> append(" (shrunk from ").append(e.optLong("originalBytes") / 1024).append(" KB)")
-                    "failed" -> append(" (too big, couldn't shrink)")
-                    "cached" -> append(" (shrunk before)")
+                    "shrunk" -> append(" (fitted, from ").append(e.optLong("originalBytes") / 1024).append(" KB)")
+                    "failed" -> append(" (breaks WhatsApp's rules, couldn't fit it)")
+                    "cached" -> append(" (fitted before, from ").append(e.optLong("originalBytes") / 1024).append(" KB)")
                 }
                 append(", accepted ").append(if (e.has("accepted")) e.optBoolean("accepted") else "?")
                 if (e.has("committedMs")) append(" at +").append(e.optLong("committedMs")).append(" ms")
@@ -102,6 +107,10 @@ object SendLog {
                     e.optString("$kind.notReadOnly").takeIf { it.isNotEmpty() }?.let { append(", mode ").append(it) }
                     e.optInt("$kind.errors").takeIf { it > 0 }?.let { append(", errors ").append(it).append(" ").append(e.optString("$kind.error")) }
                     append(")")
+                }
+                e.optString("original").takeIf { it.isNotEmpty() }?.let { append("\n    sticker: ").append(it) }
+                if (e.optString("shrink") in setOf("shrunk", "cached")) {
+                    e.optString("sent").takeIf { it.isNotEmpty() }?.let { append("\n    sent: ").append(it) }
                 }
             }
         }
