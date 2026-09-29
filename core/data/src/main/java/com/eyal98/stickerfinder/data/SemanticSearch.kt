@@ -47,8 +47,8 @@ class SemanticSearch(
     }
 
     /** Sticker ids ordered by similarity; empty when semantic search isn't available. */
-    suspend fun search(query: String, limit: Int = LIMIT): List<Long> =
-        searchScored(query, limit, minSimilarity()).map { it.first }
+    suspend fun search(query: String, limit: Int = LIMIT, scope: Set<Long>? = null): List<Long> =
+        searchScored(query, limit, minSimilarity(), scope = scope).map { it.first }
 
     /**
      * Sticker ids with their similarity, best first: those at least [minSimilarity] similar that
@@ -59,6 +59,8 @@ class SemanticSearch(
         limit: Int,
         minSimilarity: Float,
         minZ: Float = MeaningSelection.MIN_Z,
+        /** Only these stickers (a folder), chosen among before the cut-off and limits. */
+        scope: Set<Long>? = null,
     ): List<Pair<Long, Float>> {
         val key = query.trim()
         val cachedQuery = synchronized(queryCache) { queryCache[key] }
@@ -72,7 +74,10 @@ class SemanticSearch(
             if (cachedQuery != null) synchronized(queryCache) { queryCache.clear() }
             return emptyList()
         }
-        return withContext(Dispatchers.Default) { MeaningSelection.select(index.scores(queryVector), minSimilarity, limit, minZ) }
+        return withContext(Dispatchers.Default) {
+            val scores = index.scores(queryVector).let { all -> if (scope == null) all else all.filter { it.stickerId in scope } }
+            MeaningSelection.select(scores, minSimilarity, limit, minZ)
+        }
     }
 
     private suspend fun index(model: String, dims: Int): MeaningIndex = lock.withLock {

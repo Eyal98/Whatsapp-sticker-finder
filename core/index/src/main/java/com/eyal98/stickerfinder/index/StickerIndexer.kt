@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -98,7 +99,8 @@ class StickerIndexer(
         // pack metadata is new, so keep the rest instead of running OCR again.
         if (textReader != null && sticker.indexedAt != null && sticker.indexVersion >= IndexVersion.OCR) {
             dao.markIndexAttempt(sticker.id)
-            val metadata = runCatchingIo { readAll(uri) }?.let(::metadataOf)
+            val all = runCatchingIo { readAll(uri) }
+            val metadata = all?.let(::metadataOf)
             return IndexResult(
                 id = sticker.id,
                 isAnimated = sticker.isAnimated,
@@ -107,6 +109,7 @@ class StickerIndexer(
                 packName = metadata?.packName,
                 packPublisher = metadata?.publisher,
                 emojiWords = metadata?.emojiWords?.joinToString(" "),
+                contentHash = all?.let(ContentHash::of),
                 indexedAt = System.currentTimeMillis(),
                 indexVersion = version,
             )
@@ -147,9 +150,32 @@ class StickerIndexer(
             packName = metadata?.packName,
             packPublisher = metadata?.publisher,
             emojiWords = metadata?.emojiWords?.joinToString(" "),
+            // Only when the whole file was read (not just its header).
+            contentHash = if (decode) bytes?.let(ContentHash::of) else null,
             indexedAt = System.currentTimeMillis(),
             indexVersion = version,
         )
+    }
+
+    /**
+     * Fills in the exact content hash of stickers indexed before it was kept: reads their files
+     * (no decoding, no OCR) until done or [budget] runs out. Returns how many were done.
+     */
+    suspend fun backfillContentHashes(budget: WorkBudget): StickerIndexer.Progress {
+        var done = 0
+        while (!budget.exhausted) {
+            val batch = dao.withoutContentHash(CONTENT_HASH_BATCH)
+            if (batch.isEmpty()) return Progress(done, finished = true)
+            for (s in batch) {
+                currentCoroutineContext().ensureActive()
+                // An unreadable file gets an empty marker so it isn't retried forever; it's hashed
+                // again when the file changes and is indexed anew.
+                val hash = runCatchingIo { readAll(Uri.parse(s.documentUri)) }?.let(ContentHash::of) ?: ContentHash.UNREADABLE
+                dao.setContentHash(s.id, hash)
+                done++
+            }
+        }
+        return Progress(done, finished = false)
     }
 
     /** Odd metadata must not fail the sticker. */
@@ -220,6 +246,7 @@ class StickerIndexer(
         }
 
     private companion object {
+        const val CONTENT_HASH_BATCH = 200
         const val TAG = "StickerIndexer"
         const val HEADER_BYTES = 21
 

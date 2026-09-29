@@ -110,15 +110,9 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
             val q = run.query
             val folder = run.folder
             shownQuery = q
-            // Searching in a folder: search everything, keep what's in the folder. Looks further
-            // down the ranking, since most results won't be in it.
-            val limit = if (folder == null) StickerRepository.SEARCH_LIMIT else FOLDER_SEARCH_LIMIT
-            suspend fun search(keywordsOnly: Boolean): List<StickerEntity> {
-                val all = if (keywordsOnly) repository.searchKeywords(q, limit) else repository.search(q, limit)
-                if (folder == null) return all
-                val ids = repository.folderStickerIds(folder)
-                return all.filter { it.id in ids }
-            }
+            // In a folder, the search itself only looks at the folder's stickers.
+            suspend fun search(keywordsOnly: Boolean): List<StickerEntity> =
+                if (keywordsOnly) repository.searchKeywords(q, folderId = folder) else repository.search(q, folderId = folder)
             when {
                 q.isBlank() && folder != null -> repository.folderStickers(folder)
                 q.isBlank() -> repository.browse()
@@ -214,7 +208,6 @@ class SearchViewModel(private val app: StickerFinderApp) : ViewModel() {
     companion object {
         private const val DEBOUNCE_MS = 150L
         private const val MEANING_PAUSE_MS = 350L
-        private const val FOLDER_SEARCH_LIMIT = 500
         /** Background updates at most this often: each one runs the full search again. */
         private const val INDEX_CHANGE_SAMPLE_MS = 10_000L
 

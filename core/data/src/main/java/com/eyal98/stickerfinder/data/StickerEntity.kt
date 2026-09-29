@@ -8,7 +8,7 @@ import androidx.room.PrimaryKey
 /** One sticker file found in the WhatsApp Stickers folder, plus everything we learned about it. */
 @Entity(
     tableName = "stickers",
-    indices = [Index(value = ["documentUri"], unique = true)],
+    indices = [Index(value = ["documentUri"], unique = true), Index(value = ["contentHash"])],
 )
 data class StickerEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -77,6 +77,12 @@ data class StickerEntity(
      * (see LearnedTags), comma-separated. Searchable like picture tags, and hidden the same way.
      */
     val learnedTags: String? = null,
+    /**
+     * SHA-256 of the file's bytes (hex): what makes two files the same sticker for edits and
+     * restores. [perceptualHash] only says two pictures look alike: flat colour variants and
+     * animations sharing a first frame can have the same one. Null until computed.
+     */
+    val contentHash: String? = null,
 ) {
     /** Picture tags and learned tags, without the ones the user removed. */
     val visibleImageTags: String? get() = ImageTagFilter.visible(ImageTagFilter.join(imageTags, learnedTags), removedImageTags)

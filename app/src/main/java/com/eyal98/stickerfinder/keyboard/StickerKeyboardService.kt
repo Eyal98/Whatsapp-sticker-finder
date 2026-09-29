@@ -22,7 +22,6 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.eyal98.stickerfinder.StickerFinderApp
 import com.eyal98.stickerfinder.data.StickerEntity
-import com.eyal98.stickerfinder.data.StickerRepository
 import com.eyal98.stickerfinder.index.EmbedWorker
 import com.eyal98.stickerfinder.search.QueryProvenance
 import com.eyal98.stickerfinder.search.TextNormalizer
@@ -197,20 +196,17 @@ class StickerKeyboardService :
         searchJob = scope.launch {
             // Wait for a pause in typing before searching.
             if (!immediately) delay(TYPING_PAUSE_MS)
-            // In a folder, a search keeps only that folder's stickers, looking further down the ranking.
-            val inFolder = folder?.let { app.repository.folderStickerIds(it) }
-            val limit = if (inFolder == null) StickerRepository.SEARCH_LIMIT else FOLDER_SEARCH_LIMIT
-            fun keep(list: List<StickerEntity>) = if (inFolder == null) list else list.filter { it.id in inFolder }
+            // In a folder, the search itself only looks at the folder's stickers.
             val results = when {
                 query.isBlank() && folder != null -> app.repository.folderStickers(folder).first()
                 query.isBlank() -> app.repository.browse(BROWSE_LIMIT).first()
                 else -> {
                     // Keyword results first (instant), then the merged ranking once it's ready.
-                    state.value = state.value.copy(results = keep(app.repository.searchKeywords(query, limit)))
+                    state.value = state.value.copy(results = app.repository.searchKeywords(query, folderId = folder))
                     // The meaning search runs the embedding model: only once typing pauses (a new
                     // keystroke cancels this job).
                     if (!immediately) delay(MEANING_PAUSE_MS)
-                    keep(app.repository.search(query, limit))
+                    app.repository.search(query, folderId = folder)
                 }
             }
             state.value = state.value.copy(results = results, loading = false)
@@ -273,7 +269,6 @@ class StickerKeyboardService :
     private companion object {
         const val MAX_QUERY_CHARS = 100
         const val BROWSE_LIMIT = 200
-        const val FOLDER_SEARCH_LIMIT = 500
         const val ANIMATED_HOLD_MS = 3_000L
         const val TYPING_PAUSE_MS = 250L
         const val MEANING_PAUSE_MS = 250L

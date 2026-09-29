@@ -74,7 +74,10 @@ class ChatImporter(
         data object NoModel : Outcome
     }
 
-    private class Export(val chat: ByteArray, val files: List<String>, val stickerHashes: Map<String, Long>)
+    /** An exported sticker file: its exact content hash, and its perceptual hash if it decoded. */
+    private class ExportedSticker(val contentHash: String, val perceptualHash: Long?)
+
+    private class Export(val chat: ByteArray, val files: List<String>, val stickerHashes: Map<String, ExportedSticker>)
 
     suspend fun import(uri: Uri, onProgress: (Progress) -> Unit): Outcome = withContext(Dispatchers.IO) {
         val export = read(uri, onProgress) ?: return@withContext Outcome.NotAChat
@@ -85,14 +88,24 @@ class ChatImporter(
         val text = String(export.chat, Charsets.UTF_8).removePrefix("\uFEFF")
         val sends = ChatContext.stickerSends(ChatParser.parse(text, export.files))
 
+        // The same bytes first; a perceptual match only when it's one picture in the library.
+        val known = dao.contentHashes()
+        val byContent = known.associate { it.contentHash to it.id }
+        val contentOf = known.associate { it.id to it.contentHash }
         val library = dao.perceptualHashes()
-        val match = PerceptualMatch(LongArray(library.size) { library[it].id }, LongArray(library.size) { library[it].perceptualHash })
+        val match = PerceptualMatch(
+            LongArray(library.size) { library[it].id },
+            LongArray(library.size) { library[it].perceptualHash },
+            contents = Array(library.size) { contentOf[library[it].id] },
+        )
         val stickerOf = HashMap<String, Long?>()
         val contexts = LinkedHashMap<Long, MutableList<String>>()
         var matched = 0
         var withoutContext = 0
         for (send in sends) {
-            val id = stickerOf.getOrPut(send.file) { export.stickerHashes[send.file]?.let(match::find) } ?: continue
+            val id = stickerOf.getOrPut(send.file) {
+                export.stickerHashes[send.file]?.let { s -> byContent[s.contentHash] ?: s.perceptualHash?.let(match::find) }
+            } ?: continue
             matched++
             val context = send.context
             if (context == null) {
@@ -146,7 +159,7 @@ class ChatImporter(
         var chat: ByteArray? = null
         var chatName: String? = null
         val files = ArrayList<String>()
-        val stickerHashes = HashMap<String, Long>()
+        val stickerHashes = HashMap<String, ExportedSticker>()
         var lastReport = -1L
         ZipInputStream(counter).use { zip ->
             while (true) {
@@ -167,7 +180,9 @@ class ChatImporter(
                         }
                     }
                     name.endsWith(".webp", ignoreCase = true) && stickerHashes.size < MAX_STICKERS -> {
-                        readLimited(zip, MAX_STICKER_BYTES)?.let { bytes -> hashOf(bytes)?.let { stickerHashes[name] = it } }
+                        readLimited(zip, MAX_STICKER_BYTES)?.let { bytes ->
+                            stickerHashes[name] = ExportedSticker(ContentHash.of(bytes), hashOf(bytes))
+                        }
                     }
                 }
                 // Every megabyte is plenty for a progress bar.

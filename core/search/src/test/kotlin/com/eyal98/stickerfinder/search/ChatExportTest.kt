@@ -213,4 +213,16 @@ class ChatExportTest {
         assertNull(match.find(0b1111_1111_1111_1111L shl 20))
         assertNull(match.find(0b1111L shl 50))
     }
+
+    @Test
+    fun `two different pictures with the same perceptual hash match nothing`() {
+        // A red and a blue flat sticker can hash alike: don't pick one.
+        val collision = PerceptualMatch(longArrayOf(1, 2), longArrayOf(0L, 0L), contents = arrayOf("red", "blue"))
+        assertNull(collision.find(0L))
+        // Copies of one file (same content hash) are fine: either is that sticker.
+        val copies = PerceptualMatch(longArrayOf(1, 2), longArrayOf(0L, 0L), contents = arrayOf("same", "same"))
+        assertEquals(1L, copies.find(0L))
+        // Unknown content counts as ambiguous too.
+        assertNull(PerceptualMatch(longArrayOf(1, 2), longArrayOf(0L, 0L)).find(0L))
+    }
 }

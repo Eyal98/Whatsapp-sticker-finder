@@ -318,37 +318,42 @@ object ContextLearning {
 }
 
 /**
- * Finds a sticker in the library by its perceptual hash: the same one, or else the closest within
- * [maxDistance] differing bits. A sticker saved from a chat and the copy in the export are the
- * same file, but re-encoding (a forwarded sticker, a different WhatsApp version) can flip a bit or
- * two.
+ * Finds a sticker in the library by its perceptual hash: the closest within [maxDistance]
+ * differing bits (re-encoding, a forwarded sticker or another WhatsApp version can flip a bit or
+ * two). Only when that's one picture: different pictures can share a perceptual hash (flat colour
+ * variants, animations with the same first frame), so when the closest ones aren't copies of the
+ * same file ([contents], each sticker's exact content hash, if known) it finds nothing rather than
+ * guess.
  */
 class PerceptualMatch(
     private val ids: LongArray,
     private val hashes: LongArray,
     private val maxDistance: Int = MAX_DISTANCE,
+    private val contents: Array<String?> = arrayOfNulls(ids.size),
 ) {
     init {
-        require(ids.size == hashes.size) { "One hash per id" }
+        require(ids.size == hashes.size && contents.size == ids.size) { "One hash per id" }
     }
 
-    private val exact = HashMap<Long, Long>(hashes.size * 2).apply {
-        for (i in hashes.indices) putIfAbsent(hashes[i], ids[i])
-    }
-
-    /** The matching sticker's id, or null when none is close enough. */
+    /** The matching sticker's id, or null when none is close enough or it's ambiguous. */
     fun find(hash: Long): Long? {
-        exact[hash]?.let { return it }
-        var best = -1
         var bestDistance = maxDistance + 1
+        val best = ArrayList<Int>()
         for (i in hashes.indices) {
             val d = java.lang.Long.bitCount(hash xor hashes[i])
             if (d < bestDistance) {
                 bestDistance = d
-                best = i
+                best.clear()
+                best += i
+            } else if (d == bestDistance) {
+                best += i
             }
         }
-        return if (best >= 0) ids[best] else null
+        if (best.isEmpty()) return null
+        if (best.size == 1) return ids[best[0]]
+        // Several at the same distance: fine only if they're all the same file's copies.
+        val sameFile = best.map { contents[it] }.distinct().let { it.size == 1 && !it[0].isNullOrEmpty() }
+        return if (sameFile) ids[best[0]] else null
     }
 
     companion object {

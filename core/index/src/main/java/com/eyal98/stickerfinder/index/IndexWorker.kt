@@ -73,7 +73,14 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
                 ImageTagWorker.runNow(applicationContext)
                 FaceWorker.runNow(applicationContext)
             }
-            if (progress.finished) Result.success() else Result.retry()
+            // Then, with what's left of the run, the exact content hashes of stickers indexed before
+            // they were kept (reading files only: no decoding, no OCR).
+            val hashed = if (progress.finished && !budget.exhausted) {
+                StickerIndexer(resolver, dao, textReaders).backfillContentHashes(budget)
+            } else {
+                null
+            }
+            if (progress.finished && hashed?.finished != false) Result.success() else Result.retry()
         } catch (e: CancellationException) {
             throw e
         } catch (e: SecurityException) {

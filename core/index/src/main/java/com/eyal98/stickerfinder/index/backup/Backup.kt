@@ -214,13 +214,24 @@ object Backup {
         picks: List<JSONObject>,
     ): Applied {
         val local = dao.allStickers()
+        val byContent = local.filter { !it.contentHash.isNullOrEmpty() }.groupBy { it.contentHash!! }
         val byHash = local.filter { it.perceptualHash != null }.groupBy { it.perceptualHash!! }
         val byFile = local.groupBy { it.displayName to it.sizeBytes }
+
+        /**
+         * The local files that are this backed-up sticker: the same bytes, else the same file
+         * name and size, else the same perceptual hash only when that's one picture here.
+         * Different pictures can share a perceptual hash (flat colour variants, animations with
+         * the same first frame); restoring tags onto the wrong one would be worse than waiting.
+         */
         fun find(entry: JSONObject): List<StickerEntity> {
-            entry.optString("hash").takeIf { it.isNotEmpty() }?.toULongOrNull(16)?.toLong()?.let { hash ->
-                byHash[hash]?.let { return it }
-            }
-            return byFile[entry.optString("name") to entry.optLong("size", -1)].orEmpty()
+            entry.optString("sha").takeIf { it.isNotEmpty() }?.let { sha -> byContent[sha]?.let { return it } }
+            byFile[entry.optString("name") to entry.optLong("size", -1)]?.let { return it }
+            val hash = entry.optString("hash").takeIf { it.isNotEmpty() }?.toULongOrNull(16)?.toLong() ?: return emptyList()
+            val candidates = byHash[hash].orEmpty()
+            val contents = candidates.map { it.contentHash }.toSet()
+            // One picture: a single file, or copies known to have the same bytes.
+            return if (candidates.size == 1 || (contents.size == 1 && !contents.first().isNullOrEmpty())) candidates else emptyList()
         }
 
         // Folders by name (ignoring case), made on first use.
@@ -277,10 +288,11 @@ object Backup {
         s.userTags.isNotBlank() || !s.userDescription.isNullOrBlank() || s.starred || s.useCount > 0 ||
             !s.removedImageTags.isNullOrBlank()
 
-    /** How a sticker is found again: its picture's fingerprint, else its file name and size. */
+    /** How a sticker is found again: its exact content, else its file name and size, else its picture's fingerprint. */
     private fun key(s: StickerEntity): JSONObject = JSONObject()
         // As hex text: JSON numbers can't hold 64 bits exactly.
         .putOpt("hash", s.perceptualHash?.toULong()?.toString(16))
+        .putOpt("sha", s.contentHash?.takeIf { it.isNotEmpty() })
         .put("name", s.displayName)
         .put("size", s.sizeBytes)
 

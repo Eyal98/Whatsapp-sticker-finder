@@ -32,17 +32,22 @@ class StickerRepository(
      * words, in which fields; see KeywordRelevance), then by what the user picked before for
      * searches like this one. Fast, so it's shown while semantic search runs.
      */
-    suspend fun searchKeywords(query: String, limit: Int = SEARCH_LIMIT): List<StickerEntity> {
+    suspend fun searchKeywords(query: String, limit: Int = SEARCH_LIMIT, folderId: Long? = null): List<StickerEntity> {
         val terms = QueryParser.parse(query)
         val all = FtsQueryBuilder.matchAll(terms) ?: return emptyList()
+        // In a folder, only its stickers are candidates: before any limit or de-duplication, so
+        // a folder sticker isn't lost to a copy outside the folder or to the global top results.
+        suspend fun fts(match: String, n: Int) =
+            if (folderId == null) dao.searchFts(match, n) else dao.searchFtsInFolder(match, folderId, n)
         // "Any word" matches can be many: look at more of them, since they're re-ranked below.
-        val results = dao.searchFts(all, limit).ifEmpty {
-            FtsQueryBuilder.matchAny(terms)?.let { dao.searchFts(it, limit * ANY_WORD_FACTOR) }.orEmpty()
+        val results = fts(all, limit).ifEmpty {
+            FtsQueryBuilder.matchAny(terms)?.let { fts(it, limit * ANY_WORD_FACTOR) }.orEmpty()
         }
         // Stable sort: the index's order (starred, then most used) breaks ties.
         val ranked = results.sortedByDescending { relevance(terms, it) }
         val byId = ranked.associateBy { it.id }.toMutableMap()
-        val picked = pickedFor(query, byId)
+        val scope = folderId?.let { folderStickerIds(it) }
+        val picked = pickedFor(query, byId, scope)
         val ids = if (picked.isEmpty()) ranked.map { it.id } else RankFusion.fuse(listOf(ranked.map { it.id }, picked), weights = listOf(1.0, PICK_WEIGHT))
         return dedupe(ids.mapNotNull(byId::get)).take(limit)
     }
@@ -52,13 +57,14 @@ class StickerRepository(
      * with a small boost for starred and often-used stickers. What the user picked before for this
      * kind of search counts the most. Same as [searchKeywords] when no embedding model is installed.
      */
-    suspend fun search(query: String, limit: Int = SEARCH_LIMIT): List<StickerEntity> {
-        val keyword = searchKeywords(query, limit)
-        val semanticIds = semantic?.search(query).orEmpty()
+    suspend fun search(query: String, limit: Int = SEARCH_LIMIT, folderId: Long? = null): List<StickerEntity> {
+        val keyword = searchKeywords(query, limit, folderId)
+        val scope = folderId?.let { folderStickerIds(it) }
+        val semanticIds = semantic?.search(query, scope = scope).orEmpty()
         if (semanticIds.isEmpty()) return keyword
 
         val byId = keyword.associateBy { it.id }.toMutableMap()
-        val picked = pickedFor(query, byId)
+        val picked = pickedFor(query, byId, scope)
         val missing = semanticIds.filterNot(byId::containsKey)
         if (missing.isNotEmpty()) dao.byIds(missing).forEach { byId[it.id] = it }
         return dedupe(fuse(keyword.map { it.id }, semanticIds, byId, picked).mapNotNull(byId::get)).take(limit)
@@ -68,8 +74,9 @@ class StickerRepository(
      * Stickers the user sent after searches like [query], best first, loading any not in [byId]
      * into it. Stickers deleted since are dropped.
      */
-    private suspend fun pickedFor(query: String, byId: MutableMap<Long, StickerEntity>): List<Long> {
-        val ids = PickRanking.rank(query, dao.allPicks().map { Pick(it.queryKey, it.stickerId, it.count, it.lastAt) }, System.currentTimeMillis())
+    private suspend fun pickedFor(query: String, byId: MutableMap<Long, StickerEntity>, scope: Set<Long>? = null): List<Long> {
+        val picks = dao.allPicks().filter { scope == null || it.stickerId in scope }
+        val ids = PickRanking.rank(query, picks.map { Pick(it.queryKey, it.stickerId, it.count, it.lastAt) }, System.currentTimeMillis())
             .take(PICK_LIMIT)
         if (ids.isEmpty()) return emptyList()
         val missing = ids.filterNot(byId::containsKey)

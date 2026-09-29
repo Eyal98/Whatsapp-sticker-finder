@@ -204,6 +204,7 @@ abstract class StickerDao {
     @Query(
         "UPDATE stickers SET isAnimated = :isAnimated, perceptualHash = :perceptualHash, " +
             "ocrText = :ocrText, packName = :packName, packPublisher = :packPublisher, emojiWords = :emojiWords, " +
+            "contentHash = COALESCE(:contentHash, contentHash), " +
             "indexedAt = :indexedAt, indexVersion = :indexVersion, indexAttempts = 0 WHERE id = :id",
     )
     abstract suspend fun saveIndexResult(
@@ -214,6 +215,7 @@ abstract class StickerDao {
         packName: String?,
         packPublisher: String?,
         emojiWords: String?,
+        contentHash: String?,
         indexedAt: Long,
         indexVersion: Int,
     )
@@ -227,7 +229,7 @@ abstract class StickerDao {
         for (r in results) {
             saveIndexResult(
                 r.id, r.isAnimated, r.perceptualHash, r.ocrText, r.packName, r.packPublisher, r.emojiWords,
-                r.indexedAt, r.indexVersion,
+                r.contentHash, r.indexedAt, r.indexVersion,
             )
             refreshFts(r.id)
         }
@@ -435,6 +437,14 @@ abstract class StickerDao {
     )
     abstract suspend fun searchFts(match: String, limit: Int): List<StickerEntity>
 
+    /** [searchFts] among one folder's stickers only. */
+    @Query(
+        "SELECT s.* FROM stickers s JOIN sticker_fts f ON s.id = f.rowid " +
+            "WHERE sticker_fts MATCH :match AND s.id IN (SELECT stickerId FROM folder_stickers WHERE folderId = :folderId) " +
+            "ORDER BY s.starred DESC, s.useCount DESC, s.lastModified DESC LIMIT :limit",
+    )
+    abstract suspend fun searchFtsInFolder(match: String, folderId: Long, limit: Int): List<StickerEntity>
+
     /** Shown when the query is empty: starred first, then most used, then newest. */
     @Query(
         "SELECT * FROM stickers " +
@@ -589,12 +599,26 @@ abstract class StickerDao {
         syncPeopleNames()
     }
 
-    /** Every sticker showing the same picture as one of [ids] (WhatsApp keeps copies), and [ids] themselves. */
+    /**
+     * Every file that is exactly the same sticker as one of [ids] (same bytes: WhatsApp keeps
+     * copies), and [ids] themselves. Not by perceptual hash: different pictures can share one.
+     */
     @Query(
-        "SELECT id FROM stickers WHERE id IN (:ids) OR perceptualHash IN " +
-            "(SELECT perceptualHash FROM stickers WHERE id IN (:ids) AND perceptualHash IS NOT NULL)",
+        "SELECT id FROM stickers WHERE id IN (:ids) OR contentHash IN " +
+            "(SELECT contentHash FROM stickers WHERE id IN (:ids) AND contentHash IS NOT NULL AND contentHash != '')",
     )
     abstract suspend fun withCopies(ids: List<Long>): List<Long>
+
+    /** Indexed stickers whose content hash isn't known yet (from before it was kept). */
+    @Query("SELECT id, documentUri FROM stickers WHERE contentHash IS NULL AND indexedAt IS NOT NULL ORDER BY id LIMIT :limit")
+    abstract suspend fun withoutContentHash(limit: Int): List<StickerUri>
+
+    @Query("UPDATE stickers SET contentHash = :hash WHERE id = :id")
+    abstract suspend fun setContentHash(id: Long, hash: String)
+
+    /** Content hashes of the library, for recognizing files by their exact bytes. */
+    @Query("SELECT id, contentHash FROM stickers WHERE contentHash IS NOT NULL AND contentHash != ''")
+    abstract suspend fun contentHashes(): List<StickerContentHash>
 
     // --- Folders ------------------------------------------------------------------------------
 
@@ -659,6 +683,14 @@ data class IndexResult(
     val packName: String?,
     val packPublisher: String?,
     val emojiWords: String?,
+    /** SHA-256 of the file (hex), or null when this pass didn't read the whole file. */
+    val contentHash: String?,
     val indexedAt: Long,
     val indexVersion: Int,
 )
+
+/** A sticker and its file, for a pass that reads files. */
+data class StickerUri(val id: Long, val documentUri: String)
+
+/** A sticker's exact content hash. */
+data class StickerContentHash(val id: Long, val contentHash: String)
