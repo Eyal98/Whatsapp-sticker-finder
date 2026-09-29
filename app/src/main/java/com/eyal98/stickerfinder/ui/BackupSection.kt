@@ -107,7 +107,7 @@ fun BackupSection() {
         scope.launch {
             val bytes = withContext(Dispatchers.IO) {
                 try {
-                    context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                    context.contentResolver.openInputStream(uri)?.use(BackupFile::readFile)
                 } catch (e: IOException) {
                     null
                 }

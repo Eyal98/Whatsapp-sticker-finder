@@ -87,12 +87,13 @@ abstract class StickerDao {
     )
     abstract suspend fun meaningIndexPage(model: String, afterId: Long, afterFacet: Int, limit: Int): List<MeaningIndexRow>
 
-    @Query("SELECT COUNT(*) AS count, TOTAL(fingerprint) + TOTAL(stickerId) AS total FROM sticker_vectors")
-    abstract suspend fun vectorSignature(): VectorSignature
+    /** Of [model]'s vectors only: a sticker's vector replaced by another model's changes it too. */
+    @Query("SELECT COUNT(*) AS count, TOTAL(fingerprint) + TOTAL(stickerId) AS total FROM sticker_vectors WHERE model = :model")
+    abstract suspend fun vectorSignature(model: String): VectorSignature
 
-    /** Changes whenever a chat import adds to a context vector, or they're forgotten. */
-    @Query("SELECT COUNT(*) AS count, TOTAL(uses) * 1000003 + TOTAL(stickerId) AS total FROM sticker_contexts")
-    abstract suspend fun contextSignature(): VectorSignature
+    /** Changes whenever a chat import adds to one of [model]'s context vectors, or they're forgotten. */
+    @Query("SELECT COUNT(*) AS count, TOTAL(uses) * 1000003 + TOTAL(stickerId) AS total FROM sticker_contexts WHERE model = :model")
+    abstract suspend fun contextSignature(model: String): VectorSignature
 
     /** Context vectors learned from chats, with their sticker's pack, in id order, a page at a time. */
     @Query(
@@ -335,14 +336,17 @@ abstract class StickerDao {
     )
     abstract suspend fun mergeUse(id: Long, count: Int, lastUsedAt: Long?)
 
-    /** Restoring a backup: adds a pick, keeping the higher count and the later time if it's known. */
+    /**
+     * Restoring a backup: adds a pick, keeping the higher count and the later time if it's known.
+     * [tagged] (the search was already made a tag, or didn't fit one) is kept once either side has it.
+     */
     @Transaction
-    open suspend fun mergePick(queryKey: String, stickerId: Long, count: Int, lastAt: Long) {
+    open suspend fun mergePick(queryKey: String, stickerId: Long, count: Int, lastAt: Long, tagged: Boolean) {
         val old = pick(queryKey, stickerId)
         upsertPick(
             SearchPick(
                 queryKey, stickerId, maxOf(old?.count ?: 0, count), maxOf(old?.lastAt ?: 0, lastAt),
-                tagged = old?.tagged ?: false,
+                tagged = old?.tagged == true || tagged,
             ),
         )
     }

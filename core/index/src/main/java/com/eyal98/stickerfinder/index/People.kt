@@ -39,7 +39,7 @@ object FaceSettings {
  * Serializes every write of face data with deleting it. Turning People off cancels the face job,
  * but a detection already running would otherwise save its faces after the delete. Writers take
  * this lock and check People is still on; [deleteAll] takes it too, so once it returns no face
- * data comes back.
+ * data comes back. Lock order: Backup's lock first, then this one; never Backup's inside this.
  */
 object FaceData {
     private val lock = Mutex()
@@ -55,9 +55,10 @@ object FaceData {
         lock.withLock {
             FaceSettings.setEnabled(context, false)
             dao.deleteFaceData()
-            // And the faces of people waiting from a restored backup.
-            Backup.forgetPeople(context)
         }
+        // And the faces of people waiting from a restored backup. After this lock is let go:
+        // a restore holds the backup's lock while it waits for this one, never the other way.
+        Backup.forgetPeople(context)
     }
 }
 

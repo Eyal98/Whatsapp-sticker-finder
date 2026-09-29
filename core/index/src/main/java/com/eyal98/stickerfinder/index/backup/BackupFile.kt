@@ -3,6 +3,7 @@ package com.eyal98.stickerfinder.index.backup
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.security.GeneralSecurityException
 import java.security.SecureRandom
 import java.util.zip.GZIPInputStream
@@ -33,7 +34,14 @@ object BackupFile {
     private const val KEY_BITS = 256
     const val ITERATIONS = 200_000
 
+    /** Larger files aren't a Peel-It backup: even a big library's backup is a few megabytes. */
+    const val MAX_FILE_BYTES = 32L * 1024 * 1024
+
+    /** The most a backup may unpack to, so a small file can't fill the phone's memory. */
+    const val MAX_JSON_BYTES = 128L * 1024 * 1024
+
     class NotABackup : IOException("Not a Peel-It backup")
+    class TooLarge : IOException("Too large for a Peel-It backup")
     class NeedsPassword : IOException("This backup needs its password")
     class WrongPassword : IOException("Wrong password")
 
@@ -65,14 +73,18 @@ object BackupFile {
         return out.toByteArray()
     }
 
+    /** Reads a backup file from [input], up to [MAX_FILE_BYTES]. @throws TooLarge */
+    fun readFile(input: InputStream, maxBytes: Long = MAX_FILE_BYTES): ByteArray = readAtMost(input, maxBytes)
+
     /** Whether [bytes] is a backup that needs a password. @throws NotABackup */
     fun isEncrypted(bytes: ByteArray): Boolean {
         checkHeader(bytes)
         return bytes[MAGIC.size + 1] == ENCRYPTED
     }
 
-    /** Unpacks the backup's JSON. @throws NotABackup, NeedsPassword, WrongPassword */
-    fun read(bytes: ByteArray, password: CharArray?): String {
+    /** Unpacks the backup's JSON. @throws NotABackup, NeedsPassword, WrongPassword, TooLarge */
+    fun read(bytes: ByteArray, password: CharArray?, maxJsonBytes: Long = MAX_JSON_BYTES): String {
+        if (bytes.size > MAX_FILE_BYTES) throw TooLarge()
         val encrypted = isEncrypted(bytes)
         val start = MAGIC.size + 2
         val compressed = if (!encrypted) {
@@ -96,10 +108,27 @@ object BackupFile {
             }
         }
         return try {
-            GZIPInputStream(ByteArrayInputStream(compressed)).use { it.readBytes() }.toString(Charsets.UTF_8)
+            GZIPInputStream(ByteArrayInputStream(compressed)).use { readAtMost(it, maxJsonBytes) }.toString(Charsets.UTF_8)
+        } catch (e: TooLarge) {
+            throw e
         } catch (e: IOException) {
             throw NotABackup()
         }
+    }
+
+    /** All of [input], or [TooLarge] as soon as it's more than [max] bytes. */
+    private fun readAtMost(input: InputStream, max: Long): ByteArray {
+        val out = ByteArrayOutputStream()
+        val buffer = ByteArray(64 * 1024)
+        var total = 0L
+        while (true) {
+            val n = input.read(buffer)
+            if (n < 0) break
+            total += n
+            if (total > max) throw TooLarge()
+            out.write(buffer, 0, n)
+        }
+        return out.toByteArray()
     }
 
     private fun checkHeader(bytes: ByteArray) {

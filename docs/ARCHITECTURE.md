@@ -15,7 +15,7 @@ Diagrams use Mermaid (GitHub renders them).
 | **~10,000 stickers, a few seconds per search at most** | Everything expensive happens once, at index time; a search is a SQLite FTS query plus an in-memory vector scan. |
 | **Battery** | Heavy work (picture tags, faces, embeddings) waits for the charger; the user's own edits run right away. |
 | **Easy install, mid-range phones** | One signed APK (arm64, Android 11+), models bundled, no setup beyond picking the stickers folder. |
-| **Biometric data is sensitive** | Face grouping is opt-in, stays on the phone, is excluded from backups and can be deleted in one tap. |
+| **Biometric data is sensitive** | Face grouping is opt-in, stays on the phone, is excluded from Android backups (user backup files hold one centroid per named person only if the user opts in) and can be deleted in one tap. |
 | **Robust to bad input** | A sticker that crashes native code is retried alone and eventually skipped; a model that crashes the app is turned off automatically. |
 
 ## 2. System context
@@ -273,18 +273,38 @@ restored, and the description.
 
 Users group stickers into folders they name (`folders`, `folder_stickers`; DB v15), from a
 sticker's details. A row of folder chips on the main screen and in the keyboard browses one
-folder (most recently added first); a search with a folder selected searches everything, looks
-500 results deep, and keeps that folder's stickers. Deleting a sticker's file removes it from its
+folder (most recently added first). A search with a folder selected narrows the candidates to that
+folder first (FTS joined with `folder_stickers`, meaning scores and past picks filtered to it)
+and only then ranks, cuts off and removes look-alikes, so a folder sticker isn't lost to the global
+top results or to a copy outside the folder. Deleting a sticker's file removes it from its
 folders; deleting a folder leaves its stickers alone.
+
+## 6a′. Sticker identity
+
+Two files are the same sticker only when their bytes match: `stickers.contentHash` (SHA-256, DB
+v16) is set by the indexer and filled in for older rows by `IndexWorker` in the background (an
+unreadable file gets `''`, so it isn't retried). Edits that apply to "every copy" (tag
+suggestions, restores, chat learning) go by it. The perceptual hash only says two pictures look
+alike; search still uses it to show look-alikes once, which hides but never changes anything.
 
 ## 6b. Backup and restore
 
 `Backup` (`:core:index`) writes what can't be rebuilt: per sticker with user data its tags,
 description, star, hidden picture tags, use count and folders (by name); search picks; the quality test's searches;
-the similarity setting; and, if the user opts in, each named person's face centroid. Stickers are
-keyed by their perceptual hash (as hex), falling back to file name and size, since document URIs
-differ between phones. `BackupFile` packs the JSON: `PEELIT`, version, mode, then gzip, or
-AES-256-GCM over it with a PBKDF2 key and the header as associated data.
+the similarity setting; and, if the user opts in, each named person's face centroid. Picks keep
+their `tagged` state (older backups: a pick with count ≥ 2 counts as tagged). Stickers are keyed
+by their content hash (`sha`, SHA-256 of the file), their file name and size, and their perceptual
+hash (as hex), since document URIs differ between phones. A restore matches in that order and uses
+the perceptual hash only when a single picture on the phone has it: different pictures can share
+one (flat colour variants, animations with the same first frame). `BackupFile` packs the JSON:
+`PEELIT`, version, mode, then gzip, or AES-256-GCM over it with a PBKDF2 key and the header as
+associated data.
+
+Restores are bounded: a file over 32 MB, or one unpacking to more than 128 MB, is refused; a newer
+format version is refused; entries keep only known fields within limits (lengths, list sizes,
+counts). One lock (`Backup`) guards the waiting items; code that also needs `FaceData`'s lock takes
+`Backup`'s first, and "Delete all face data" clears waiting faces only after letting go of
+`FaceData`'s.
 
 Restore merges without losing anything on the new phone: tags and hidden tags are added, a
 description only fills an empty one, stars are set, use counts and picks keep the higher value.
@@ -310,7 +330,9 @@ user imports.
    in the export. Senders aren't kept.
 3. **Context** (`ChatContext`): up to 3 text messages from anyone within 10 minutes before each
    send, newest first, links removed, 300 characters.
-4. **Match**: by perceptual hash, exact or else the closest within 3 bits (`PerceptualMatch`).
+4. **Match**: by exact content (SHA-256), else by perceptual hash, the closest within 3 bits
+   (`PerceptualMatch`), and only when the closest are one picture (copies with the same content
+   hash); an ambiguous match learns nothing.
 5. **Learn** (`ContextLearning`): a sticker's contexts from this chat are grouped into texts of up
    to 600 characters (its 6 newest groups), embedded as documents, averaged by sends, and folded
    into its running average in `sticker_contexts`, with the chat's hash, in one transaction. A

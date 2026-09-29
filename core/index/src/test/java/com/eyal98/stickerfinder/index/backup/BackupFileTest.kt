@@ -45,4 +45,19 @@ class BackupFileTest {
     fun `other files are refused`() {
         BackupFile.read("hello, not a backup".toByteArray(), null)
     }
+
+    @Test(expected = BackupFile.TooLarge::class)
+    fun `a small file that unpacks to too much is refused`() {
+        // Zeros compress about a thousand to one.
+        val huge = ByteArray(1_000_001)
+        val packed = java.io.ByteArrayOutputStream().also { out ->
+            java.util.zip.GZIPOutputStream(out).use { it.write(huge) }
+        }.toByteArray()
+        BackupFile.read("PEELIT".toByteArray() + byteArrayOf(1, 0) + packed, null, maxJsonBytes = 1_000_000)
+    }
+
+    @Test(expected = BackupFile.TooLarge::class)
+    fun `a file larger than any backup is refused while reading`() {
+        BackupFile.readFile(java.io.ByteArrayInputStream(ByteArray(1_001)), maxBytes = 1_000)
+    }
 }

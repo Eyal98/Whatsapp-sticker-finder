@@ -12,6 +12,12 @@ import kotlinx.coroutines.withContext
 /** Runs [block] with the loaded embedder, or returns null when no embedding model is installed. */
 interface EmbedderAccess {
     suspend fun <T> withEmbedder(block: (TextEmbedder) -> T): T?
+
+    /**
+     * What identifies the installed model file (it changes when the user installs another), or
+     * null when there's none; cheap, without loading the model.
+     */
+    fun activeModelKey(): String? = null
 }
 
 /**
@@ -62,18 +68,18 @@ class SemanticSearch(
         /** Only these stickers (a folder), chosen among before the cut-off and limits. */
         scope: Set<Long>? = null,
     ): List<Pair<Long, Float>> {
-        val key = query.trim()
-        val cachedQuery = synchronized(queryCache) { queryCache[key] }
+        val text = query.trim()
+        // By model file too: a query's vector from a model since replaced must not be used, even
+        // while that model's old sticker vectors are still in the table.
+        val modelKey = embedders.activeModelKey()
+        val key = modelKey?.let { "$it\u0000$text" }
+        val cachedQuery = key?.let { synchronized(queryCache) { queryCache[it] } }
         val result = cachedQuery ?: embedders.withEmbedder { embedder ->
-            embedder.modelId to Vectors.prepare(embedder.embed(key, TextEmbedder.Kind.QUERY), embedder.dimensions)
-        }?.also { synchronized(queryCache) { queryCache[key] = it } } ?: return emptyList()
+            embedder.modelId to Vectors.prepare(embedder.embed(text, TextEmbedder.Kind.QUERY), embedder.dimensions)
+        }?.also { v -> key?.let { synchronized(queryCache) { queryCache[it] = v } } } ?: return emptyList()
         val (model, queryVector) = result
         val index = index(model, queryVector.size)
-        if (index.size == 0) {
-            // Possibly a vector from a model that has since been replaced.
-            if (cachedQuery != null) synchronized(queryCache) { queryCache.clear() }
-            return emptyList()
-        }
+        if (index.size == 0) return emptyList()
         return withContext(Dispatchers.Default) {
             val scores = index.scores(queryVector).let { all -> if (scope == null) all else all.filter { it.stickerId in scope } }
             MeaningSelection.select(scores, minSimilarity, limit, minZ)
@@ -81,8 +87,8 @@ class SemanticSearch(
     }
 
     private suspend fun index(model: String, dims: Int): MeaningIndex = lock.withLock {
-        val signature = dao.vectorSignature()
-        val contexts = dao.contextSignature()
+        val signature = dao.vectorSignature(model)
+        val contexts = dao.contextSignature(model)
         val now = System.currentTimeMillis()
         cached?.let { c ->
             if (c.model == model && c.signature == signature && c.contexts == contexts) return c.index

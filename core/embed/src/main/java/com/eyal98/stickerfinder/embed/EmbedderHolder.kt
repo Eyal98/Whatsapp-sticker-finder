@@ -30,6 +30,8 @@ class EmbedderHolder(context: Context) : EmbedderAccess {
         }
     }
 
+    override fun activeModelKey(): String? = BundledEmbedding.active(appContext)?.sha256
+
     /** True when the model is installed, it wasn't turned off after a crash, and memory suffices. */
     fun isAvailable(): Boolean {
         if (ModelCrashGuard.isDisabled(appContext, ModelCrashGuard.EMBEDDING)) return false

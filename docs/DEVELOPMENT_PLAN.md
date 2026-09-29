@@ -71,7 +71,7 @@ A + B + C cover the goal for users without root.
 │   └─ Text embedder (multilingual, e.g. EmbeddingGemma) → vector per sticker            │
 │        │                                                                               │
 │        ▼                                                                               │
-│  Local index (SQLite: metadata + FTS table + vectors; encrypted at rest)               │
+│  Local index (SQLite: metadata + FTS table + vectors; SQLCipher planned)               │
 │        ▲                                                                               │
 │        │                                                                               │
 │  Query engine                                                                          │
@@ -140,7 +140,7 @@ Phase 0 checks the exact model choices against current releases and the user's p
 | **Network** | The app manifest declares **no `INTERNET` permission**. Android then blocks all network access, and anyone can check this by inspecting the APK. |
 | **Getting models onto the phone** | Without network access, models come from **Play Asset Delivery** (Play downloads them, not the app) or from a file the user picks. Each model's SHA‑256 is pinned in the app and checked before loading. |
 | **WhatsApp data** | Read‑only access to **one folder** through SAF. No `MANAGE_EXTERNAL_STORAGE`, no accessibility service, no notification listener, no root by default. |
-| **Index at rest** | Stored in app‑private storage. The DB is encrypted with SQLCipher, with the key wrapped by Android Keystore. `allowBackup=false` and data‑extraction rules keep the index out of cloud and device‑transfer backups. |
+| **Index at rest** | Stored in app‑private storage. Encrypting the DB with SQLCipher (key wrapped by Android Keystore) is planned, **not implemented yet**. `allowBackup=false` and data‑extraction rules keep the index out of cloud and device‑transfer backups. |
 | **Keyboard (IME)** | The only input it handles is the sticker search field. It doesn't record keystrokes, has no network access (same app), and has no clipboard history. It declares `supportsInlineSuggestions=false`. Queries aren't stored unless the user turns on history. |
 | **Logging** | Release builds log nothing. Crash reports stay on the device and the user can export them manually. |
 | **Supply chain** | Gradle dependency verification (`verification-metadata.xml`), pinned versions, a short list of dependencies, no analytics or ads SDKs, Dependabot, and a CodeQL + `lint` security scan in CI. |
@@ -158,7 +158,7 @@ covered by the network ban, checksums and dependency verification, and the minim
 - **Language/UI**: Kotlin, Jetpack Compose, Material 3 (RTL‑aware)
 - **Background work**: WorkManager (charging + idle constraints), plus a `ContentObserver`/periodic
   rescan to pick up new stickers
-- **Storage**: Room over SQLCipher; FTS4 virtual table; vectors stored as BLOBs
+- **Storage**: Room (SQLCipher planned, not yet in place); FTS4 virtual table; vectors stored as BLOBs
   (brute‑force cosine search is fine up to about 10k stickers, taking under 20 ms)
 - **ML runtime**: LiteRT / MediaPipe LLM Inference (or LiteRT‑LM) for the VLM and embedder
 - **OCR**: Tesseract4Android with `heb` + `eng` traineddata
@@ -230,7 +230,7 @@ stickers in under ~2 hours while the phone is charging.
 
 ### Phase 4: Hardening and release (≈1–2 weeks)
 
-- SQLCipher encryption, backup exclusion, model checksum pinning, release logging off
+- SQLCipher encryption (not done yet), backup exclusion, model checksum pinning, release logging off
 - Run `/security-review` and a manual threat‑model review; confirm no network access with
   `aapt dump permissions` plus a runtime test
 - Performance: cold start under 1 s, query p95 under 300 ms, and indexing never runs in the foreground
