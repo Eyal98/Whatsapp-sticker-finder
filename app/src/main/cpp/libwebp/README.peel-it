@@ -1,0 +1,6 @@
+libwebp 1.5.0 (https://chromium.googlesource.com/webm/libwebp, mirrored at
+https://github.com/webmproject/libwebp), tag v1.5.0, commit
+a4d7a715337ded4451fec90ff8ce79728e04126c. BSD-3-Clause, see COPYING and PATENTS.
+
+Only src/ and sharpyuv/ are kept, unchanged (build files removed); ../CMakeLists.txt builds them.
+Used to shrink animated stickers over WhatsApp's 500 KB limit before the keyboard sends them.

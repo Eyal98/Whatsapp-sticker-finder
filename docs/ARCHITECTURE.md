@@ -367,7 +367,16 @@ sequenceDiagram
 
 Stickers sent through the share sheet arrive in WhatsApp as photos; the keyboard route is the
 only way for a third-party app to send a real sticker. Files are exposed through a non-exported
-`FileProvider` with a one-off URI grant.
+`FileProvider` (`SentStickerProvider`) as copies named after their content, kept 30 days, with a
+URI grant to the receiving app.
+
+WhatsApp refuses an animated sticker over 500 KB inserted from a keyboard ("Couldn't share" on the
+sender's phone), though stickers other people send can be bigger and sit in the library as they
+are. `StickerShrinker` re-encodes such a copy with libwebp (vendored under `app/src/main/cpp`,
+arm64 only): same canvas, timing, loop count and EXIF/XMP pack details, lossy at falling quality,
+then with every 2nd, 3rd… frame (a dropped frame's time goes to the one before). The small copy is
+kept, so a second send is instant. `SendLog` notes, per send, how the receiving app read the file
+(counts and times only) for the problem report.
 
 ## 8. Models
 

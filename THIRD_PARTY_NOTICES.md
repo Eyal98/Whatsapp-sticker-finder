@@ -40,6 +40,11 @@ under About → Read the other licenses).
 
 This software is based in part on the work of the Independent JPEG Group.
 
+Peel-It also builds **libwebp 1.5.0** (Google, BSD 3-Clause, https://chromium.googlesource.com/webm/libwebp)
+from source (`app/src/main/cpp/libwebp`, unchanged, with its COPYING and PATENTS files) to shrink
+animated stickers over WhatsApp's 500 KB limit before the keyboard sends them. Its license text is
+also in `app/src/main/assets/licenses/native-libraries.txt`.
+
 ## Libraries
 
 AndroidX, Jetpack Compose, Room, WorkManager, Kotlin, kotlinx.coroutines, LiteRT and LiteRT-LM

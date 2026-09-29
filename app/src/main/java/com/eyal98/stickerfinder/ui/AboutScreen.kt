@@ -76,6 +76,7 @@ private val BUNDLED_NATIVE = listOf(
     "Leptonica — BSD 2-Clause — leptonica.org",
     "Independent JPEG Group's JPEG software (libjpeg 9f) — IJG License — ijg.org",
     "libpng — PNG Reference Library License v2 — libpng.org",
+    "libwebp 1.5.0 (shrinks big animated stickers for WhatsApp) — BSD 3-Clause — chromium.googlesource.com/webm/libwebp",
     "This software is based in part on the work of the Independent JPEG Group.",
 )
 

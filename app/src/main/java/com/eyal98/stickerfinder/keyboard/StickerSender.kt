@@ -57,6 +57,12 @@ object StickerSender {
         }
     }
 
+    /** Whether the copy had to be made smaller for WhatsApp, and how it went. */
+    enum class Shrink { NOT_NEEDED, SHRUNK, CACHED, FAILED }
+
+    /** The copy to share, how it was made, and the sticker's own size. */
+    private class Copy(val file: File, val shrink: Shrink, val originalBytes: Long)
+
     /** A sticker copied where the receiving app can read it. */
     class Prepared(val content: InputContentInfoCompat, val mimeType: String, val fileName: String)
 
@@ -65,13 +71,14 @@ object StickerSender {
      * call off the main thread.
      */
     fun prepare(context: Context, mimeType: String, stickerUri: Uri, targetPackage: String?, animated: Boolean): Prepared? {
-        val file = try {
-            copyToShareable(context, stickerUri, asPng = mimeType == PNG)
+        val copy = try {
+            copyToShareable(context, stickerUri, asPng = mimeType == PNG, animated = animated)
         } catch (e: IOException) {
             return null
         } catch (e: SecurityException) {
             return null
         }
+        val file = copy.file
         val contentUri = FileProvider.getUriForFile(context, "${context.packageName}.stickers", file)
         // The keyboard's grant (commit below) can end when the keyboard closes, while WhatsApp may
         // come back to an animated sticker later: give that app its own lasting read access to
@@ -88,7 +95,7 @@ object StickerSender {
         } catch (e: PackageManager.NameNotFoundException) {
             -1
         }
-        SendLog.started(context, file.name, animated, mimeType, file.length(), targetUid)
+        SendLog.started(context, file.name, animated, mimeType, file.length(), targetUid, copy.shrink, copy.originalBytes)
         return Prepared(InputContentInfoCompat(contentUri, ClipDescription("sticker", arrayOf(mimeType)), null), mimeType, file.name)
     }
 
@@ -114,7 +121,7 @@ object StickerSender {
      * sticker sent again reuses its file. Copies are kept [KEEP_SENT_MILLIS] (WhatsApp may read
      * them again) and trimmed to [MAX_SENT_BYTES].
      */
-    private fun copyToShareable(context: Context, source: Uri, asPng: Boolean): File {
+    private fun copyToShareable(context: Context, source: Uri, asPng: Boolean, animated: Boolean): Copy {
         val dir = File(context.filesDir, "sent").apply { mkdirs() }
         trim(dir)
         val bytes = if (asPng) {
@@ -129,11 +136,32 @@ object StickerSender {
             input.use { it.readBytes() }
         }
         val name = MessageDigest.getInstance("SHA-256").digest(bytes).joinToString("") { "%02x".format(it) }.take(40)
-        val target = File(dir, "$name.${if (asPng) "png" else "webp"}")
+
+        // Too big for WhatsApp to take as an animated sticker: send a smaller copy, made once
+        // and kept like the others (so sending it again is instant).
+        if (!asPng && animated && StickerShrinker.needed(bytes.size.toLong())) {
+            val small = File(dir, "$name-small.webp")
+            if (small.isFile && small.length() in 1..StickerShrinker.MAX_ANIMATED_BYTES) {
+                small.setLastModified(System.currentTimeMillis())
+                return Copy(small, Shrink.CACHED, bytes.size.toLong())
+            }
+            val shrunk = StickerShrinker.shrink(bytes)
+            if (shrunk != null) {
+                save(dir, small, shrunk)
+                return Copy(small, Shrink.SHRUNK, bytes.size.toLong())
+            }
+            // Sent as it is: it may still go through.
+            return Copy(save(dir, File(dir, "$name.webp"), bytes), Shrink.FAILED, bytes.size.toLong())
+        }
+        return Copy(save(dir, File(dir, "$name.${if (asPng) "png" else "webp"}"), bytes), Shrink.NOT_NEEDED, bytes.size.toLong())
+    }
+
+    /** Writes [bytes] to [target] (via a temporary file), unless it already holds them. */
+    private fun save(dir: File, target: File, bytes: ByteArray): File {
         if (target.isFile && target.length() == bytes.size.toLong()) {
             target.setLastModified(System.currentTimeMillis())
         } else {
-            val tmp = File(dir, "$name.tmp")
+            val tmp = File(dir, "${target.name}.tmp")
             tmp.writeBytes(bytes)
             if (!tmp.renameTo(target)) throw IOException("Could not save the sticker to send")
         }

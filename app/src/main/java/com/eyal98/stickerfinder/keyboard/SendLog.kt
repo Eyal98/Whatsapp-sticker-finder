@@ -23,7 +23,16 @@ object SendLog {
 
     /** A send is starting: [file] is the shared copy's name, [targetUid] the receiving app's. */
     @Synchronized
-    fun started(context: Context, file: String, animated: Boolean, mimeType: String, bytes: Long, targetUid: Int) {
+    fun started(
+        context: Context,
+        file: String,
+        animated: Boolean,
+        mimeType: String,
+        bytes: Long,
+        targetUid: Int,
+        shrink: StickerSender.Shrink,
+        originalBytes: Long,
+    ) {
         val entries = load(context).filterNot { it.optString("file") == file }.toMutableList()
         entries += JSONObject()
             .put("file", file)
@@ -32,6 +41,8 @@ object SendLog {
             .put("mime", mimeType)
             .put("bytes", bytes)
             .put("targetUid", targetUid)
+            .put("shrink", shrink.name.lowercase())
+            .put("originalBytes", originalBytes)
         save(context, entries.takeLast(KEEP))
     }
 
@@ -73,6 +84,11 @@ object SendLog {
                 append(format.format(Date(e.optLong("at"))))
                 append(if (e.optBoolean("animated")) " animated" else " static")
                 append(", ").append(e.optString("mime")).append(", ").append(e.optLong("bytes") / 1024).append(" KB")
+                when (e.optString("shrink")) {
+                    "shrunk" -> append(" (shrunk from ").append(e.optLong("originalBytes") / 1024).append(" KB)")
+                    "failed" -> append(" (too big, couldn't shrink)")
+                    "cached" -> append(" (shrunk before)")
+                }
                 append(", accepted ").append(if (e.has("accepted")) e.optBoolean("accepted") else "?")
                 if (e.has("committedMs")) append(" at +").append(e.optLong("committedMs")).append(" ms")
                 if (e.optInt("targetUid", -1) < 0) append(", receiving app unknown")

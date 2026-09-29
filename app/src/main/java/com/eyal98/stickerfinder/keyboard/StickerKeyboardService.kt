@@ -229,9 +229,14 @@ class StickerKeyboardService :
         val removeFromField = provenance.isFieldText
         val learnable = provenance.learnable
         scope.launch {
+            // A big animated sticker is first made small enough for WhatsApp: a few seconds.
+            if (sticker.isAnimated && StickerShrinker.needed(sticker.sizeBytes)) {
+                state.value = state.value.copy(message = KeyboardMessage.SHRINKING)
+            }
             val prepared = withContext(Dispatchers.IO) {
                 StickerSender.prepare(this@StickerKeyboardService, mimeType, Uri.parse(sticker.documentUri), info.packageName, sticker.isAnimated)
             }
+            if (state.value.message == KeyboardMessage.SHRINKING) state.value = state.value.copy(message = null)
             val result = prepared?.let { StickerSender.commit(info, connection, it) } ?: StickerSender.Result.Failed
             prepared?.let {
                 lastSent = it.fileName

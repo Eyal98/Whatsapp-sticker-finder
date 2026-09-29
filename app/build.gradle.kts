@@ -96,6 +96,15 @@ android {
         noCompress += "litertlm"
     }
 
+    // libwebp and the sticker shrinker (app/src/main/cpp): makes animated stickers over
+    // WhatsApp's 500 KB limit small enough to send from the keyboard.
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
     packaging {
         // Compress native libraries in the APK (they're extracted once at install). Stored
         // uncompressed, they made the sideload download about 2.5x bigger.
