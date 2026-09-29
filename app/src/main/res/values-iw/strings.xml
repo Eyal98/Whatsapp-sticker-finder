@@ -288,4 +288,5 @@
     <string name="folders_delete_confirm">למחוק את התיקייה \"%1$s\"? המדבקות נשארות, רק התיקייה נמחקת.</string>
     <string name="folders_empty">התיקייה ריקה. לחיצה ארוכה על מדבקה, ובחירת התיקייה הזו תחת \"תיקיות\", שמה אותה כאן.</string>
     <string name="tip_folders">אפשר ליצור תיקיות למדבקות שחוזרים אליהן, כמו \"בוקר טוב\" או \"אמא\". הן מופיעות גם במקלדת. חדק מסודר, ראש מסודר.</string>
+    <string name="keyboard_sent_animated">נשלח ✓ נותנים לוואטסאפ לסיים עם האנימציה…</string>
 </resources>

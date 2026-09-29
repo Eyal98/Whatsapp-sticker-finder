@@ -39,7 +39,7 @@ import com.eyal98.stickerfinder.data.StickerEntity
 import com.eyal98.stickerfinder.ui.FolderChips
 import com.eyal98.stickerfinder.ui.StickerThumbnail
 
-enum class KeyboardMessage { NOT_ACCEPTED, FAILED }
+enum class KeyboardMessage { NOT_ACCEPTED, FAILED, SENT }
 
 enum class KeyLayout(val rows: List<String>, val label: String) {
     HEBREW(listOf("קראטוןםפ", "שדגכעיחלךף", "זסבהנמצתץ"), "עב"),
@@ -94,6 +94,7 @@ fun StickerKeyboard(state: KeyboardUiState, actions: KeyboardActions) {
                 when {
                     !state.canSend -> Centered(stringResource(R.string.keyboard_not_accepted))
                     state.message == KeyboardMessage.FAILED -> Centered(stringResource(R.string.keyboard_failed))
+                    state.message == KeyboardMessage.SENT -> Centered(stringResource(R.string.keyboard_sent_animated))
                     state.results.isEmpty() && !state.loading -> Centered(stringResource(R.string.keyboard_no_results))
                     else -> LazyHorizontalGrid(
                         rows = GridCells.Fixed(2),

@@ -288,4 +288,5 @@
     <string name="folders_delete_confirm">Delete the folder \"%1$s\"? Its stickers stay; only the folder goes.</string>
     <string name="folders_empty">This folder is empty. Long-press a sticker and tap this folder under Folders to put it here.</string>
     <string name="tip_folders">Make folders for the stickers you keep coming back to, like \"Good morning\" or \"Mom\". They show up in the keyboard too. Tidy trunk, tidy mind.</string>
+    <string name="keyboard_sent_animated">Sent ✓ Letting WhatsApp finish the animation…</string>
 </resources>
