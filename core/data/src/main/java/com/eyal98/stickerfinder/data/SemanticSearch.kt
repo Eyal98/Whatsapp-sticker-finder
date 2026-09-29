@@ -26,7 +26,9 @@ class SemanticSearch(
     private val minSimilarity: () -> Float = { SearchSettings.DEFAULT_MIN_SIMILARITY },
 ) {
     private val lock = Mutex()
-    private var cached: Triple<String, VectorSignature, MeaningIndex>? = null
+    private class Cached(val model: String, val signature: VectorSignature, val index: MeaningIndex, val builtAt: Long)
+
+    private var cached: Cached? = null
 
     /**
      * Recent queries' vectors: typing back and forth ("cat", "cats", "cat") and the keyboard
@@ -68,7 +70,13 @@ class SemanticSearch(
 
     private suspend fun index(model: String, dims: Int): MeaningIndex = lock.withLock {
         val signature = dao.vectorSignature()
-        cached?.let { (m, s, index) -> if (m == model && s == signature) return index }
+        val now = System.currentTimeMillis()
+        cached?.let { c ->
+            if (c.model == model && c.signature == signature) return c.index
+            // While vectors are being (re)computed the table changes every few seconds; reloading
+            // them all each time made searching stutter. A slightly stale index is fine meanwhile.
+            if (c.model == model && now - c.builtAt < MIN_REBUILD_MILLIS) return c.index
+        }
         // Drop the old index first: holding both at once doubles the memory for a moment.
         cached = null
         val builder = MeaningIndex.Builder(dims)
@@ -88,7 +96,7 @@ class SemanticSearch(
             }
         }
         val index = builder.build()
-        cached = Triple(model, signature, index)
+        cached = Cached(model, signature, index, now)
         index
     }
 
@@ -96,5 +104,6 @@ class SemanticSearch(
         const val LIMIT = 100
         private const val QUERY_CACHE_SIZE = 64
         private const val PAGE = 500
+        private const val MIN_REBUILD_MILLIS = 30_000L
     }
 }
