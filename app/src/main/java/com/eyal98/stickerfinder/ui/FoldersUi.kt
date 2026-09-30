@@ -4,12 +4,16 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -20,7 +24,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.eyal98.stickerfinder.R
@@ -50,9 +59,10 @@ fun FolderChips(
         item(key = "all") { Chip(stringResource(R.string.folders_all), selected == null, compact, onClick = { onSelect(null) }) }
         items(folders, key = { it.id }) { f ->
             Chip(
-                "📁 ${f.name} · ${f.count}",
+                "${f.name} · ${f.count}",
                 selected == f.id,
                 compact,
+                icon = FolderIcon,
                 onClick = { onSelect(if (selected == f.id) null else f.id) },
                 onLongClick = onLongPress?.let { press -> { press(f) } },
             )
@@ -63,18 +73,34 @@ fun FolderChips(
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun Chip(text: String, selected: Boolean, compact: Boolean, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
+private fun Chip(
+    text: String,
+    selected: Boolean,
+    compact: Boolean,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+    icon: ImageVector? = null,
+) {
+    val color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick),
     ) {
-        Text(
-            text,
-            style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
-            color = if (selected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = if (compact) 4.dp else 8.dp),
-        )
+        ) {
+            if (icon != null) {
+                Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(if (compact) 14.dp else 18.dp))
+                Spacer(Modifier.size(6.dp))
+            }
+            Text(
+                text,
+                style = if (compact) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
+                color = color,
+            )
+        }
     }
 }
 
@@ -128,3 +154,28 @@ fun FolderOptionsDialog(folder: FolderSummary, onRename: (String) -> Unit, onDel
 }
 
 private const val MAX_NAME = 40
+
+/** A folder, drawn as a vector (the icon set in the build has no folder). */
+private val FolderIcon: ImageVector = ImageVector.Builder(
+    name = "Folder",
+    defaultWidth = 24.dp,
+    defaultHeight = 24.dp,
+    viewportWidth = 24f,
+    viewportHeight = 24f,
+).apply {
+    path(fill = SolidColor(Color.Black)) {
+        // A folder with a tab at the top left.
+        moveTo(10f, 4f)
+        horizontalLineTo(4f)
+        curveToRelative(-1.1f, 0f, -1.99f, 0.9f, -1.99f, 2f)
+        lineTo(2f, 18f)
+        curveToRelative(0f, 1.1f, 0.9f, 2f, 2f, 2f)
+        horizontalLineToRelative(16f)
+        curveToRelative(1.1f, 0f, 2f, -0.9f, 2f, -2f)
+        verticalLineTo(8f)
+        curveToRelative(0f, -1.1f, -0.9f, -2f, -2f, -2f)
+        horizontalLineToRelative(-8f)
+        lineToRelative(-2f, -2f)
+        close()
+    }
+}.build()
