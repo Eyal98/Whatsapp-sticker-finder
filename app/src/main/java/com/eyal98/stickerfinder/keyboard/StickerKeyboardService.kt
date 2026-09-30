@@ -249,17 +249,6 @@ class StickerKeyboardService :
                 // Search learns from picks, but only for searches typed on this keyboard's keys:
                 // text read from the chat box is never saved.
                 if (learnable && app.repository.recordPick(query, sticker.id)) EmbedWorker.runForEdit(app)
-                if (sticker.isAnimated) {
-                    // WhatsApp reads an animated sticker more than once: to send it, then again for
-                    // its own copy and preview. Its permission to read the file can end as soon as
-                    // this keyboard switches away, and then the sender saw "Couldn't share" and an
-                    // empty bubble (while the other side got the sticker). Stay up a moment first.
-                    state.value = state.value.copy(message = KeyboardMessage.SENT)
-                    delay(ANIMATED_HOLD_MS)
-                    state.value = state.value.copy(message = null)
-                    // The user may have switched keyboards or left the chat meanwhile.
-                    if (!isInputViewShown) return@launch
-                }
                 // Done: hand the text box back to the usual keyboard.
                 switchToPreviousInputMethod()
             } else {
@@ -282,7 +271,6 @@ class StickerKeyboardService :
     private companion object {
         const val MAX_QUERY_CHARS = 100
         const val BROWSE_LIMIT = 200
-        const val ANIMATED_HOLD_MS = 3_000L
         const val TYPING_PAUSE_MS = 250L
         const val MEANING_PAUSE_MS = 250L
         const val PREFS = "sticker_keyboard"
