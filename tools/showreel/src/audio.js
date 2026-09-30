@@ -50,7 +50,9 @@ const MELODY = [
 ];
 const GROOVE = [[16, 52], [60, 75]]; // full drum groove ranges
 
-async function renderSoundtrack(sampleRate = 48000) {
+// `arrange(kit)` replaces the showreel's own music and cues with another reel's (whatsnew.js): it
+// gets the instruments and sound effects below.
+async function renderSoundtrack(sampleRate = 48000, arrange = null) {
   const len = Math.ceil(DURATION * sampleRate);
   const ac = new OfflineAudioContext(2, len, sampleRate);
   const T = b => b * BEAT;
@@ -367,6 +369,9 @@ async function renderSoundtrack(sampleRate = 48000) {
     noise(sfx, { t: T(b), type: 'lowpass', f: 900, gain: 0.25 * v, decay: 0.08 });
   };
 
+  if (arrange) {
+    arrange({ T, R, midi, hz, kick, snare, clap, hat, shaker, crash, bass, pluck, lead, bell, xylo, brass, pad, arp, slap, click, peel, popS, tick, key, whoosh, sparkle, boing, scan, clack, stamp, blips, riser, thud });
+  } else {
   // ------------------------------------------------ music
   const chordAt = b => CHORDS.find(c => b >= c[0] && b < c[1]) || CHORDS[CHORDS.length - 1];
   const inGroove = b => GROOVE.some(([a, e]) => b >= a && b < e);
@@ -557,6 +562,7 @@ async function renderSoundtrack(sampleRate = 48000) {
   const fin = at('finale', FIN_T.final);
   brass(fin, ['F3', 'C4', 'F4', 'A4', 'C5', 'F5'], 1.75, 1.2); click(fin, 1); sparkle(fin + 0.05, 0.9, 37); bell(fin, 'F6', 0.9); bell(fin, 'C6', 0.7);
   sparkle(fin + 1.0, 0.35, 41);
+  }
 
   const buf = await ac.startRendering();
   // Normalise to -0.6 dBFS and fade the last 200 ms.

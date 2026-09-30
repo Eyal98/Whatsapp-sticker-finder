@@ -5,7 +5,8 @@
 const TAU = Math.PI * 2;
 const BPM = 144;
 const BEAT = 60 / BPM;          // 0.41667 s: exactly 25 frames at 60 fps
-const BEATS = 88;               // 22 bars
+// The reel's length: 22 bars for the showreel; a page can set REEL_BEATS first (what's new: 12 bars).
+const BEATS = typeof REEL_BEATS === 'number' ? REEL_BEATS : 88;
 const DURATION = BEATS * BEAT;  // 36.7 s
 
 // Brand colours (app/src/main/java/.../ui/Theme.kt and tools/brand/flat.py), plus a few accents.
@@ -357,7 +358,7 @@ function chip(ctx, x, y, parts, o = {}) {
   const h = o.h || size * 1.9;
   ctx.save();
   const widths = parts.map(p => {
-    if (p.emoji) return size * 1.18;
+    if (p.emoji || p.icon) return size * 1.18;
     ctx.font = p.bold === false ? fr(size) : fb(size);
     if (p.rtl) ctx.direction = 'rtl'; else ctx.direction = 'ltr';
     return ctx.measureText(p.text).width;

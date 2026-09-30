@@ -16,6 +16,26 @@ It is all code:
 The **Showreel** workflow renders both cuts whenever this folder changes and publishes them to the
 `showreel` pre-release as MP4 (H.264 + AAC, plays everywhere) and WebM (VP9 + Opus).
 
+## What's new (20 seconds)
+
+A second, shorter reel for an update: `--reel whatsnew` renders `whatsnew.html`, which reuses this
+engine (`src/whatsnew.js` for the scenes, `src/whatsnew-audio.js` for the music and cues). The v0.3
+cut is 12 bars, 20.0 s, about folders, back up & restore and getting started with Pili:
+
+| Beats | Starts | Scene |
+|---|---|---|
+| 0–6 | 0:00.0 | Title: "What's new", v0.3 alpha |
+| 6–18 | 0:02.5 | Folders: name one, drop stickers in, use it from the keyboard |
+| 18–30 | 0:07.5 | Back up & restore: what goes in, password, the file flies to a new phone |
+| 30–42 | 0:12.5 | Getting started: the checklist ticks off, Pili's tips |
+| 42–48 | 0:17.5 | End card |
+
+Reading time is checked, not guessed: every text that has to be read is registered in `READS` with
+when it lands, and `node tools/showreel/render.js --reel whatsnew --check` fails when one is on
+screen for less than 0.5 s plus 0.28 s per word (the workflow runs it). `--frames 1.5,4.6` writes
+stills to look at. `--max-mb 9` encodes the MP4s two-pass to a target size and fails at 10 MB,
+which is what GitHub plays inline; the Showreel workflow publishes them to the `showreel` release.
+
 ## Render
 
 Needs Playwright's Chromium (and ffmpeg with libx264 for MP4):
