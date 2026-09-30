@@ -53,6 +53,13 @@ you keep sending the same sticker for becomes one of its tags; and the picture-t
 about 620 labels, from expressions and gestures to Israeli food, holidays and popular sticker
 characters.
 
+**Folders and moving phones**: group stickers in folders you name and browse them in the app and
+the keyboard. **Back up** what you made (tags, edits, folders, search history, optionally people's
+names) to a file, optionally password-protected, and **restore** it on another phone. **Learn from
+your chats** reads a WhatsApp chat export on the phone to learn what each sticker is used for.
+Big animated stickers are fitted to WhatsApp's rules (512 × 512, 500 KB, 10 s) before the keyboard
+sends them, with libwebp. A short tutorial with the mascot, Pili, helps new users get started.
+
 **Search quality test** (Smart search screen): write test searches in Hebrew and English, mark the
 stickers each should find, and run them through the real pipeline on the phone. Reports Recall@5
 and MRR@10 per language for keyword, meaning and combined ranking, search latency, and the best
