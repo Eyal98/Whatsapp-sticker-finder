@@ -13,7 +13,7 @@ work = "2.10.0"
 coroutines = "1.11.0"
 junit = "4.13.2"
 androidxTestRunner = "1.6.2"
-androidxTestExtJunit = "1.2.1"
+androidxTestExtJunit = "1.3.0"
 # 4.9.0: native libraries built for 16 KB memory pages (Android 15+ phones that use them).
 tesseract4android = "4.9.0"
 # tasks-genai needs MPImage from tasks-core but doesn't depend on it, and the two aren't released
