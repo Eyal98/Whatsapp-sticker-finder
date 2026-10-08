@@ -9,6 +9,13 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+val facesConfig = Properties().apply {
+    file("faces.properties").inputStream().use { load(it) }
+}
+
+// UNPINNED drops People entirely: a stub StickerFaces and no ML Kit, so nothing face-related ships.
+val facesPinned = facesConfig.getProperty("model.sha256").trim() != "UNPINNED"
+
 android {
     namespace = "com.eyal98.stickerfinder.vision"
     compileSdk = 36
@@ -20,6 +27,10 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    sourceSets.getByName("main") {
+        java.srcDir(if (facesPinned) "src/faces/java" else "src/nofaces/java")
     }
 }
 
@@ -160,10 +171,6 @@ abstract class FetchFaceModel : DefaultTask() {
     }
 }
 
-val facesConfig = Properties().apply {
-    file("faces.properties").inputStream().use { load(it) }
-}
-
 val fetchFaceModel = tasks.register<FetchFaceModel>("fetchFaceModel") {
     url.set(facesConfig.getProperty("model.url").trim())
     sha256.set(facesConfig.getProperty("model.sha256").trim())
@@ -205,7 +212,7 @@ dependencies {
     implementation(libs.litert)
     // Face detection with landmarks, for grouping people. The bundled model: runs on the phone,
     // no Google Play services download.
-    implementation(libs.mlkit.face.detection)
+    if (facesPinned) implementation(libs.mlkit.face.detection)
 
     testImplementation(libs.junit)
 }
