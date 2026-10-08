@@ -1,6 +1,6 @@
 [versions]
 mlkitFace = "16.1.7"
-agp = "8.13.2"
+agp = "9.4.1"
 kotlin = "2.4.20"
 # KSP 2.3+ is versioned separately from Kotlin.
 ksp = "2.3.12"
