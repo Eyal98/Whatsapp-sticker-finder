@@ -7,6 +7,8 @@ import androidx.core.app.NotificationChannelCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.work.ForegroundInfo
+import androidx.work.WorkManager
+import java.util.UUID
 
 /** The ongoing notification a foreground indexing (or picture tagging) job must show. */
 internal object IndexNotification {
@@ -19,6 +21,7 @@ internal object IndexNotification {
     fun foregroundInfo(
         context: Context,
         left: Int,
+        workId: UUID,
         id: Int = INDEX_ID,
         title: Int = R.string.index_notification_title,
     ): ForegroundInfo {
@@ -38,6 +41,7 @@ internal object IndexNotification {
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setSilent(true)
+            .addAction(0, context.getString(R.string.index_stop), WorkManager.getInstance(context).createCancelPendingIntent(workId))
             .build()
         return ForegroundInfo(id, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
     }

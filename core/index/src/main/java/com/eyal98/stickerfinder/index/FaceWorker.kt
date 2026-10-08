@@ -65,7 +65,7 @@ class FaceWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
     private suspend fun tryForeground(left: Int): Boolean =
         try {
             setForeground(
-                IndexNotification.foregroundInfo(applicationContext, left, IndexNotification.FACES_ID, R.string.face_notification_title),
+                IndexNotification.foregroundInfo(applicationContext, left, id, IndexNotification.FACES_ID, R.string.face_notification_title),
             )
             true
         } catch (e: IllegalStateException) {

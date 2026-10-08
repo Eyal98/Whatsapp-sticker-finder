@@ -83,7 +83,7 @@ class ImageTagWorker(context: Context, params: WorkerParameters) : CoroutineWork
         try {
             setForeground(
                 IndexNotification.foregroundInfo(
-                    applicationContext, left, IndexNotification.IMAGE_TAGS_ID, R.string.image_tag_notification_title,
+                    applicationContext, left, id, IndexNotification.IMAGE_TAGS_ID, R.string.image_tag_notification_title,
                 ),
             )
             true

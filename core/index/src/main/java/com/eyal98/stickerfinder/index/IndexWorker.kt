@@ -112,7 +112,7 @@ class IndexWorker(context: Context, params: WorkerParameters) : CoroutineWorker(
     /** Shows the progress notification and keeps the job in the foreground, if Android allows it. */
     private suspend fun tryForeground(left: Int): Boolean =
         try {
-            setForeground(IndexNotification.foregroundInfo(applicationContext, left))
+            setForeground(IndexNotification.foregroundInfo(applicationContext, left, id))
             true
         } catch (e: IllegalStateException) {
             // ForegroundServiceStartNotAllowedException: the app isn't in the foreground.
