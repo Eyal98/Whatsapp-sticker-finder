@@ -7,7 +7,6 @@ import android.graphics.Paint
 import android.net.Uri
 import android.os.Debug
 import android.util.Log
-import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.eyal98.stickerfinder.data.StickerDatabase
@@ -132,7 +131,7 @@ class FirstRunTest {
         }
         val name = "first-run-$count.db"
         context.deleteDatabase(name)
-        val db = Room.databaseBuilder(context, StickerDatabase::class.java, name).build()
+        val db = StickerDatabase.create(context, name)
         try {
             return runBlocking {
                 val dao = db.stickerDao()
