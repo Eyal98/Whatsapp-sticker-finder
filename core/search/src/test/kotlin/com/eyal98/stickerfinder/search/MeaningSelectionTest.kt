@@ -2,7 +2,6 @@ package com.eyal98.stickerfinder.search
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Ignore
 import org.junit.Test
 
 /**
@@ -59,21 +58,18 @@ class MeaningSelectionTest {
         assertTrue(MeaningSelection.select(emptyList(), minSimilarity = 0.15f, limit = 10).isEmpty())
     }
 
-    // --- Known defects: the cut-off collapses when the scores have no spread -------------------
-    // Both of these describe the behaviour the class documents; they fail on the current build
-    // because a median absolute deviation of zero makes `spread` zero, so the cut-off falls back
-    // to the median itself and every sticker sitting at the median passes `>= cutOff`.
-    // Reported on PEE-5; un-ignore with the fix so they guard against a regression.
+    // --- Scores with no spread ----------------------------------------------------------------
+    // A median absolute deviation of zero used to make `spread` zero, so the cut-off fell back to
+    // the median itself and every sticker sitting at the median passed `>= cutOff` (PEE-7). The
+    // spread is floored now; these guard against that regression.
 
     @Test
-    @Ignore("Known defect (PEE-5): a zero spread collapses the z-score cut-off onto the median")
     fun `a search every sticker answers equally finds nothing`() {
         val flat = FloatArray(200) { 0.30f }
         assertTrue(MeaningSelection.select(scored(*flat), minSimilarity = 0.15f, limit = 100).isEmpty())
     }
 
     @Test
-    @Ignore("Known defect (PEE-5): a zero spread collapses the z-score cut-off onto the median")
     fun `copies of one sticker don't answer every search`() {
         // A WhatsApp library is full of the same sticker forwarded many times. Identical pictures
         // embed identically, so 60 copies all score the same against any query; they must not
@@ -82,6 +78,17 @@ class MeaningSelectionTest {
         val copies = FloatArray(60) { 0.30f }
         val hits = MeaningSelection.select(scored(*(varied + copies)), minSimilarity = 0.15f, limit = 50)
         assertTrue("got ${hits.size} matches for a query nothing is close to", hits.isEmpty())
+    }
+
+    @Test
+    fun `a real match is still found in a library the copies dominate`() {
+        // The same library as above with one sticker the search is actually about. The copies still
+        // flatten the spread to zero, so the floor has to leave a standout findable: "nothing
+        // discriminates" must mean a higher bar, not an empty answer.
+        val varied = FloatArray(40) { 0.20f + (it % 10) * 0.01f }
+        val copies = FloatArray(60) { 0.30f }
+        val hits = MeaningSelection.select(scored(*(varied + copies), 0.72f), minSimilarity = 0.15f, limit = 50)
+        assertEquals(listOf(100L), hits.map { it.first })
     }
 
     // --- The compact index --------------------------------------------------------------------

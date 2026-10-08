@@ -129,6 +129,19 @@ object MeaningSelection {
     /** Below this many stickers the spread isn't meaningful: only the minimum similarity applies. */
     private const val MIN_FOR_STATS = 30
 
+    /**
+     * The smallest spread worth believing. Vectors are stored 8-bit quantized, so a similarity is
+     * only good to about 1% (see [MeaningIndex]); a narrower spread than that is measurement noise,
+     * not a library that genuinely agrees. Without a floor the cut-off collapses whenever the median
+     * absolute deviation is zero, which a real WhatsApp library produces easily: the same sticker
+     * forwarded and re-saved sixty times embeds identically, so those copies score identically
+     * against any query, the median and the deviation both land inside that block, and the cut-off
+     * falls back to the median itself — making those copies the matches for every search. With the
+     * floor a sticker still has to beat the typical one by [MIN_Z] × this, so a query nothing is
+     * close to finds nothing, while a genuine standout among the copies is still found.
+     */
+    private const val MIN_SPREAD = 0.01f
+
     fun select(scores: List<Scored>, minSimilarity: Float, limit: Int, minZ: Float = MIN_Z): List<Pair<Long, Float>> {
         val cutOff = if (scores.size < MIN_FOR_STATS) {
             minSimilarity
@@ -138,7 +151,7 @@ object MeaningSelection {
             val deviations = FloatArray(sorted.size) { kotlin.math.abs(sorted[it] - median) }.apply { sort() }
             // 1.4826 × the median absolute deviation estimates the standard deviation, without
             // letting a big group of real matches (every cat sticker for "cat") inflate it.
-            val spread = 1.4826f * deviations[deviations.size / 2]
+            val spread = maxOf(MIN_SPREAD, 1.4826f * deviations[deviations.size / 2])
             maxOf(minSimilarity, median + minZ * spread)
         }
         val perPack = HashMap<Int, Int>()
