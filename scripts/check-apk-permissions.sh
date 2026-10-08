@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
-# Fails if the built APK requests INTERNET, or any permission that isn't on the allowlist below.
+# Fails if a built APK requests INTERNET, or any permission that isn't on the allowlist below.
 # The manifest removes INTERNET, but a library could add other permissions through manifest
-# merging, so we check the final APK rather than the source manifest.
+# merging, so we check the final artifact rather than the source manifest.
 #
-# Usage: scripts/check-apk-permissions.sh path/to/app.apk
+# Takes one or more APKs and fails if any of them asks for something it shouldn't. The Play bundle
+# is checked by passing every APK bundletool generates from it (base, the config splits and the
+# asset pack), since any of those manifests could carry a permission the base one doesn't.
+#
+# Usage: scripts/check-apk-permissions.sh path/to/app.apk [more.apk ...]
 set -euo pipefail
 
-apk="${1:?usage: $0 path/to/app.apk}"
+if [[ $# -lt 1 ]]; then
+  echo "usage: $0 path/to/app.apk [more.apk ...]" >&2
+  exit 2
+fi
 
 # Permissions the app may hold. Everything else fails the build; add entries deliberately, with a
 # reason, in the same change that needs them.
@@ -37,31 +44,34 @@ if [[ -z "$aapt2" || ! -x "$aapt2" ]]; then
   exit 2
 fi
 
-dump="$("$aapt2" dump permissions "$apk")"
-if ! grep -q '^package:' <<<"$dump"; then
-  echo "error: unexpected aapt2 output:" >&2
-  echo "$dump" >&2
-  exit 2
-fi
-
-requested="$(grep -E '^uses-permission' <<<"$dump" | sed -E "s/.*name='([^']+)'.*/\1/" | sort -u || true)"
-
-echo "Permissions requested by $apk:"
-echo "${requested:-  (none)}" | sed 's/^/  /'
-
 status=0
-while IFS= read -r perm; do
-  [[ -z "$perm" ]] && continue
-  if [[ "$perm" == "android.permission.INTERNET" ]]; then
-    echo "::error::APK requests INTERNET. The app must never have network access." >&2
-    status=1
-  elif ! printf '%s\n' "${allowed[@]}" | grep -qxF "$perm"; then
-    echo "::error::APK requests $perm, which is not on the allowlist in $0." >&2
-    status=1
+
+for apk in "$@"; do
+  dump="$("$aapt2" dump permissions "$apk")"
+  if ! grep -q '^package:' <<<"$dump"; then
+    echo "error: unexpected aapt2 output for $apk:" >&2
+    echo "$dump" >&2
+    exit 2
   fi
-done <<<"$requested"
+
+  requested="$(grep -E '^uses-permission' <<<"$dump" | sed -E "s/.*name='([^']+)'.*/\1/" | sort -u || true)"
+
+  echo "Permissions requested by $apk:"
+  echo "${requested:-  (none)}" | sed 's/^/  /'
+
+  while IFS= read -r perm; do
+    [[ -z "$perm" ]] && continue
+    if [[ "$perm" == "android.permission.INTERNET" ]]; then
+      echo "::error::$apk requests INTERNET. The app must never have network access." >&2
+      status=1
+    elif ! printf '%s\n' "${allowed[@]}" | grep -qxF "$perm"; then
+      echo "::error::$apk requests $perm, which is not on the allowlist in $0." >&2
+      status=1
+    fi
+  done <<<"$requested"
+done
 
 if [[ $status -eq 0 ]]; then
-  echo "OK: no network access and no unexpected permissions."
+  echo "OK: no network access and no unexpected permissions in $# APK(s)."
 fi
 exit $status

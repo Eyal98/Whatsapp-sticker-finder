@@ -11,6 +11,11 @@ on:
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      measure_models_in_base:
+        description: "Also measure the bundle with the models in the base module instead of the asset pack (a second release build)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -64,6 +69,9 @@ jobs:
       - name: Check APK has no network access
         run: scripts/check-apk-permissions.sh app/build/outputs/apk/debug/app-debug.apk
 
+      - name: Check APK loads on 16 KB-page phones
+        run: python3 scripts/check-16kb-pages.py app/build/outputs/apk/debug/app-debug.apk --strict
+
       - name: Build signed sideload APK
         id: sideload
         if: env.HAS_SIGNING_KEY == 'true' && github.event_name != 'pull_request'
@@ -90,8 +98,10 @@ jobs:
           # The certificate digest must stay the same from build to build.
           "$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -n 1)apksigner" verify --print-certs "$apk" \
             | grep -i 'SHA-256' | tee "$RUNNER_TEMP/certificate.txt"
-          # Libraries that can't load on phones with 16 KB memory pages (a warning for now).
-          python3 scripts/check-16kb-pages.py "$apk"
+          # Libraries that can't load on phones with 16 KB memory pages. Play requires 16 KB support
+          # from every app targeting API 35 or higher, and blocks updates without it from
+          # 1 February 2027 (developer.android.com/guide/practices/page-sizes), so this fails the build.
+          python3 scripts/check-16kb-pages.py "$apk" --strict
           # Sideloaded over a phone connection: keep it in check (see abiFilters in
           # app/build.gradle.kts). Most of it is the bundled models: Granite 330 MB
           # (core/embed/granite.properties) and SigLIP 185 MB (core/vision/siglip.properties).
@@ -115,6 +125,78 @@ jobs:
         with:
           name: sideload-apk
           path: ${{ runner.temp }}/out/
+          retention-days: 14
+
+      # Everything below builds the Android App Bundle for Google Play. Play doesn't take APKs, and
+      # the models don't fit in a bundle's base module (500 MB compressed download), so they ship in
+      # the :model_pack install-time asset pack instead -- see model_pack/build.gradle.kts.
+      - name: Get bundletool
+        run: |
+          jar="$RUNNER_TEMP/bundletool.jar"
+          curl -fsSL -o "$jar" https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar
+          echo "a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29  $jar" | sha256sum -c -
+          echo "BUNDLETOOL=$jar" >> "$GITHUB_ENV"
+
+      - name: Build app bundle
+        env:
+          # The Play upload key, which is not the sideload key: Play App Signing re-signs the app
+          # with the app signing key it holds, so this one only proves the upload came from us.
+          PLAY_UPLOAD_KEYSTORE_BASE64: ${{ secrets.PLAY_UPLOAD_KEYSTORE_BASE64 }}
+          UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.PLAY_UPLOAD_KEYSTORE_PASSWORD }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="0.1.0-dev.${{ github.run_number }}"
+          fi
+          args=(-PmodelsInAssetPack=true -PversionCode=${{ github.run_number }} -PversionName="$version")
+          # Without the secrets the bundle comes out unsigned. It is still worth building and
+          # measuring on every run; only the upload needs a signature.
+          if [[ -n "$PLAY_UPLOAD_KEYSTORE_BASE64" && -n "$UPLOAD_KEYSTORE_PASSWORD" ]]; then
+            store="$RUNNER_TEMP/upload.p12"
+            printf '%s' "$PLAY_UPLOAD_KEYSTORE_BASE64" | tr -d ' \r\n' | base64 -d > "$store"
+            args+=(-PuploadStoreFile="$store")
+          fi
+          ./gradlew --no-daemon :model_pack:syncModelAssets bundleRelease "${args[@]}"
+          rm -f "$RUNNER_TEMP/upload.p12"
+          aab=app/build/outputs/bundle/release/app-release.aab
+          test -f "$aab"
+          echo "AAB=$aab" >> "$GITHUB_ENV"
+          echo "AAB on disk: $(( $(stat -c %s "$aab") / 1024 / 1024 )) MiB (not the number Play measures)"
+
+      # Play's size limits, the no-INTERNET guarantee and the 16 KB page check, all against the
+      # APKs Play would actually generate from this bundle.
+      - name: Check app bundle
+        run: scripts/check-bundle.sh "$AAB" "$RUNNER_TEMP/bundle-check"
+
+      # Which key signed the bundle. The upload key can be reset through Play Console, but mixing it
+      # up with the sideload key would mean uploading a bundle signed by a key Play doesn't expect.
+      - name: Signing certificate of the bundle
+        run: |
+          if certs=$(keytool -printcert -jarfile "$AAB" 2>/dev/null) && [ -n "$certs" ]; then
+            echo "Upload key certificate:"
+            sed -n '/SHA256:/p' <<<"$certs"
+          else
+            echo "::warning::The bundle is unsigned. Set the PLAY_UPLOAD_KEYSTORE_BASE64 and PLAY_UPLOAD_KEYSTORE_PASSWORD secrets to sign it with the Play upload key."
+          fi
+
+      # The alternative the asset pack replaced: the same bundle with the models left in the base
+      # module. Kept so the decision can be re-measured when the models change, off by default
+      # because it is a second full release build.
+      - name: Measure the bundle with the models in the base module
+        if: inputs.measure_models_in_base
+        run: |
+          ./gradlew --no-daemon bundleRelease -PversionCode=${{ github.run_number }} -PversionName=base-only
+          scripts/check-bundle.sh app/build/outputs/bundle/release/app-release.aab "$RUNNER_TEMP/base-only-check" || true
+
+      - name: Keep app bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: play-bundle
+          path: |
+            app/build/outputs/bundle/release/app-release.aab
+            app/build/outputs/mapping/release/mapping.txt
+            ${{ runner.temp }}/bundle-check/sizes.txt
           retention-days: 14
 
       - name: Upload lint and test reports

@@ -43,10 +43,13 @@ jobs:
 
       # Every task CI runs (the smoke test's APK too), so every configuration they resolve is
       # recorded. Unsigned: no secrets in this job.
+      # bundleRelease is here too, with the flag the Play build uses: the asset pack plugin only
+      # resolves on that path, so without it the Play bundle fails verification instead.
       - name: Record checksums
         run: >-
           ./gradlew --no-daemon --write-verification-metadata sha256
           :core:search:test testDebugUnitTest lintDebug assembleDebug assembleSideload assembleMinified assembleMinifiedAndroidTest
+          bundleRelease -PmodelsInAssetPack=true
 
       - name: Commit the updated file
         run: |
