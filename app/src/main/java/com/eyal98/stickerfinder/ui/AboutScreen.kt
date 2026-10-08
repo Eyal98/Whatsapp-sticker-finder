@@ -37,12 +37,21 @@ import androidx.compose.ui.unit.dp
 import com.eyal98.stickerfinder.Diagnostics
 import com.eyal98.stickerfinder.R
 import com.eyal98.stickerfinder.StickerFinderApp
+import com.eyal98.stickerfinder.vision.StickerFaces
 import kotlinx.coroutines.launch
 import java.io.IOException
 import java.security.MessageDigest
 
 /** A model the app ships, for the notices. Names and licenses stay in English, as published. */
-private data class ModelNotice(val name: String, val by: String, val use: Int, val license: String, val source: String)
+private data class ModelNotice(
+    val name: String,
+    val by: String,
+    val use: Int,
+    val license: String,
+    val source: String,
+    /** Listed only when the SFace model is packaged, i.e. in builds with People. */
+    val peopleOnly: Boolean = false,
+)
 
 private val MODELS = listOf(
     ModelNotice(
@@ -55,11 +64,11 @@ private val MODELS = listOf(
     ),
     ModelNotice(
         "SFace face recognition (converted to LiteRT)", "OpenCV Zoo", R.string.about_use_people, "Apache License 2.0",
-        "github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface",
+        "github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface", peopleOnly = true,
     ),
     ModelNotice(
         "ML Kit face detection", "Google", R.string.about_use_faces, "ML Kit Terms of Service",
-        "developers.google.com/ml-kit/terms",
+        "developers.google.com/ml-kit/terms", peopleOnly = true,
     ),
     ModelNotice(
         "Tesseract language data (tessdata_fast: heb, eng)", "Tesseract OCR", R.string.about_use_ocr, "Apache License 2.0",
@@ -93,6 +102,7 @@ fun AboutScreen(onBack: () -> Unit) {
     val version = remember { versionText(context) }
     val fingerprint = remember { signingFingerprint(context) }
     val libraries = remember { readLibraries(context) }
+    val peopleBundled = remember { StickerFaces.isBundled(context) }
 
     BackHandler(onBack = onBack)
     Scaffold { padding ->
@@ -153,7 +163,7 @@ fun AboutScreen(onBack: () -> Unit) {
             HorizontalDivider()
             Text(stringResource(R.string.about_models_title), style = MaterialTheme.typography.titleLarge)
             Text(stringResource(R.string.about_models_body), style = MaterialTheme.typography.bodyMedium)
-            for (model in MODELS) {
+            for (model in MODELS.filter { peopleBundled || !it.peopleOnly }) {
                 Column {
                     Text(model.name, style = MaterialTheme.typography.titleSmall)
                     Text("${model.by} · ${stringResource(model.use)}", style = MaterialTheme.typography.bodyMedium)
