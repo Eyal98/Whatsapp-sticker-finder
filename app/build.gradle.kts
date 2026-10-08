@@ -1,3 +1,4 @@
+import com.android.build.api.artifact.SingleArtifact
 import javax.xml.parsers.DocumentBuilderFactory
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.result.ResolvedArtifactResult
@@ -165,10 +166,30 @@ abstract class DependencyNotices : DefaultTask() {
 
     @TaskAction
     fun write() {
+        val undeclared = lines.get().filter { it.split('\t')[1].isBlank() }.map { it.substringBefore('\t') }
+        check(undeclared.isEmpty()) {
+            "No license is declared in the POM for: ${undeclared.joinToString()}. Record a reviewed license before building."
+        }
         val dir = outputDir.get().asFile.resolve("licenses")
         dir.deleteRecursively()
         dir.mkdirs()
         dir.resolve("dependencies.tsv").writeText(lines.get().joinToString("\n", postfix = "\n"))
+    }
+}
+
+/** Fails the build when the app's assets don't carry the list [DependencyNotices] generated. */
+abstract class VerifyNoticeAsset : DefaultTask() {
+    @get:InputDirectory abstract val merged: DirectoryProperty
+    @get:InputDirectory abstract val generated: DirectoryProperty
+
+    @TaskAction
+    fun verify() {
+        val shipped = merged.get().asFile.resolve("licenses/dependencies.tsv")
+        val expected = generated.get().asFile.resolve("licenses/dependencies.tsv")
+        check(shipped.isFile) { "licenses/dependencies.tsv is missing from the app's assets" }
+        check(shipped.readText() == expected.readText()) {
+            "licenses/dependencies.tsv in the app's assets differs from the generated list"
+        }
     }
 }
 
@@ -201,6 +222,13 @@ fun pomLicenses(group: String, name: String, version: String, depth: Int = 0): L
     return pomLicenses(parent.text("groupId"), parent.text("artifactId"), parent.text("version"), depth + 1)
 }
 
+// Licenses a POM doesn't declare, each reviewed by hand. Tesseract4Android's POM has no license;
+// its upstream terms are Apache-2.0 (README.md, Third-party components).
+val reviewedLicenses = mapOf(
+    "cz.adaptech.tesseract4android:tesseract4android:4.9.0" to
+        ("Apache-2.0" to "https://github.com/adaptech-cz/Tesseract4Android"),
+)
+
 val dependencyNotices = tasks.register<DependencyNotices>("dependencyNotices") {
     lines.set(
         provider {
@@ -208,8 +236,10 @@ val dependencyNotices = tasks.register<DependencyNotices>("dependencyNotices") {
                 .mapNotNull { it.id as? ModuleComponentIdentifier }
                 .sortedBy { "${it.group}:${it.module}" }
                 .map { id ->
+                    val coordinate = "${id.group}:${id.module}:${id.version}"
                     val licenses = pomLicenses(id.group, id.module, id.version)
-                    val license = licenses.joinToString(" / ") { it.first }.ifEmpty { "See the library's project page" }
+                        .ifEmpty { listOfNotNull(reviewedLicenses[coordinate]) }
+                    val license = licenses.joinToString(" / ") { it.first }
                     val url = licenses.firstOrNull()?.second.orEmpty()
                     listOf("${id.group}:${id.module}:${id.version}", license, url)
                         .joinToString("\t") { it.replace('\t', ' ').replace('\n', ' ') }
@@ -222,5 +252,11 @@ val dependencyNotices = tasks.register<DependencyNotices>("dependencyNotices") {
 androidComponents {
     onVariants { variant ->
         variant.sources.assets?.addGeneratedSourceDirectory(dependencyNotices, DependencyNotices::outputDir)
+        val cap = variant.name.replaceFirstChar { it.uppercase() }
+        val verify = tasks.register<VerifyNoticeAsset>("verify${cap}NoticeAsset") {
+            merged.set(variant.artifacts.get(SingleArtifact.ASSETS))
+            generated.set(dependencyNotices.flatMap { it.outputDir })
+        }
+        tasks.matching { it.name == "merge${cap}Assets" }.configureEach { finalizedBy(verify) }
     }
 }
