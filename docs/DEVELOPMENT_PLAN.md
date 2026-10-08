@@ -258,12 +258,25 @@ stickers in under ~2 hours while the phone is charging.
 
 ---
 
-## 9. iOS (later, limited)
+## 9. iOS: no-go
 
-iOS apps can't read WhatsApp's stickers. At most we could build:
-a Share Extension that saves stickers the user shares into it manually, the same
-local indexing and search, and sending back by share or copy. This needs a separate
-feasibility spike, and it isn't planned before the Android version is complete.
+The feasibility spike is done: **[IOS_FEASIBILITY.md](IOS_FEASIBILITY.md) — no-go.**
+
+iOS apps can't read WhatsApp's stickers (the app sandbox), so the user must hand a Share Extension
+one chat export at a time, forever. That's the blocker that doesn't bend. And no send route matches
+Android's: an iOS keyboard can't *insert* an image (`UITextDocumentProxy` inserts text only), only
+copy one to the clipboard to paste — in‑chat and quick, but it arrives as a **photo** and needs Full
+Access; WhatsApp's third‑party sticker‑pack API sends a **real sticker** but costs ~9 interactions
+and 2 app switches. Never both. Roughly a quarter of the Android value, over 4–6 months.
+
+Three findings went the other way and are worth keeping: the ~542 MB of models **fit** inside
+Apple's 4 GB app bundle limit with no asset delivery at all (the size work that dominates the Play
+release doesn't exist on iOS), real stickers *can* be sent, and LiteRT‑LM now lists iOS, so the
+Granite runtime is a medium risk rather than a wall. None rescues the product. The provable
+no‑`INTERNET` guarantee can't be reproduced on iOS, and the keyboard route would require Full
+Access, which lifts the network sandbox outright.
+
+Revisit only if WhatsApp ships a sticker export on iOS.
 
 ---
 
