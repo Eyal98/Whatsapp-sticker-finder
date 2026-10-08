@@ -32,7 +32,7 @@ class FaceWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         FaceGrouper.migrateVectors(context, dao)
         val pending = dao.observeFaceScanPendingCount().first()
         if (pending == 0) {
-            val renamed = FaceGrouper.regroup(context, dao) + Backup.applyPeople(context, dao)
+            val renamed = FaceGrouper.regroup(context, dao)
             if (renamed > 0) EmbedWorker.runNow(context)
             return Result.success()
         }
@@ -53,8 +53,7 @@ class FaceWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
                 if (foreground && done % NOTIFY_EVERY == 0) tryForeground(dao.observeFaceScanPendingCount().first())
             }
             // Group what was found so far, even if the run stopped early: groups show up sooner.
-            // Names from a restored backup go on the groups that match them.
-            val renamed = FaceGrouper.regroup(context, dao) + Backup.applyPeople(context, dao)
+            val renamed = FaceGrouper.regroup(context, dao)
             if (renamed > 0) EmbedWorker.runNow(context)
             if (progress.finished) Result.success() else Result.retry()
         } finally {

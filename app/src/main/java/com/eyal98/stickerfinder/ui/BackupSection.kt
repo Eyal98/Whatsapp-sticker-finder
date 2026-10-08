@@ -4,13 +4,11 @@ import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -22,8 +20,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -56,7 +52,6 @@ fun BackupSection() {
 
     // Backing up: options first, then where to save.
     var askOptions by remember { mutableStateOf(false) }
-    var includePeople by remember { mutableStateOf(false) }
     var password by remember { mutableStateOf("") }
     var confirm by remember { mutableStateOf("") }
     val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
@@ -64,7 +59,7 @@ fun BackupSection() {
         busy = true
         scope.launch {
             message = try {
-                val json = Backup.create(app, app.database.stickerDao(), includePeople)
+                val json = Backup.create(app, app.database.stickerDao())
                 withContext(Dispatchers.Default) { BackupFile.write(json, password.toCharArray()) }.let { write(context, uri, it) }
                 context.getString(R.string.backup_saved)
             } catch (e: IOException) {
@@ -118,9 +113,9 @@ fun BackupSection() {
 
     Text(stringResource(R.string.backup_title), style = MaterialTheme.typography.titleLarge)
     Text(stringResource(R.string.backup_body), style = MaterialTheme.typography.bodyMedium)
-    val (waitingStickers, waitingPeople) = remember(message) { Backup.waiting(context) }
-    if (waitingStickers > 0 || waitingPeople > 0) {
-        Text(stringResource(R.string.restore_waiting, waitingStickers, waitingPeople), style = MaterialTheme.typography.bodySmall)
+    val waitingStickers = remember(message) { Backup.waiting(context) }
+    if (waitingStickers > 0) {
+        Text(stringResource(R.string.restore_waiting, waitingStickers), style = MaterialTheme.typography.bodySmall)
     }
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedButton(onClick = { askOptions = true }, enabled = !busy) { Text(stringResource(R.string.backup_button)) }
@@ -135,11 +130,6 @@ fun BackupSection() {
             title = { Text(stringResource(R.string.backup_button)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { includePeople = !includePeople }) {
-                        Checkbox(checked = includePeople, onCheckedChange = { includePeople = it })
-                        Text(stringResource(R.string.backup_people), style = MaterialTheme.typography.bodyMedium)
-                    }
-                    Text(stringResource(R.string.backup_people_note), style = MaterialTheme.typography.bodySmall)
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
@@ -214,6 +204,4 @@ private suspend fun write(context: Context, uri: Uri, bytes: ByteArray) = withCo
 private fun describe(context: Context, r: Backup.RestoreReport): String = buildString {
     append(context.getString(R.string.restore_done, r.stickersRestored, r.picksRestored, r.testSearches))
     if (r.stickersWaiting > 0) append("\n\n").append(context.getString(R.string.restore_stickers_waiting, r.stickersWaiting))
-    if (r.peopleNamed > 0) append("\n\n").append(context.getString(R.string.restore_people_named, r.peopleNamed))
-    if (r.peopleWaiting > 0) append("\n\n").append(context.getString(R.string.restore_people_waiting, r.peopleWaiting))
 }

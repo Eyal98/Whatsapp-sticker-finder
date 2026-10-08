@@ -5,7 +5,6 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.core.content.edit
-import com.eyal98.stickerfinder.index.backup.Backup
 import com.eyal98.stickerfinder.data.Person
 import com.eyal98.stickerfinder.data.StickerDao
 import com.eyal98.stickerfinder.data.StickerFace
@@ -56,9 +55,6 @@ object FaceData {
             FaceSettings.setEnabled(context, false)
             dao.deleteFaceData()
         }
-        // And the faces of people waiting from a restored backup. After this lock is let go:
-        // a restore holds the backup's lock while it waits for this one, never the other way.
-        Backup.forgetPeople(context)
     }
 }
 

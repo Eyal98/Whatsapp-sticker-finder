@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Peel-It</string>
     <string name="onboarding_title">מצאו את המדבקות שלכם מוואטסאפ</string>
-    <string name="onboarding_body">בחרו את תיקיית המדבקות של וואטסאפ כדי שהאפליקציה תוכל לקרוא את המדבקות. הגישה היא לקריאה בלבד, ושום דבר לא יוצא מהטלפון: לאפליקציה אין הרשאת אינטרנט.\n\nהתיקייה נמצאת כאן:\nAndroid › media › com.whatsapp › WhatsApp › Media › WhatsApp Stickers</string>
+    <string name="onboarding_body">בחרו את תיקיית המדבקות של וואטסאפ כדי שהאפליקציה תוכל לקרוא את המדבקות. הגישה היא לקריאה בלבד. לאפליקציה אין הרשאת אינטרנט, כך שהיא לא יכולה לשלוח לשום מקום את המדבקות או החיפושים שלכם; מדבקה יוצאת מהטלפון רק כשאתם שולחים אותה לוואטסאפ בעצמכם.\n\nהתיקייה נמצאת כאן:\nAndroid › media › com.whatsapp › WhatsApp › Media › WhatsApp Stickers</string>
     <string name="onboarding_choose_folder">בחירת תיקייה</string>
     <string name="search_hint">חיפוש מדבקות (עברית / English)</string>
     <string name="clear_search">ניקוי החיפוש</string>
@@ -204,8 +204,6 @@
     <string name="backup_button">גיבוי</string>
     <string name="restore_button">שחזור</string>
     <string name="backup_working">עובד…</string>
-    <string name="backup_people">כולל שמות של אנשים</string>
-    <string name="backup_people_note">כדי שהטלפון החדש יוכל להחזיר את השמות לפנים הנכונות, נשמרת טביעת פנים אחת לכל אדם עם שם: מידע ביומטרי. כדאי לסמן רק לקובץ שנשמר במקום בטוח, ורצוי עם סיסמה.</string>
     <string name="backup_password">סיסמה (לא חובה)</string>
     <string name="backup_password_again">הסיסמה שוב</string>
     <string name="backup_password_note">עם סיסמה הקובץ מוצפן ואי אפשר לשחזר אותו בלעדיה. אין דרך לשחזר סיסמה שנשכחה.</string>
@@ -214,11 +212,9 @@
     <string name="backup_failed">לא ניתן היה לשמור את הגיבוי שם. אפשר לנסות מקום אחר.</string>
     <string name="restore_wrong_password">סיסמה שגויה, או שהקובץ פגום.</string>
     <string name="restore_not_backup">הקובץ הזה אינו גיבוי של Peel-It.</string>
-    <string name="restore_waiting">משחזור, עדיין ממתינים שיימצאו: %1$d מדבקות, %2$d אנשים. הם ישוחזרו מעצמם כשהאפליקציה תמצא אותם.</string>
+    <string name="restore_waiting">משחזור, עדיין ממתינים שיימצאו: %1$d מדבקות. הם ישוחזרו מעצמם כשהאפליקציה תמצא אותם.</string>
     <string name="restore_done">שוחזרו: תגיות והגדרות של %1$d מדבקות, %2$d חיפושים מההיסטוריה, %3$d חיפושי בדיקה.</string>
     <string name="restore_stickers_waiting">%1$d מדבקות עדיין לא בטלפון הזה, או שעוד לא נקראו. הן ישוחזרו מעצמן כשהאפליקציה תמצא אותן.</string>
-    <string name="restore_people_named">%1$d אנשים קיבלו את השמות שלהם בחזרה.</string>
-    <string name="restore_people_waiting">השמות של %1$d אנשים ממתינים לפנים שלהם: אם \"אנשים\" (בחיפוש חכם) כבוי, צריך להפעיל אותו, והשמות יחזרו אחרי שהפנים יקובצו.</string>
 
     <!-- Learn from your chats -->
     <string name="chats_title">ללמוד מהצ\'אטים שלכם</string>
@@ -252,7 +248,7 @@
     <string name="tip_pack_tag">בפרטי המדבקה אפשר לשתף תגית עם כל החבילה שלה, או עם כל המדבקות שנראות כמוה. פחות הקלדה, יותר קילוף.</string>
     <string name="tip_backup">טלפון חדש? אודות ← גיבוי, ומשחזרים שם. התגיות עוברות דירה איתך.</string>
     <string name="tip_chats">מייצאים צ\'אט מוואטסאפ עם מדיה ומשתפים ל-Peel-It: ככה אני לומדת בשביל מה כל מדבקה באמת.</string>
-    <string name="tip_offline">אין לי שום גישה לאינטרנט. הכול נשאר בטלפון שלך, ואני שומרת עליו בכל החדק.</string>
+    <string name="tip_offline">אין לי שום גישה לאינטרנט. הספרייה והחיפושים שלכם נשארים בטלפון שלכם, ואני שומרת עליהם בכל החדק.</string>
     <string name="tip_description">כותבים את הבדיחה הפנימית בתיאור של המדבקה, ומחפשים את הבדיחה. הסוד שלך שמור אצלי.</string>
     <string name="getting_started_title">צעדים ראשונים עם פילי</string>
     <string name="getting_started_done">את/ה מקצוענ/ית מדבקות! 🎉</string>

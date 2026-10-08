@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Peel-It</string>
     <string name="onboarding_title">Find your WhatsApp stickers</string>
-    <string name="onboarding_body">Choose WhatsApp\'s sticker folder so the app can read your stickers. Access is read-only, and nothing leaves your phone: this app has no internet permission.\n\nThe folder is at:\nAndroid › media › com.whatsapp › WhatsApp › Media › WhatsApp Stickers</string>
+    <string name="onboarding_body">Choose WhatsApp\'s sticker folder so the app can read your stickers. Access is read-only. The app has no internet permission, so it can't send your stickers or searches anywhere; a sticker leaves your phone only when you send it to WhatsApp yourself.\n\nThe folder is at:\nAndroid › media › com.whatsapp › WhatsApp › Media › WhatsApp Stickers</string>
     <string name="onboarding_choose_folder">Choose folder</string>
     <string name="search_hint">Search stickers (עברית / English)</string>
     <string name="clear_search">Clear search</string>
@@ -204,8 +204,6 @@
     <string name="backup_button">Back up</string>
     <string name="restore_button">Restore</string>
     <string name="backup_working">Working…</string>
-    <string name="backup_people">Include people\'s names</string>
-    <string name="backup_people_note">So the new phone can put the names back on the right faces, this saves one face fingerprint per named person: biometric data. Only tick it for a file you keep safe, ideally with a password.</string>
     <string name="backup_password">Password (optional)</string>
     <string name="backup_password_again">Password again</string>
     <string name="backup_password_note">With a password the file is encrypted and can\'t be restored without it. There\'s no way to recover a forgotten password.</string>
@@ -214,11 +212,9 @@
     <string name="backup_failed">The backup couldn\'t be saved there. Try another place.</string>
     <string name="restore_wrong_password">Wrong password, or the file is damaged.</string>
     <string name="restore_not_backup">That file isn\'t a Peel-It backup.</string>
-    <string name="restore_waiting">From a restore, still waiting to be found: %1$d stickers, %2$d people. They\'re restored by themselves as the app finds them.</string>
+    <string name="restore_waiting">From a restore, still waiting to be found: %1$d stickers. They\'re restored by themselves as the app finds them.</string>
     <string name="restore_done">Restored: %1$d stickers\' tags and settings, %2$d searches from your history, %3$d test searches.</string>
     <string name="restore_stickers_waiting">%1$d stickers aren\'t on this phone yet, or haven\'t been read yet. They\'ll be restored by themselves as the app finds them.</string>
-    <string name="restore_people_named">%1$d people got their names back.</string>
-    <string name="restore_people_waiting">%1$d people\'s names wait for their faces: turn on People (Smart search) if it\'s off, and the names come back once the faces are grouped.</string>
 
     <!-- Learn from your chats -->
     <string name="chats_title">Learn from your chats</string>
@@ -252,7 +248,7 @@
     <string name="tip_pack_tag">In a sticker\'s details you can share a tag with its whole pack, or with every sticker that looks like it. Less typing, more peeling.</string>
     <string name="tip_backup">Getting a new phone? About → Back up, and restore it there. Your tags move house with you.</string>
     <string name="tip_chats">Export a WhatsApp chat with media and share it to Peel-It: I learn what each sticker is really for.</string>
-    <string name="tip_offline">I have no internet access at all. Everything stays on your phone, where I can guard it with my whole trunk.</string>
+    <string name="tip_offline">I have no internet access at all. Your library and your searches stay on your phone, where I can guard them with my whole trunk.</string>
     <string name="tip_description">Write a sticker\'s inside joke in its description, and search for the joke. Your secret\'s safe with me.</string>
     <string name="getting_started_title">Getting started with Pili</string>
     <string name="getting_started_done">You\'re a sticker pro! 🎉</string>

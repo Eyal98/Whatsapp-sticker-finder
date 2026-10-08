@@ -9,10 +9,7 @@ import com.eyal98.stickerfinder.data.StickerEntity
 import com.eyal98.stickerfinder.data.StickerRepository
 import com.eyal98.stickerfinder.data.UserTags
 import com.eyal98.stickerfinder.index.EmbedWorker
-import com.eyal98.stickerfinder.index.FaceData
-import com.eyal98.stickerfinder.search.PeopleNames
 import com.eyal98.stickerfinder.search.SearchTags
-import com.eyal98.stickerfinder.search.Vectors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -24,21 +21,20 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
-import java.util.Base64
 
 /**
  * Backing up what the user made, and restoring it on another phone (or this one after a reset).
  *
  * Only what can't be worked out again is saved: tags, descriptions, stars, hidden picture tags,
  * how often each sticker was used, search history, the quality test's searches and the search
- * setting; with the user's say-so, the names they gave people. Printed text, picture tags, meaning
- * vectors and faces are rebuilt by the new phone. What was learned from imported chats stays out:
+ * setting. Printed text, picture tags, meaning vectors and faces are rebuilt by the new phone; face
+ * data never leaves the phone. What was learned from imported chats stays out:
  * it came from other people's messages too, so it doesn't travel. Stickers are recognized by their
  * exact content (file locations differ between phones), else file name and size, else the
  * picture's fingerprint when only one picture here has it.
  *
  * A new phone reads its stickers over hours, so whatever doesn't match yet waits in app storage and
- * is applied as indexing finds more ([applyPending]); people's names wait for face grouping.
+ * is applied as indexing finds more ([applyPending]).
  */
 object Backup {
 
@@ -50,13 +46,11 @@ object Backup {
     // the phone do endless work or keep megabytes of junk waiting.
     private const val MAX_STICKERS = 50_000
     private const val MAX_PICKS = 50_000
-    private const val MAX_PEOPLE = 500
     private const val MAX_FOLDERS = 1_000
     private const val MAX_TEST_SEARCHES = 1_000
     private const val MAX_LIST = 100
     private const val MAX_TEXT = 200
     private const val MAX_DESCRIPTION = 2_000
-    private const val MAX_FACE_CHARS = 16_384
     private const val MAX_COUNT = 1_000_000
 
     private val lock = Mutex()
@@ -67,12 +61,10 @@ object Backup {
         val stickersWaiting: Int,
         val picksRestored: Int,
         val testSearches: Int,
-        val peopleNamed: Int,
-        val peopleWaiting: Int,
     )
 
     /** The backup's JSON (pack it with [BackupFile]). */
-    suspend fun create(context: Context, dao: StickerDao, includePeople: Boolean): String = withContext(Dispatchers.IO) {
+    suspend fun create(context: Context, dao: StickerDao): String = withContext(Dispatchers.IO) {
         val stickers = dao.allStickers()
         val byId = stickers.associateBy { it.id }
         // Which folders each sticker is in, by name: names survive the move, ids don't.
@@ -113,7 +105,6 @@ object Backup {
         json.put("settings", JSONObject().put("minSimilarity", SearchSettings(context).minSimilarity.toDouble()))
         // Every folder, empty ones too.
         json.put("folders", JSONArray(folderNames.values.toList()))
-        if (includePeople) json.put("people", peopleJson(dao))
         json.toString()
     }
 
@@ -163,86 +154,31 @@ object Backup {
                 .distinctBy { it.toString() }.take(MAX_STICKERS)
             val picks = (pending.picks + backup.optJSONArray("picks").objects().mapNotNull(::cleanPick))
                 .distinctBy { it.toString() }.take(MAX_PICKS)
-            val people = (pending.people + backup.optJSONArray("people").objects().mapNotNull(::cleanPerson))
-                .distinctBy { it.optString("name") }.take(MAX_PEOPLE)
             val applied = apply(dao, repository, stickers, picks)
-            writePending(context, Pending(applied.waitingStickers, applied.waitingPicks, people))
-            val named = namePeople(context, dao)
-            if (applied.stickers > 0 || named > 0) EmbedWorker.runForEdit(context)
+            writePending(context, Pending(applied.waitingStickers, applied.waitingPicks))
+            if (applied.stickers > 0) EmbedWorker.runForEdit(context)
             RestoreReport(
                 stickersRestored = applied.stickers,
                 stickersWaiting = applied.waitingStickers.size,
                 picksRestored = applied.picks,
                 testSearches = testSearches,
-                peopleNamed = named,
-                peopleWaiting = readPending(context).people.size,
             )
         }
 
-    /** Applies what waits from a restore to stickers found since. Returns how many were restored. */
+    /**
+     * Applies what waits from a restore to stickers found since. Returns how many were restored.
+     * Also drops the people older versions saved in the waiting file: their face data never leaves the phone.
+     */
     suspend fun applyPending(context: Context, dao: StickerDao, repository: StickerRepository): Int = lock.withLock {
         val pending = readPending(context)
-        if (pending.stickers.isEmpty() && pending.picks.isEmpty()) return@withLock 0
+        if (pending.stickers.isEmpty() && pending.picks.isEmpty()) {
+            writePending(context, pending)
+            return@withLock 0
+        }
         val applied = apply(dao, repository, pending.stickers, pending.picks)
         writePending(context, pending.copy(stickers = applied.waitingStickers, picks = applied.waitingPicks))
         if (applied.stickers > 0) EmbedWorker.runForEdit(context)
         applied.stickers
-    }
-
-    /**
-     * Names the face groups that match people saved in a restored backup; each saved person is
-     * used once. Runs after face grouping. Returns how many groups got a name.
-     */
-    suspend fun applyPeople(context: Context, dao: StickerDao): Int = lock.withLock { namePeople(context, dao) }
-
-    /** [applyPeople], with [lock] held: the waiting items are read and written under it. */
-    private suspend fun namePeople(context: Context, dao: StickerDao): Int {
-        if (readPending(context).people.isEmpty()) return 0
-        val named = FaceData.writeIfEnabled(context) {
-            val pending = readPending(context)
-            nameFrom(dao, pending) { used ->
-                writePending(context, pending.copy(people = pending.people.filter { it.optString("name") !in used }))
-            }
-        } ?: 0
-        return named
-    }
-
-    /** Names unnamed face groups after [pending]'s people; [done] gets the names used. */
-    private suspend fun nameFrom(dao: StickerDao, pending: Pending, done: (Set<String>) -> Unit): Int {
-        val saved = pending.people.mapNotNull { p ->
-            val name = p.optString("name").takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            val centroid = p.optString("face").takeIf { it.isNotEmpty() }?.let {
-                try {
-                    Vectors.decode(Base64.getDecoder().decode(it))
-                } catch (e: IllegalArgumentException) {
-                    null
-                }
-            }?.takeIf { it.isNotEmpty() && it.all(Float::isFinite) }
-            centroid?.let { name to it }
-        }
-        val people = dao.people()
-        val unnamed = people.filter { it.name == null }.map { it.id }.toSet()
-        val taken = people.mapNotNull { it.name }.toSet()
-        val groups = dao.faceRows().filter { it.personId in unnamed }.groupBy { it.personId!! }
-            .mapNotNull { (id, faces) -> PeopleNames.centroid(faces.map { Vectors.decode(it.vector) })?.let { id to it } }
-            .toMap()
-        // A saved face from another face model (other length) can't be compared: it's left waiting.
-        val dims = groups.values.firstOrNull()?.size
-        val matches = PeopleNames.match(groups, saved.filter { it.first !in taken && it.second.size == dims })
-        // One group per saved person: the closest one, if a person was split into two groups.
-        val chosen = matches.entries.groupBy { it.value }.map { (_, entries) ->
-            entries.maxBy { e -> Vectors.dot(groups.getValue(e.key), saved.first { it.first == e.value }.second) }
-        }
-        for ((group, name) in chosen) dao.renamePerson(group, name)
-        if (chosen.isNotEmpty()) dao.syncPeopleNames()
-        done(chosen.map { it.value }.toSet())
-        return chosen.size
-    }
-
-    /** Forgets people's saved faces waiting from a restore (with "Delete all face data"). */
-    suspend fun forgetPeople(context: Context): Unit = lock.withLock {
-        val pending = readPending(context)
-        if (pending.people.isNotEmpty()) writePending(context, pending.copy(people = emptyList()))
     }
 
     // --- Applying ---------------------------------------------------------------------------
@@ -369,12 +305,6 @@ object Backup {
         return out
     }
 
-    private fun cleanPerson(entry: JSONObject): JSONObject? {
-        val name = entry.optString("name").takeIf { it.isNotBlank() && it.length <= MAX_TEXT } ?: return null
-        val face = entry.optString("face").takeIf { it.isNotEmpty() && it.length <= MAX_FACE_CHARS } ?: return null
-        return JSONObject().put("name", name).put("face", face)
-    }
-
     // --- Format -----------------------------------------------------------------------------
 
     private fun hasUserData(s: StickerEntity) =
@@ -389,38 +319,26 @@ object Backup {
         .put("name", s.displayName)
         .put("size", s.sizeBytes)
 
-    /** For each named person, the average of their face vectors (never the faces' pictures). */
-    private suspend fun peopleJson(dao: StickerDao): JSONArray {
-        val names = dao.people().filter { it.name != null }.associate { it.id to it.name!! }
-        val faces = dao.faceRows().filter { it.personId in names }.groupBy { it.personId!! }
-        return JSONArray(
-            names.mapNotNull { (id, name) ->
-                val centroid = PeopleNames.centroid(faces[id].orEmpty().map { Vectors.decode(it.vector) }) ?: return@mapNotNull null
-                JSONObject().put("name", name).put("face", Base64.getEncoder().encodeToString(Vectors.encode(centroid)))
-            },
-        )
-    }
-
-    private data class Pending(val stickers: List<JSONObject>, val picks: List<JSONObject>, val people: List<JSONObject>)
+    private data class Pending(val stickers: List<JSONObject>, val picks: List<JSONObject>)
 
     private fun pendingFile(context: Context) = File(context.noBackupFilesDir, PENDING_FILE)
 
     private fun readPending(context: Context): Pending {
         val file = pendingFile(context)
-        if (!file.isFile) return Pending(emptyList(), emptyList(), emptyList())
+        if (!file.isFile) return Pending(emptyList(), emptyList())
         return try {
             val json = JSONObject(file.readText())
-            Pending(json.optJSONArray("stickers").objects(), json.optJSONArray("picks").objects(), json.optJSONArray("people").objects())
+            Pending(json.optJSONArray("stickers").objects(), json.optJSONArray("picks").objects())
         } catch (e: JSONException) {
-            Pending(emptyList(), emptyList(), emptyList())
+            Pending(emptyList(), emptyList())
         } catch (e: IOException) {
-            Pending(emptyList(), emptyList(), emptyList())
+            Pending(emptyList(), emptyList())
         }
     }
 
     private fun writePending(context: Context, pending: Pending) {
         val file = pendingFile(context)
-        if (pending.stickers.isEmpty() && pending.picks.isEmpty() && pending.people.isEmpty()) {
+        if (pending.stickers.isEmpty() && pending.picks.isEmpty()) {
             file.delete()
             return
         }
@@ -428,14 +346,13 @@ object Backup {
         val json = JSONObject()
             .put("stickers", JSONArray(pending.stickers))
             .put("picks", JSONArray(pending.picks))
-            .put("people", JSONArray(pending.people))
         val tmp = File(file.path + ".tmp")
         tmp.writeText(json.toString())
         if (!tmp.renameTo(file)) throw IOException("Could not save the restore's waiting items")
     }
 
-    /** What a restore left waiting, for the About screen. */
-    fun waiting(context: Context): Pair<Int, Int> = readPending(context).let { it.stickers.size to it.people.size }
+    /** How many stickers a restore left waiting, for the backup screen. */
+    fun waiting(context: Context): Int = readPending(context).stickers.size
 
     private fun JSONArray?.objects(): List<JSONObject> =
         if (this == null) emptyList() else (0 until length()).mapNotNull { optJSONObject(it) }
