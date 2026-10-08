@@ -14,6 +14,7 @@ import com.eyal98.stickerfinder.vision.StickerFaces
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlin.math.abs
@@ -57,7 +58,7 @@ class ModelSmokeTest {
 
     @Test
     fun faceModelsLoadAndRun() {
-        assertTrue("face models not bundled", StickerFaces.isBundled(context))
+        Assume.assumeTrue("People is excluded from this build (faces.properties UNPINNED)", StickerFaces.isBundled(context))
         StickerFaces(StickerFaces.mapModel(context)).use { faces ->
             // No face on a plain shape: this checks ML Kit and SFace load and run without crashing.
             assertEquals(0, faces.find(shapeBitmap()).size)
