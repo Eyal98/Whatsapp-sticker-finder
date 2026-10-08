@@ -12,9 +12,16 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// The Play bundle ships the big models in an install-time asset pack; see the root build.gradle.kts.
+val modelsInAssetPack = providers.gradleProperty("modelsInAssetPack").map(String::toBoolean).getOrElse(false)
+
 android {
     namespace = "com.eyal98.stickerfinder"
     compileSdk = 35
+
+    if (modelsInAssetPack) {
+        assetPacks += ":model_pack"
+    }
 
     defaultConfig {
         applicationId = "com.eyal98.stickerfinder"

@@ -23,6 +23,8 @@ dependencyResolutionManagement {
 rootProject.name = "PeelIt"
 
 include(":app")
+// The models' install-time asset pack, used by the Play bundle (-PmodelsInAssetPack).
+include(":model_pack")
 include(":core:search")
 include(":core:data")
 include(":core:index")

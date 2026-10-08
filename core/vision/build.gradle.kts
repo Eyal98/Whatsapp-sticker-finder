@@ -183,10 +183,19 @@ val fetchSiglipLabels = tasks.register<FetchSiglipLabels>("fetchSiglipLabels") {
     outputDir.set(layout.buildDirectory.dir("generated/siglip"))
 }
 
+// With -PmodelsInAssetPack (the Play bundle; see the root build.gradle.kts) these ship in the
+// :model_pack install-time asset pack instead, so they must not also be assets of this module —
+// that would put 177 MiB of SigLIP and 18 MiB of face model back into the base module and over
+// Play's 500 MB base-module limit. syncModelAssets depends on both fetch tasks directly, so the
+// downloads and their checksum checks still happen.
+val modelsInAssetPack = providers.gradleProperty("modelsInAssetPack").map(String::toBoolean).getOrElse(false)
+
 androidComponents {
     onVariants { variant: LibraryVariant ->
-        variant.sources.assets?.addGeneratedSourceDirectory(fetchSiglipLabels, FetchSiglipLabels::outputDir)
-        variant.sources.assets?.addGeneratedSourceDirectory(fetchFaceModel, FetchFaceModel::outputDir)
+        if (!modelsInAssetPack) {
+            variant.sources.assets?.addGeneratedSourceDirectory(fetchSiglipLabels, FetchSiglipLabels::outputDir)
+            variant.sources.assets?.addGeneratedSourceDirectory(fetchFaceModel, FetchFaceModel::outputDir)
+        }
     }
 }
 

@@ -15,3 +15,6 @@ eval/data/
 *.task
 *.litertlm
 *.traineddata
+# Filled by :model_pack:syncModelAssets from the downloaded models.
+/model_pack/src/main/assets/*
+!/model_pack/src/main/assets/.gitkeep

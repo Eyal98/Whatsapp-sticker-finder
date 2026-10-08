@@ -87,9 +87,17 @@ val fetchGranite = tasks.register<FetchGranite>("fetchGranite") {
     outputDir.set(layout.buildDirectory.dir("generated/granite"))
 }
 
+// With -PmodelsInAssetPack (the Play bundle; see the root build.gradle.kts) the file ships in the
+// :model_pack install-time asset pack instead, so it must not also be an asset of this module —
+// that would put 317 MiB back into the base module and over Play's 500 MB base-module limit.
+// syncModelAssets depends on fetchGranite directly, so the download still happens.
+val modelsInAssetPack = providers.gradleProperty("modelsInAssetPack").map(String::toBoolean).getOrElse(false)
+
 androidComponents {
     onVariants { variant: LibraryVariant ->
-        variant.sources.assets?.addGeneratedSourceDirectory(fetchGranite, FetchGranite::outputDir)
+        if (!modelsInAssetPack) {
+            variant.sources.assets?.addGeneratedSourceDirectory(fetchGranite, FetchGranite::outputDir)
+        }
     }
 }
 
