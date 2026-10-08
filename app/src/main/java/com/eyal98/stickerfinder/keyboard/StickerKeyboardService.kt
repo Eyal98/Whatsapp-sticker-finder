@@ -42,9 +42,10 @@ import kotlinx.coroutines.withContext
  * English keys (or use what's already typed in the text box), tap a sticker: it's sent as a real
  * sticker and your usual keyboard comes back.
  *
- * Privacy: typing on its keys stays inside the keyboard. It reads at most [MAX_QUERY_CHARS]
- * characters already in the text box, only when it opens, never from password fields, and never
- * stores them. The app has no network access.
+ * Privacy: typing on its keys stays inside the keyboard. It reads the text box only after the user
+ * allows it on first use (declining keeps typing on its own keys), then at most [MAX_QUERY_CHARS]
+ * characters, only when it opens, never from password fields, and never stores them. The app has
+ * no network access.
  */
 class StickerKeyboardService :
     InputMethodService(),
@@ -111,22 +112,46 @@ class StickerKeyboardService :
     override fun onStartInputView(info: EditorInfo, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-        val fieldText = if (isPassword(info)) "" else currentFieldText()
+        val password = isPassword(info)
+        // The text box is read only once the user has allowed it; an undecided answer asks first.
+        val allowed = fieldReadAllowed()
+        val fieldText = if (!password && allowed == true) currentFieldText() else ""
         provenance.opened(fieldText)
-        val savedLayout = prefs.getString(KEY_LAYOUT, null)?.let { name -> KeyLayout.entries.firstOrNull { it.name == name } }
         state.value = KeyboardUiState(
             query = fieldText,
-            layout = when {
-                fieldText.any(TextNormalizer::isHebrewLetter) -> KeyLayout.HEBREW
-                fieldText.any { it in 'a'..'z' || it in 'A'..'Z' } -> KeyLayout.ENGLISH
-                else -> savedLayout ?: KeyLayout.HEBREW
-            },
+            layout = layoutFor(fieldText),
             canSend = StickerSender.chooseMimeType(info) != null,
             // The folder browsed last time stays open.
             folders = state.value.folders,
             selectedFolder = state.value.selectedFolder,
+            askFieldConsent = !password && allowed == null,
         )
         search(immediately = true)
+    }
+
+    override fun onAllowFieldText() {
+        prefs.edit { putBoolean(KEY_READ_FIELD, true) }
+        val fieldText = currentFieldText()
+        provenance.opened(fieldText)
+        state.value = state.value.copy(query = fieldText, layout = layoutFor(fieldText), askFieldConsent = false, message = null)
+        search(immediately = true)
+    }
+
+    override fun onDeclineFieldText() {
+        prefs.edit { putBoolean(KEY_READ_FIELD, false) }
+        state.value = state.value.copy(askFieldConsent = false)
+    }
+
+    private fun fieldReadAllowed(): Boolean? =
+        if (prefs.contains(KEY_READ_FIELD)) prefs.getBoolean(KEY_READ_FIELD, false) else null
+
+    private fun layoutFor(fieldText: String): KeyLayout {
+        val savedLayout = prefs.getString(KEY_LAYOUT, null)?.let { name -> KeyLayout.entries.firstOrNull { it.name == name } }
+        return when {
+            fieldText.any(TextNormalizer::isHebrewLetter) -> KeyLayout.HEBREW
+            fieldText.any { it in 'a'..'z' || it in 'A'..'Z' } -> KeyLayout.ENGLISH
+            else -> savedLayout ?: KeyLayout.HEBREW
+        }
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
@@ -169,7 +194,7 @@ class StickerKeyboardService :
         // Once edited here, the search no longer matches the text box, which is then left alone
         // after sending; but chat text in it is still never learned from (see QueryProvenance).
         provenance.edited(query)
-        state.value = state.value.copy(query = query, message = null)
+        state.value = state.value.copy(query = query, message = null, askFieldConsent = false)
         search(immediately = false)
     }
 
@@ -275,5 +300,6 @@ class StickerKeyboardService :
         const val MEANING_PAUSE_MS = 250L
         const val PREFS = "sticker_keyboard"
         const val KEY_LAYOUT = "layout"
+        const val KEY_READ_FIELD = "read_text_box"
     }
 }

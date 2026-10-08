@@ -43,8 +43,10 @@ Peel-It is built so that nothing you do in it can leave your phone.
   app's private storage until the stickers or faces are found; "Delete all face data" also deletes
   waiting face fingerprints. A backup file is checked before anything in it is used, and one too
   large to be a real backup is refused.
-- **Keyboard.** The sticker keyboard reads at most 100 characters already in the chat box, only
-  when you open it, never in password fields, and never saves them.
+- **Keyboard.** On first use the sticker keyboard asks before it reads anything in the chat box.
+  If you allow it, it reads at most 100 characters already in the chat box, only when you open
+  it, never in password fields, and never saves them. If you don't allow it, it never reads the
+  chat box, and you type your search on its own keys.
 - **Problem reports.** "Build report" makes a text report of counts, versions and error messages,
   with no stickers, file names, sticker text, tags, names or searches. It's only shared if you
   share it yourself, and you see all of it first.

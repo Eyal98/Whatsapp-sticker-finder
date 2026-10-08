@@ -57,6 +57,8 @@ data class KeyboardUiState(
     /** The user's folders, and the one being browsed (null: all stickers). */
     val folders: List<FolderSummary> = emptyList(),
     val selectedFolder: Long? = null,
+    /** First use: the keyboard asks before it reads the text box. */
+    val askFieldConsent: Boolean = false,
 )
 
 interface KeyboardActions {
@@ -67,6 +69,8 @@ interface KeyboardActions {
     fun onSend(sticker: StickerEntity)
     fun onSwitchKeyboard()
     fun onSelectFolder(id: Long?)
+    fun onAllowFieldText()
+    fun onDeclineFieldText()
 }
 
 /**
@@ -80,6 +84,7 @@ fun StickerKeyboard(state: KeyboardUiState, actions: KeyboardActions) {
         // navigation bar (back / switch keyboard) instead of under it.
         Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(bottom = 4.dp)) {
             SearchBar(state, actions)
+            if (state.askFieldConsent) FieldConsent(actions)
             // The user's folders, to browse one by hand.
             if (state.folders.isNotEmpty()) {
                 FolderChips(
@@ -133,6 +138,17 @@ private fun SearchBar(state: KeyboardUiState, actions: KeyboardActions) {
             modifier = Modifier.weight(1f),
         )
         if (state.query.isNotEmpty()) TextButton(onClick = actions::onClear) { Text("✕", fontSize = ICON_TEXT) }
+    }
+}
+
+@Composable
+private fun FieldConsent(actions: KeyboardActions) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
+        Text(stringResource(R.string.keyboard_consent_body), style = MaterialTheme.typography.bodyMedium)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = actions::onDeclineFieldText) { Text(stringResource(R.string.keyboard_consent_decline)) }
+            TextButton(onClick = actions::onAllowFieldText) { Text(stringResource(R.string.keyboard_consent_allow)) }
+        }
     }
 }
 
