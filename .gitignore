@@ -18,3 +18,11 @@ eval/data/
 # Filled by :model_pack:syncModelAssets from the downloaded models.
 /model_pack/src/main/assets/*
 !/model_pack/src/main/assets/.gitkeep
+
+# Room regenerates the schema export on every build; only the .gitkeep is kept.
+core/data/schemas/*/
+# Local Claude Code permissions.
+.claude/settings.local.json
+
+# Local QA emulator
+/.qa-android/
