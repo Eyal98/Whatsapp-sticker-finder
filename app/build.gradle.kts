@@ -17,7 +17,7 @@ val modelsInAssetPack = providers.gradleProperty("modelsInAssetPack").map(String
 
 android {
     namespace = "com.eyal98.stickerfinder"
-    compileSdk = 35
+    compileSdk = 36
 
     if (modelsInAssetPack) {
         assetPacks += ":model_pack"
@@ -30,7 +30,9 @@ android {
         // Rules for the smoke test's own APK when it tests the minified build.
         testProguardFiles("test-proguard-rules.pro")
         minSdk = 30
-        targetSdk = 35
+        // Google Play has required API 36 for new apps and updates since 31 August 2026
+        // (developer.android.com/google/play/requirements/target-sdk).
+        targetSdk = 36
         // CI passes its run number so each sideload build installs over the previous one.
         versionCode = (findProperty("versionCode") as String?)?.toInt() ?: 1
         // CI passes the tag's version for alpha releases (v0.1.0-alpha.1 -> 0.1.0-alpha.1).

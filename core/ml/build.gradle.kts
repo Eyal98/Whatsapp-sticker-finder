@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.eyal98.stickerfinder.ml"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 30
