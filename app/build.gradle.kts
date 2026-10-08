@@ -51,6 +51,11 @@ android {
     // line or in the repository). Without both, sideload builds come out unsigned.
     val signingStore = (findProperty("signingStoreFile") as String?)?.let(::file)
     val signingPassword: String? = System.getenv("SIGNING_KEYSTORE_PASSWORD")
+    // The Play upload key, a different key from the sideload one: it signs the bundle CI hands to
+    // Play, and Play App Signing then re-signs the app with the app signing key it holds. Its path
+    // comes from -PuploadStoreFile with the password in UPLOAD_KEYSTORE_PASSWORD.
+    val uploadStore = (findProperty("uploadStoreFile") as String?)?.let(::file)
+    val uploadPassword: String? = System.getenv("UPLOAD_KEYSTORE_PASSWORD")
     signingConfigs {
         if (signingStore != null && signingPassword != null) {
             create("sideload") {
@@ -61,6 +66,15 @@ android {
                 keyPassword = signingPassword
             }
         }
+        if (uploadStore != null && uploadPassword != null) {
+            create("upload") {
+                storeFile = uploadStore
+                storeType = "pkcs12"
+                storePassword = uploadPassword
+                keyAlias = "upload"
+                keyPassword = uploadPassword
+            }
+        }
     }
 
     buildTypes {
@@ -68,6 +82,8 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // What goes to Play: bundleRelease, signed with the upload key when CI has it.
+            signingConfigs.findByName("upload")?.let { signingConfig = it }
         }
         // A release-like build for installing on your own phone from CI: not debuggable (so
         // app data can't be read over USB), signed with one stable key so updates keep data, and
@@ -76,7 +92,9 @@ android {
         create("sideload") {
             initWith(getByName("release"))
             matchingFallbacks += listOf("release")
-            signingConfigs.findByName("sideload")?.let { signingConfig = it }
+            // Never the upload key inherited from release: without the sideload key this build has
+            // to come out unsigned (app-sideload-unsigned.apk), which is how CI notices.
+            signingConfig = signingConfigs.findByName("sideload")
         }
         // The sideload build's exact R8 setup, signed with the debug key: what the on-device smoke
         // test runs (.github/workflows/smoke.yml), since the real key only exists in CI secrets.
