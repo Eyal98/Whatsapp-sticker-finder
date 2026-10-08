@@ -12,8 +12,8 @@ in the build and the license its Maven POM declares (`app/build.gradle.kts`, `de
 |---|---|---|---|---|
 | SigLIP 2 base, patch 16, 224 px (fp16 LiteRT) | Google | Picture tags | Apache License 2.0 | https://huggingface.co/litert-community/SigLIP2-base-patch16-224 |
 | Granite Embedding 311M Multilingual R2 (int8 LiteRT-LM) | IBM | Search by meaning | Apache License 2.0 | https://huggingface.co/litert-community/granite-embedding-311m-multilingual-r2 |
-| SFace face recognition, converted to LiteRT by this project | OpenCV Zoo | Telling people apart (People) | Apache License 2.0 | https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface |
-| ML Kit face detection (bundled model) | Google | Finding faces (People) | ML Kit Terms of Service | https://developers.google.com/ml-kit/terms |
+| SFace face recognition, converted to LiteRT by this project (**not distributed**, see below) | OpenCV Zoo | Telling people apart (People) | Apache License 2.0 (code and model card) | https://github.com/opencv/opencv_zoo/tree/main/models/face_recognition_sface |
+| ML Kit face detection (**not distributed for People**, see below) | Google | Finding faces (People) | ML Kit Terms of Service | https://developers.google.com/ml-kit/terms |
 | Tesseract `tessdata_fast` language data (heb, eng) | Tesseract OCR | Reading printed text | Apache License 2.0 | https://github.com/tesseract-ocr/tessdata_fast |
 
 Every model file is downloaded when the app is built and checked against a pinned SHA-256
@@ -21,9 +21,12 @@ Every model file is downloaded when the app is built and checked against a pinne
 `core/ocr/tessdata.properties`). The picture-tag label list (`tools/siglip/labels.tsv`) and its
 vectors are this project's own.
 
-**SFace training data.** The SFace model files are Apache-2.0 (per OpenCV Zoo's model README), but face-recognition models are
-usually trained on research face datasets whose terms may restrict commercial use. That is fine
-for a free app; check the model's training data terms before any paid or commercial release.
+**SFace is not distributed.** OpenCV Zoo's model README gives the SFace files as Apache-2.0. Face-recognition
+models are often trained on research face datasets whose terms restrict use, and this project has not verified
+the training-data terms for SFace. No statement in this file says the model may be used in a free, paid or
+commercial release. Until a rights decision is recorded, the People feature and its face model are excluded
+from every distributed build (`core/vision/faces.properties` is set to `UNPINNED`), and the ML Kit face
+detection model is not used for People.
 
 ## Native code inside libraries
 
