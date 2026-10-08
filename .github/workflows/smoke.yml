@@ -102,4 +102,5 @@ jobs:
             app/build/reports/androidTests/
             ${{ runner.temp }}/logcat.txt
             ${{ runner.temp }}/perf.txt
+            ${{ runner.temp }}/am-start.txt
           retention-days: 14

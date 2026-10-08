@@ -16,7 +16,8 @@ status=$?
 [ "$status" -eq 124 ] && echo "::error::The smoke test timed out after 40 minutes"
 # Cold start as a user's first launch: the process is stopped, then the activity is started and timed until drawn.
 adb shell am force-stop "$pkg" || true
-cold=$(adb shell am start -W -n "$pkg/.MainActivity" | tr -d '\r' | sed -n 's/^TotalTime: //p')
+adb shell am start -W -n "$pkg/.MainActivity" 2>&1 | tr -d '\r' | tee "$out/am-start.txt" > /dev/null
+cold=$(sed -n 's/^TotalTime: //p' "$out/am-start.txt")
 adb shell log -t PeelItPerf "PERF cold_start_total_ms=${cold:-unknown}" || true
 adb logcat -d -v time > "$out/logcat.txt" 2>&1 || true
 grep -E "PERF " "$out/logcat.txt" > "$out/perf.txt" || true
