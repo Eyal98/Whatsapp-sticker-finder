@@ -75,8 +75,9 @@ fun SmartSearchScreen(
     }
     val chatLearning by viewModel.chatLearning.collectAsStateWithLifecycle()
     val pickChat = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) viewModel.importChat(uri)
+        if (uri != null) viewModel.offerChat(uri)
     }
+    val chatOffer by viewModel.chatOffer.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var diagnostics by remember { mutableStateOf<String?>(null) }
@@ -86,6 +87,21 @@ fun SmartSearchScreen(
     }
 
     BackHandler(onBack = onBack)
+    if (chatOffer != null) {
+        AlertDialog(
+            onDismissRequest = viewModel::cancelChat,
+            title = { Text(stringResource(R.string.chats_offer_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.chats_body), style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.chats_privacy), style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.chats_offer_body), style = MaterialTheme.typography.bodySmall)
+                }
+            },
+            confirmButton = { TextButton(onClick = viewModel::acceptChat) { Text(stringResource(R.string.chats_offer_import)) } },
+            dismissButton = { TextButton(onClick = viewModel::cancelChat) { Text(stringResource(R.string.cancel)) } },
+        )
+    }
     LaunchedEffect(Unit) { viewModel.refresh() }
     Scaffold { padding ->
         Column(

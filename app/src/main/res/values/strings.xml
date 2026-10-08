@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Peel-It</string>
     <string name="onboarding_title">Find your WhatsApp stickers</string>
-    <string name="onboarding_body">Choose WhatsApp\'s sticker folder so the app can read your stickers. Access is read-only. The app has no internet permission, so it can't send your stickers or searches anywhere; a sticker leaves your phone only when you send it to WhatsApp yourself.\n\nThe folder is at:\nAndroid › media › com.whatsapp › WhatsApp › Media › WhatsApp Stickers</string>
+    <string name="onboarding_body">Choose WhatsApp\'s sticker folder so the app can read your stickers. Access is read-only. The app has no internet permission, so it can\'t send your stickers or searches anywhere; a sticker leaves your phone only when you send it to WhatsApp yourself.\n\nThe folder is at:\nAndroid › media › com.whatsapp › WhatsApp › Media › WhatsApp Stickers</string>
     <string name="onboarding_choose_folder">Choose folder</string>
     <string name="search_hint">Search stickers (עברית / English)</string>
     <string name="clear_search">Clear search</string>
@@ -221,6 +221,9 @@
     <string name="chats_body">Peel-It can learn what you use each sticker for from the messages written just before it was sent. Then searching \"late\" finds the stickers you send when someone is running late, even if nothing on them says so. In WhatsApp, open a chat, tap ⋮ → More → Export chat → Include media, and share it to Peel-It, or save it and import it here. The more chats you import, the better it gets.</string>
     <string name="chats_privacy">It all happens on this phone. Peel-It keeps only numbers that sum up what was said before each sticker, never the messages, names or phone numbers, and doesn\'t keep the export. An export also holds the other person\'s messages, so use it for your own chats.</string>
     <string name="chats_import">Import a chat export</string>
+    <string name="chats_offer_title">Learn from this chat?</string>
+    <string name="chats_offer_body">Nothing is read until you tap Import. Cancel reads nothing.</string>
+    <string name="chats_offer_import">Import</string>
     <string name="chats_no_model">This needs the meaning-search model, which isn\'t available on this phone right now.</string>
     <string name="chats_reading">Reading the chat…</string>
     <string name="chats_reading_percent">Reading the chat… %1$d%%</string>

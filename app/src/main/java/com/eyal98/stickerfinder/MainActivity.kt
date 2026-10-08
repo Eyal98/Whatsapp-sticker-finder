@@ -113,7 +113,7 @@ class MainActivity : ComponentActivity() {
         } ?: return
         // Without a stickers folder there's nothing to recognize the chat's stickers in yet.
         if (StickerFolder.current(this) == null) return
-        (application as StickerFinderApp).chatImports.start(uri)
+        (application as StickerFinderApp).chatImports.offer(uri)
         openSmartSearch.value = true
     }
 

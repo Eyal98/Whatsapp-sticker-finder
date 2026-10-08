@@ -166,8 +166,14 @@ class SmartSearchViewModel(private val app: StickerFinderApp) : ViewModel() {
         ChatLearningUiState(state, chats, stickers, available = withContext(Dispatchers.IO) { app.embedders.isAvailable() })
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ChatLearningUiState())
 
-    /** Learns from a chat export the user picked or shared (see [ChatImports]). */
-    fun importChat(uri: Uri) = app.chatImports.start(uri)
+    val chatOffer: StateFlow<Uri?> = app.chatImports.offered
+
+    /** Offers a chat export the user picked or shared; nothing is read until [acceptChat] (see [ChatImports]). */
+    fun offerChat(uri: Uri) = app.chatImports.offer(uri)
+
+    fun acceptChat() = app.chatImports.acceptOffer()
+
+    fun cancelChat() = app.chatImports.cancelOffer()
 
     fun forgetChats() = app.chatImports.forget()
 

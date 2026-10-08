@@ -27,8 +27,29 @@ class ChatImports(private val app: StickerFinderApp, private val scope: Coroutin
     private val _state = MutableStateFlow<State>(State.Idle)
     val state: StateFlow<State> = _state
 
+    private val _offered = MutableStateFlow<Uri?>(null)
+
+    /** A shared or picked export waiting for the user's Import. Nothing is read from it until then. */
+    val offered: StateFlow<Uri?> = _offered
+
+    fun offer(uri: Uri) {
+        _offered.value = uri
+    }
+
+    fun cancelOffer() {
+        _offered.value = null
+    }
+
+    /** Starts the offered import; the offer stays while another import runs. */
+    fun acceptOffer() {
+        val uri = _offered.value ?: return
+        if (_state.value is State.Running) return
+        _offered.value = null
+        start(uri)
+    }
+
     /** Starts importing [uri]; ignored while another import runs. */
-    fun start(uri: Uri) {
+    private fun start(uri: Uri) {
         synchronized(this) {
             if (_state.value is State.Running) return
             _state.value = State.Running(null)
