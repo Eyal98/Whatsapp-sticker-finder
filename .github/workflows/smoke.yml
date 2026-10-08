@@ -5,6 +5,10 @@
 #
 # The APK is arm64-only; the x86_64 emulator image runs it through Android's ARM translation,
 # which is slow but fine for one pass of each model.
+#
+# Three emulator legs, one per RAM band the app branches on (core/ml DeviceCapability and
+# IndexWorker): 6 GB runs the whole suite; 3.5 GB and 2.5 GB run FirstRunTest, which times first-run
+# work and asserts the band's gates. Each leg uploads its PERF measurements as perf.txt.
 name: Smoke test
 
 on:
@@ -19,14 +23,32 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: smoke-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   emulator:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
+    concurrency:
+      group: smoke-${{ github.ref }}-${{ matrix.leg }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - leg: ram-6g
+            ram: 6144M
+            band: above4
+            test-class: ""
+          - leg: ram-3-4g
+            ram: 3584M
+            band: 3to4
+            test-class: com.eyal98.stickerfinder.FirstRunTest
+          - leg: ram-below-3g
+            ram: 2560M
+            band: below3
+            test-class: com.eyal98.stickerfinder.FirstRunTest
+    env:
+      SMOKE_RAM_BAND: ${{ matrix.band }}
+      SMOKE_TEST_CLASS: ${{ matrix.test-class }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
@@ -65,7 +87,7 @@ jobs:
           api-level: 34
           target: google_apis
           arch: x86_64
-          ram-size: 6144M
+          ram-size: ${{ matrix.ram }}
           disk-size: 8G
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
@@ -75,8 +97,9 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: smoke-reports
+          name: smoke-reports-${{ matrix.leg }}
           path: |
             app/build/reports/androidTests/
             ${{ runner.temp }}/logcat.txt
+            ${{ runner.temp }}/perf.txt
           retention-days: 14
