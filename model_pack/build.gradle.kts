@@ -52,3 +52,8 @@ tasks.configureEach {
         dependsOn(syncModelAssets)
     }
 }
+
+// The app's pre-bundle task packs this folder, and it can't see that it needs the sync otherwise.
+project(":app").tasks.matching { it.name.startsWith("assetPack") }.configureEach {
+    dependsOn(syncModelAssets)
+}
