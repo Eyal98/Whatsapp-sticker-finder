@@ -94,7 +94,7 @@ echo "::endgroup::"
 # app supports. With no --modules it covers what Play downloads on install: the base module and every
 # install-time asset pack.
 size_of() {
-  bt get-size total --apks="$apks" "$@" | tail -n 1 | cut -d, -f2
+  bt get-size total --apks="$apks" "$@" | tr -d '\r' | tail -n 1 | cut -d, -f2
 }
 install_bytes="$(size_of)"
 base_bytes="$(size_of --modules=base)"

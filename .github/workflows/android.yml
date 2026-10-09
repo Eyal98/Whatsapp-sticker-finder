@@ -173,7 +173,7 @@ jobs:
       # up with the sideload key would mean uploading a bundle signed by a key Play doesn't expect.
       - name: Signing certificate of the bundle
         run: |
-          if certs=$(keytool -printcert -jarfile "$AAB" 2>/dev/null) && [ -n "$certs" ]; then
+          if certs=$(keytool -printcert -jarfile "$AAB" 2>/dev/null) && grep -q 'SHA256:' <<<"$certs"; then
             echo "Upload key certificate:"
             sed -n '/SHA256:/p' <<<"$certs"
           else
