@@ -14,7 +14,10 @@ adb logcat -c || true
 timeout 40m ./gradlew --no-daemon connectedMinifiedAndroidTest "${args[@]}"
 status=$?
 [ "$status" -eq 124 ] && echo "::error::The smoke test timed out after 40 minutes"
-# Cold start as a user's first launch: the process is stopped, then the activity is started and timed until drawn.
+# Cold start as a user's first launch. connectedAndroidTest uninstalls the app when it finishes,
+# so it's installed again first; then the activity is started and timed until drawn.
+apk=$(ls app/build/outputs/apk/minified/*.apk 2>/dev/null | head -n 1)
+[ -n "$apk" ] && adb install -r "$apk" > /dev/null || echo "::warning::No minified APK to install for the cold-start timing"
 adb shell am force-stop "$pkg" || true
 adb shell am start -W -n "$pkg/.MainActivity" 2>&1 | tr -d '\r' | tee "$out/am-start.txt" > /dev/null
 cold=$(sed -n 's/^TotalTime: //p' "$out/am-start.txt")

@@ -22,3 +22,8 @@
 -keep class com.eyal98.stickerfinder.ml.** { *; }
 -keep class com.eyal98.stickerfinder.embed.** { *; }
 -keep class com.eyal98.stickerfinder.search.** { *; }
+# FirstRunTest also builds a database and runs the indexer directly.
+-keep class com.eyal98.stickerfinder.data.** { *; }
+-keep class com.eyal98.stickerfinder.index.** { *; }
+# FirstRunTest calls runBlocking, which the app itself never uses, so R8 drops it.
+-keep class kotlinx.coroutines.** { *; }
