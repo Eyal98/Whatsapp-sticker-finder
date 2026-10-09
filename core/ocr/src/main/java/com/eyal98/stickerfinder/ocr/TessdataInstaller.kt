@@ -19,6 +19,8 @@ object TessdataInstaller {
      * Returns the directory to pass to Tesseract (it must contain a `tessdata` folder), or null
      * if the files could not be installed.
      */
+    // Startup runs two index workers at once; unlocked, one deletes the other's partial copies.
+    @Synchronized
     fun install(context: Context): File? {
         val root = File(context.noBackupFilesDir, "ocr")
         val tessdata = File(root, ASSET_DIR)
