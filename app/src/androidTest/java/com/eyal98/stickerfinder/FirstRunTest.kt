@@ -92,8 +92,12 @@ class FirstRunTest {
         val encoder = timed("picture_load") { SiglipImageEncoder(SiglipModel.map(context)) }
         encoder.use { timed("picture_first_encode") { it.encode(shapeBitmap()) } }
 
-        val faces = timed("faces_load") { StickerFaces(StickerFaces.mapModel(context)) }
-        faces.use { timed("faces_first_find") { it.find(shapeBitmap()) } }
+        if (StickerFaces.isBundled(context)) {
+            val faces = timed("faces_load") { StickerFaces(StickerFaces.mapModel(context)) }
+            faces.use { timed("faces_first_find") { it.find(shapeBitmap()) } }
+        } else {
+            perf("faces_load skipped=not_bundled")
+        }
 
         val status = timed("semantic_model_install") { BundledEmbedding.install(context) }
         assertEquals(BundledEmbedding.Status.READY, status)
